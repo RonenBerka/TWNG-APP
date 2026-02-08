@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TWNG Magazine Cover</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a1a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .magazine-cover {
+            width: 1080px;
+            height: 1350px;
+            position: relative;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .cover-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                180deg,
+                rgba(0,0,0,0.3) 0%,
+                rgba(0,0,0,0) 25%,
+                rgba(0,0,0,0) 60%,
+                rgba(0,0,0,0.7) 100%
+            );
+        }
+
+        .logo-container {
+            position: absolute;
+            top: 30px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .logo {
+            height: 80px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+        }
+
+        .tagline-top {
+            position: absolute;
+            top: 130px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-family: 'Oswald', sans-serif;
+            font-size: 18px;
+            font-weight: 500;
+            letter-spacing: 4px;
+            color: #F59E0B;
+            text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .side-headlines {
+            position: absolute;
+            top: 200px;
+            left: 40px;
+            z-index: 10;
+        }
+
+        .side-headline {
+            margin-bottom: 25px;
+        }
+
+        .side-headline .category {
+            font-family: 'Oswald', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: #F59E0B;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .side-headline .title {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+            max-width: 280px;
+        }
+
+        .main-headline {
+            position: absolute;
+            bottom: 80px;
+            left: 40px;
+            right: 40px;
+            z-index: 10;
+        }
+
+        .main-headline .guitar-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 72px;
+            font-weight: 900;
+            color: #fff;
+            line-height: 1;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.8);
+            margin-bottom: 10px;
+        }
+
+        .main-headline .guitar-subtitle {
+            font-family: 'Oswald', sans-serif;
+            font-size: 28px;
+            font-weight: 500;
+            color: #F59E0B;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+        }
+
+        .bottom-tagline {
+            position: absolute;
+            bottom: 30px;
+            left: 40px;
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            font-style: italic;
+            color: rgba(255,255,255,0.9);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .issue-info {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            text-align: right;
+            font-family: 'Oswald', sans-serif;
+            font-size: 14px;
+            color: rgba(255,255,255,0.8);
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* Magazine border effect */
+        .magazine-cover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 3px solid rgba(255,255,255,0.1);
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        /* Vintage grain effect */
+        .grain {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        /* Scale for display */
+        @media (max-width: 1200px) {
+            .magazine-cover {
+                width: 540px;
+                height: 675px;
+            }
+            .logo { height: 40px; }
+            .tagline-top { top: 70px; font-size: 10px; }
+            .side-headlines { top: 110px; left: 20px; }
+            .side-headline .category { font-size: 8px; }
+            .side-headline .title { font-size: 12px; max-width: 150px; }
+            .main-headline { bottom: 40px; left: 20px; right: 20px; }
+            .main-headline .guitar-name { font-size: 36px; }
+            .main-headline .guitar-subtitle { font-size: 14px; }
+            .bottom-tagline { bottom: 15px; left: 20px; font-size: 11px; }
+            .issue-info { top: 15px; right: 20px; font-size: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="magazine-cover">
+        <!-- Replace with actual image -->
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1080' height='1350' viewBox='0 0 1080 1350'%3E%3Crect fill='%23222' width='1080' height='1350'/%3E%3Ctext x='540' y='675' text-anchor='middle' fill='%23666' font-size='40'%3EGuitar Photo Here%3C/text%3E%3C/svg%3E" alt="Cover Photo" class="cover-image" id="coverImage">
+
+        <div class="overlay"></div>
+        <div class="grain"></div>
+
+        <!-- Logo -->
+        <div class="logo-container">
+            <svg class="logo" viewBox="0 0 200 60" fill="#F59E0B">
+                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="'Oswald', sans-serif" font-weight="700" font-size="48">TWNG</text>
+            </svg>
+        </div>
+
+        <!-- Top tagline -->
+        <div class="tagline-top">Every Guitar Has a Story</div>
+
+        <!-- Issue info -->
+        <div class="issue-info">
+            ISSUE NO. 001<br>
+            FREE FOREVER
+        </div>
+
+        <!-- Side headlines -->
+        <div class="side-headlines">
+            <div class="side-headline">
+                <div class="category">The Collection</div>
+                <div class="title">Your Guitars.<br>Your Stories.<br>Your Way.</div>
+            </div>
+            <div class="side-headline">
+                <div class="category">Inside</div>
+                <div class="title">Magic Add: AI That Knows Your Guitar</div>
+            </div>
+        </div>
+
+        <!-- Main headline -->
+        <div class="main-headline">
+            <div class="guitar-name">FENDER<br>STRATOCASTER</div>
+            <div class="guitar-subtitle">The One That Started Everything</div>
+        </div>
+
+        <!-- Bottom tagline -->
+        <div class="bottom-tagline">"Finally, a place to keep them."</div>
+    </div>
+
+    <script>
+        // For testing: drag & drop image
+        const cover = document.querySelector('.magazine-cover');
+        const coverImage = document.getElementById('coverImage');
+
+        cover.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            cover.style.opacity = '0.8';
+        });
+
+        cover.addEventListener('dragleave', () => {
+            cover.style.opacity = '1';
+        });
+
+        cover.addEventListener('drop', (e) => {
+            e.preventDefault();
+            cover.style.opacity = '1';
+
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    coverImage.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>

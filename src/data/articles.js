@@ -1,0 +1,61 @@
+import { ARTIST_IMAGES } from '../utils/placeholders';
+
+export const articles = [
+  {
+    id: 1,
+    type: "Guide",
+    title: "How to Date Your Gibson by Serial Number",
+    excerpt: "A comprehensive guide to Gibson serial number systems across every era, from pre-war ink stamps to modern 8-digit codes.",
+    author: "TWNG Editorial",
+    readTime: "12 min",
+    image: ARTIST_IMAGES.artist1,
+    publishedAt: "2025-11-15",
+    category: "Identification",
+  },
+  {
+    id: 2,
+    type: "Deep Dive",
+    title: "The Golden Era: Pre-War Martins",
+    excerpt: "Why guitars built between 1930-1944 represent the pinnacle of acoustic construction and command extraordinary prices.",
+    author: "David Rawlings",
+    readTime: "18 min",
+    image: ARTIST_IMAGES.artist2,
+    publishedAt: "2025-10-28",
+    category: "History",
+  },
+  {
+    id: 3,
+    type: "Interview",
+    title: "Stage Guitars: Instruments That Tour",
+    excerpt: "From arena stages to smoky clubs — how professional musicians choose, maintain, and bond with their touring instruments.",
+    author: "TWNG Editorial",
+    readTime: "15 min",
+    image: ARTIST_IMAGES.artist6,
+    publishedAt: "2025-10-10",
+    category: "Interviews",
+  },
+  {
+    id: 4,
+    type: "Guide",
+    title: "Understanding Pickup Types: From PAF to Modern",
+    excerpt: "Everything you need to know about guitar pickups — single-coils, humbuckers, P-90s, and the tonal differences that matter.",
+    author: "Sarah Mitchell",
+    readTime: "14 min",
+    image: ARTIST_IMAGES.artist4,
+    publishedAt: "2025-09-22",
+    category: "Technical",
+  },
+  {
+    id: 5,
+    type: "Feature",
+    title: "Heritage Guitars: The Kalamazoo Legacy",
+    excerpt: "How a group of former Gibson workers kept the spirit of American guitar-making alive in the original factory.",
+    author: "TWNG Editorial",
+    readTime: "20 min",
+    image: ARTIST_IMAGES.artist5,
+    publishedAt: "2025-09-05",
+    category: "History",
+  },
+];
+
+export const getArticleById = (id) => articles.find(a => a.id === Number(id));

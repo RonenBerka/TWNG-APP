@@ -1,0 +1,895 @@
+{
+  "app_name": "TWNG",
+  "app_description": "Guitar documentation platform enabling collectors to catalog, verify, transfer, and discuss guitars. Features AI-powered guitar identification, serial number decoding, community forums, real-time messaging, and a multi-role admin dashboard.",
+
+  "actors": [
+    {
+      "id": "ACT-001",
+      "name": "Guest",
+      "description": "Unauthenticated visitor — can browse public content only",
+      "capabilities": [
+        "View published guitars (Homepage, Explore)",
+        "Read articles",
+        "View user profiles",
+        "View luthier directory",
+        "Read forum threads (no posting)",
+        "Use serial decoder",
+        "Search guitars/users/articles",
+        "View legal/FAQ/about pages"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACT-002",
+      "name": "Registered User",
+      "description": "Authenticated user with 'user' role — default role on signup",
+      "capabilities": [
+        "All Guest capabilities",
+        "Add guitars (manual + Magic Add AI)",
+        "Manage own collection (edit, delete, export)",
+        "Transfer guitar ownership",
+        "Claim guitar ownership",
+        "Send/receive direct messages",
+        "Create forum threads and replies",
+        "Upvote forum threads",
+        "Love/favorite guitars",
+        "Manage own profile settings",
+        "View notifications",
+        "Change password",
+        "Delete own account"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACT-003",
+      "name": "Luthier",
+      "description": "Verified guitar builder/repairer — 'luthier' role with additional profile metadata",
+      "capabilities": [
+        "All Registered User capabilities",
+        "Appears in luthier directory",
+        "Has verified luthier badge",
+        "Extended profile (shop name, specialties, portfolio)"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACT-004",
+      "name": "Admin",
+      "description": "Platform administrator — 'admin' or 'super_admin' role",
+      "capabilities": [
+        "All Registered User capabilities",
+        "Access admin dashboard",
+        "Manage users (view, role assignment)",
+        "Moderate guitars (approve, reject, delete)",
+        "Process ownership claims (approve, reject)",
+        "Review AI change requests (approve, deny)",
+        "Manage transfers (view, update status)",
+        "Moderate forum (hide/unhide threads)",
+        "Manage articles (publish, unpublish)",
+        "Verify luthier profiles",
+        "Process privacy requests",
+        "Manage homepage content (marketing console)",
+        "View audit logs (super_admin only)",
+        "Edit system config (super_admin only)"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    }
+  ],
+
+  "entities": [
+    {
+      "id": "ENT-001",
+      "name": "Guitar",
+      "description": "Core entity — an instrument with brand, model, year, specs, photos, story, and timeline. Has states: draft, published, deleted.",
+      "crud_operations": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true
+      },
+      "special_actions": [
+        "Transfer ownership",
+        "Claim ownership",
+        "AI analysis (Magic Add)",
+        "Serial decode",
+        "Love/favorite",
+        "Toggle visibility (Public/Owners Only/Private)",
+        "Export collection"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-002",
+      "name": "User Profile",
+      "description": "User account with display name, username, bio, avatar, location, social links, and role",
+      "crud_operations": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true
+      },
+      "special_actions": [
+        "Upload avatar",
+        "Change password",
+        "Toggle email visibility",
+        "Follow/unfollow users",
+        "Export personal data"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-003",
+      "name": "OCC (Owner Created Content)",
+      "description": "Images, stories, timeline events, and metadata attached to a guitar. Has per-item visibility tiers.",
+      "crud_operations": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true
+      },
+      "special_actions": [
+        "Cycle visibility (Public → Owners Only → Private)",
+        "Reorder position"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-004",
+      "name": "Transfer",
+      "description": "Ownership transfer request between users. States: pending, accepted, declined, completed, cancelled, expired.",
+      "crud_operations": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false
+      },
+      "special_actions": [
+        "Accept transfer",
+        "Decline transfer (with reason)",
+        "Cancel transfer",
+        "Set privacy overrides for transferred content"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-005",
+      "name": "Claim",
+      "description": "Ownership claim submitted by a user for a guitar they don't currently own. Requires verification evidence.",
+      "crud_operations": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false
+      },
+      "special_actions": [
+        "Upload evidence (photo, receipt, serial number)",
+        "Admin approve/reject"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-006",
+      "name": "Forum Thread",
+      "description": "Discussion thread in a category. Can be upvoted, replied to, pinned, locked, or hidden.",
+      "crud_operations": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false
+      },
+      "special_actions": [
+        "Upvote",
+        "Reply",
+        "Admin hide/unhide",
+        "Admin pin/lock"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-007",
+      "name": "Message",
+      "description": "Direct message between two users within a conversation thread. Real-time via Supabase subscriptions.",
+      "crud_operations": {
+        "create": true,
+        "read": true,
+        "update": false,
+        "delete": false
+      },
+      "special_actions": [
+        "Mark as read",
+        "Real-time subscription"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-008",
+      "name": "Notification",
+      "description": "In-app notification for transfers, claims, messages, comments, and system events.",
+      "crud_operations": {
+        "create": false,
+        "read": true,
+        "update": true,
+        "delete": true
+      },
+      "special_actions": [
+        "Mark as read",
+        "Mark all as read",
+        "Navigate to related entity"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-009",
+      "name": "Article",
+      "description": "Editorial content about guitars. Has author, categories, tags, likes, comments.",
+      "crud_operations": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": true
+      },
+      "special_actions": [
+        "Publish/unpublish (admin)",
+        "Like",
+        "Comment"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-010",
+      "name": "Change Request (IA)",
+      "description": "AI-suggested changes to guitar immutable attributes. Reviewed by admin.",
+      "crud_operations": {
+        "create": true,
+        "read": true,
+        "update": true,
+        "delete": false
+      },
+      "special_actions": [
+        "Admin approve",
+        "Admin deny"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-011",
+      "name": "Luthier Profile",
+      "description": "Extended profile for guitar builders — shop name, specialties, portfolio, ratings.",
+      "crud_operations": {
+        "create": false,
+        "read": true,
+        "update": true,
+        "delete": false
+      },
+      "special_actions": [
+        "Admin verify/unverify"
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    }
+  ],
+
+  "actions": [
+    {
+      "id": "ACN-001",
+      "name": "Sign Up",
+      "description": "Create new account with email/password or Google OAuth",
+      "actor_ids": ["ACT-001"],
+      "entity_id": "ENT-002",
+      "preconditions": ["Not currently authenticated"],
+      "expected_result": "New user created with 'user' role, redirected to onboarding",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-002",
+      "name": "Sign In",
+      "description": "Authenticate with email/password or Google OAuth",
+      "actor_ids": ["ACT-001"],
+      "entity_id": "ENT-002",
+      "preconditions": ["Valid account exists"],
+      "expected_result": "Session created, JWT issued with role, redirect to homepage",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-003",
+      "name": "Sign Out",
+      "description": "End current session and clear auth state",
+      "actor_ids": ["ACT-002", "ACT-003", "ACT-004"],
+      "entity_id": "ENT-002",
+      "preconditions": ["Currently authenticated"],
+      "expected_result": "Session cleared, redirect to /auth",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-004",
+      "name": "Add Guitar (Manual)",
+      "description": "6-step form: Photos → Basic Info → Specs → Story → Timeline → Review & Submit",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-001",
+      "preconditions": ["Authenticated"],
+      "expected_result": "New guitar record created with OCC in Supabase, added to user collection",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-005",
+      "name": "Add Guitar (Magic Add AI)",
+      "description": "Upload photos → AI analysis via Edge Function → auto-fill specs with confidence scores → user review → submit",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-001",
+      "preconditions": ["Authenticated", "At least one photo uploaded"],
+      "expected_result": "AI returns specs with confidence, user reviews and creates guitar",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-006",
+      "name": "Decode Serial Number",
+      "description": "Enter serial number, get decoded brand/year/factory/country info. Client-side only.",
+      "actor_ids": ["ACT-001", "ACT-002", "ACT-003"],
+      "entity_id": "ENT-001",
+      "preconditions": ["Valid serial number input"],
+      "expected_result": "Decoded info with confidence level, factory, year, and tips",
+      "involves_network": false,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-007",
+      "name": "Edit Guitar",
+      "description": "Owner updates guitar specs, story, or metadata",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-001",
+      "preconditions": ["Authenticated", "Is guitar owner"],
+      "expected_result": "Guitar record updated in database",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-008",
+      "name": "Delete Guitar",
+      "description": "Owner removes guitar from collection (soft delete)",
+      "actor_ids": ["ACT-002", "ACT-003", "ACT-004"],
+      "entity_id": "ENT-001",
+      "preconditions": ["Authenticated", "Is guitar owner or admin"],
+      "expected_result": "Guitar state set to 'deleted', removed from public view",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-009",
+      "name": "Love/Favorite Guitar",
+      "description": "Toggle love status on a guitar",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-001",
+      "preconditions": ["Authenticated"],
+      "expected_result": "Love state toggled, counter updated",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-010",
+      "name": "Transfer Guitar",
+      "description": "3-step flow: choose recipient → set privacy overrides → confirm",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-004",
+      "preconditions": ["Authenticated", "Is guitar owner", "Guitar is published"],
+      "expected_result": "Transfer record created with 'pending' status, recipient notified",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-011",
+      "name": "Accept Transfer",
+      "description": "Recipient accepts incoming guitar transfer",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-004",
+      "preconditions": ["Authenticated", "Is transfer recipient", "Transfer is pending"],
+      "expected_result": "Transfer status → accepted → completed, ownership changed",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-012",
+      "name": "Decline Transfer",
+      "description": "Recipient declines incoming transfer with optional reason",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-004",
+      "preconditions": ["Authenticated", "Is transfer recipient", "Transfer is pending"],
+      "expected_result": "Transfer status → declined, sender notified",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-013",
+      "name": "Cancel Transfer",
+      "description": "Sender cancels outgoing pending transfer",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-004",
+      "preconditions": ["Authenticated", "Is transfer sender", "Transfer is pending"],
+      "expected_result": "Transfer status → cancelled",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-014",
+      "name": "Claim Guitar",
+      "description": "3-step flow: preview guitar → choose verification type + upload evidence → confirm",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-005",
+      "preconditions": ["Authenticated", "Not current owner", "No pending claim for this guitar"],
+      "expected_result": "Claim record created with evidence, admin notified",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-015",
+      "name": "Send Message",
+      "description": "Send direct message to another user",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-007",
+      "preconditions": ["Authenticated", "Valid recipient"],
+      "expected_result": "Message delivered in real-time, conversation created if new",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-016",
+      "name": "Create Forum Thread",
+      "description": "Start new discussion thread in a category",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-006",
+      "preconditions": ["Authenticated", "Category selected"],
+      "expected_result": "New thread created, visible in category feed",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-017",
+      "name": "Reply to Thread",
+      "description": "Post a reply to an existing forum thread",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-006",
+      "preconditions": ["Authenticated", "Thread exists and not locked"],
+      "expected_result": "Reply added, reply count incremented",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-018",
+      "name": "Upvote Thread",
+      "description": "Upvote a forum thread",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-006",
+      "preconditions": ["Authenticated"],
+      "expected_result": "Upvote count incremented",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-019",
+      "name": "Update Profile",
+      "description": "Edit display name, username, bio, location, social links, avatar",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-002",
+      "preconditions": ["Authenticated"],
+      "expected_result": "Profile updated in users table",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-020",
+      "name": "Change Password",
+      "description": "Update account password via Settings",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-002",
+      "preconditions": ["Authenticated"],
+      "expected_result": "Password updated in Supabase Auth",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-021",
+      "name": "Delete Account",
+      "description": "Permanently delete user account and all data",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-002",
+      "preconditions": ["Authenticated", "Confirms deletion"],
+      "expected_result": "Account and associated data removed",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-022",
+      "name": "Export Collection",
+      "description": "Download collection as JSON file",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-001",
+      "preconditions": ["Authenticated", "Has guitars in collection"],
+      "expected_result": "JSON file downloaded with all guitar data",
+      "involves_network": false,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-023",
+      "name": "Mark Notification Read",
+      "description": "Mark single notification as read or mark all as read",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-008",
+      "preconditions": ["Authenticated", "Has notifications"],
+      "expected_result": "Notification(s) marked as read, badge count updated",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-024",
+      "name": "Toggle OCC Visibility",
+      "description": "Cycle content visibility: Public → Owners Only → Private",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-003",
+      "preconditions": ["Authenticated", "Is content creator or guitar owner"],
+      "expected_result": "Visibility level cycled, icon updated",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-025",
+      "name": "Search Guitars",
+      "description": "Full-text search across guitars by brand, model, or keywords",
+      "actor_ids": ["ACT-001", "ACT-002", "ACT-003"],
+      "entity_id": "ENT-001",
+      "preconditions": ["Query entered"],
+      "expected_result": "Matching results displayed with filters and sorting",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-026",
+      "name": "Admin: Manage Users",
+      "description": "View user list, change roles, ban/suspend users",
+      "actor_ids": ["ACT-004"],
+      "entity_id": "ENT-002",
+      "preconditions": ["Authenticated", "Is admin/super_admin"],
+      "expected_result": "User list displayed, role changes applied",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-027",
+      "name": "Admin: Moderate Guitars",
+      "description": "Approve, reject, or delete guitars",
+      "actor_ids": ["ACT-004"],
+      "entity_id": "ENT-001",
+      "preconditions": ["Authenticated", "Is admin/super_admin"],
+      "expected_result": "Guitar state updated (published/deleted)",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-028",
+      "name": "Admin: Process Claim",
+      "description": "Review ownership claim evidence, approve or reject",
+      "actor_ids": ["ACT-004"],
+      "entity_id": "ENT-005",
+      "preconditions": ["Authenticated", "Is admin/super_admin", "Pending claim exists"],
+      "expected_result": "Claim approved (ownership transferred) or rejected (user notified)",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-029",
+      "name": "Admin: Review Change Request",
+      "description": "Review AI-suggested guitar attribute change, approve or deny",
+      "actor_ids": ["ACT-004"],
+      "entity_id": "ENT-010",
+      "preconditions": ["Authenticated", "Is admin/super_admin", "Pending change request exists"],
+      "expected_result": "Change applied to guitar or denied",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-030",
+      "name": "Admin: Manage Homepage",
+      "description": "Edit hero, featured sections, testimonials, stats via marketing console",
+      "actor_ids": ["ACT-004"],
+      "entity_id": "ENT-009",
+      "preconditions": ["Authenticated", "Is admin/super_admin"],
+      "expected_result": "Homepage sections updated, visible to all visitors",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-031",
+      "name": "Admin: Moderate Forum",
+      "description": "Hide/unhide threads, manage discussions",
+      "actor_ids": ["ACT-004"],
+      "entity_id": "ENT-006",
+      "preconditions": ["Authenticated", "Is staff role"],
+      "expected_result": "Thread visibility toggled",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-032",
+      "name": "Admin: Verify Luthier",
+      "description": "Mark luthier profile as verified/unverified",
+      "actor_ids": ["ACT-004"],
+      "entity_id": "ENT-011",
+      "preconditions": ["Authenticated", "Is admin/super_admin"],
+      "expected_result": "Luthier verification status updated",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-033",
+      "name": "Browse Explore Page",
+      "description": "Advanced guitar browsing with filters (brand, body type, year range, condition), sorting, and views",
+      "actor_ids": ["ACT-001", "ACT-002", "ACT-003"],
+      "entity_id": "ENT-001",
+      "preconditions": [],
+      "expected_result": "Filtered guitar results displayed in grid/list view",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-034",
+      "name": "Upload Guitar Photos",
+      "description": "Drag-drop or file picker to upload images to Supabase storage",
+      "actor_ids": ["ACT-002", "ACT-003"],
+      "entity_id": "ENT-003",
+      "preconditions": ["Authenticated", "In AddGuitar or GuitarDetail"],
+      "expected_result": "Photos uploaded to guitar-images bucket, URLs stored in OCC",
+      "involves_network": true,
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    }
+  ],
+
+  "states": [
+    {
+      "id": "STA-001",
+      "entity_id": "ENT-001",
+      "name": "Guitar State",
+      "transitions": [
+        { "from": "draft", "to": "published", "trigger_action_id": "ACN-004" },
+        { "from": "published", "to": "deleted", "trigger_action_id": "ACN-008" },
+        { "from": "draft", "to": "deleted", "trigger_action_id": "ACN-008" },
+        { "from": "published", "to": "published", "trigger_action_id": "ACN-027" }
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "STA-002",
+      "entity_id": "ENT-004",
+      "name": "Transfer State",
+      "transitions": [
+        { "from": "pending", "to": "accepted", "trigger_action_id": "ACN-011" },
+        { "from": "pending", "to": "declined", "trigger_action_id": "ACN-012" },
+        { "from": "pending", "to": "cancelled", "trigger_action_id": "ACN-013" },
+        { "from": "accepted", "to": "completed", "trigger_action_id": "ACN-011" },
+        { "from": "pending", "to": "expired", "trigger_action_id": null }
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "STA-003",
+      "entity_id": "ENT-005",
+      "name": "Claim State",
+      "transitions": [
+        { "from": "pending", "to": "approved", "trigger_action_id": "ACN-028" },
+        { "from": "pending", "to": "rejected", "trigger_action_id": "ACN-028" }
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "STA-004",
+      "entity_id": "ENT-003",
+      "name": "OCC Visibility",
+      "transitions": [
+        { "from": "public", "to": "owners_only", "trigger_action_id": "ACN-024" },
+        { "from": "owners_only", "to": "private", "trigger_action_id": "ACN-024" },
+        { "from": "private", "to": "public", "trigger_action_id": "ACN-024" }
+      ],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    }
+  ],
+
+  "constraints": [
+    {
+      "id": "CON-001",
+      "description": "Only authenticated users can create, edit, or delete guitars",
+      "applies_to": ["ACN-004", "ACN-005", "ACN-007", "ACN-008"],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-002",
+      "description": "Only guitar owner can edit/delete their own guitar (or admin)",
+      "applies_to": ["ACN-007", "ACN-008"],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-003",
+      "description": "Only admin/super_admin can access admin dashboard",
+      "applies_to": ["ACN-026", "ACN-027", "ACN-028", "ACN-029", "ACN-030", "ACN-031", "ACN-032"],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-004",
+      "description": "Only super_admin can assign admin/super_admin roles and edit system config",
+      "applies_to": ["ACN-026"],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-005",
+      "description": "A user cannot have a pending claim for a guitar they already own",
+      "applies_to": ["ACN-014"],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-006",
+      "description": "Transfer can only be initiated by the current guitar owner",
+      "applies_to": ["ACN-010"],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-007",
+      "description": "Messages are only visible to sender and recipient (RLS enforced)",
+      "applies_to": ["ACN-015", "ENT-007"],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-008",
+      "description": "Magic Add AI has 15-second timeout with 1 retry, falls back to filename analysis",
+      "applies_to": ["ACN-005"],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-009",
+      "description": "Serial decoder supports 9 brands: Fender, Gibson, PRS, Martin, Taylor, Ibanez, Epiphone, Rickenbacker, Gretsch",
+      "applies_to": ["ACN-006"],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-010",
+      "description": "Audit logs are read-only and only visible to super_admin role",
+      "applies_to": ["ACT-004"],
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    }
+  ],
+
+  "integrations": [
+    {
+      "id": "INT-001",
+      "name": "Supabase Auth",
+      "description": "Email/password and Google OAuth authentication with JWT-based role management",
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "INT-002",
+      "name": "Supabase Database (PostgreSQL)",
+      "description": "26+ tables with RLS policies for all data storage and querying",
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "INT-003",
+      "name": "Supabase Storage",
+      "description": "guitar-images bucket for photo storage with public URL generation",
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "INT-004",
+      "name": "Supabase Realtime",
+      "description": "Real-time subscriptions for messages and notifications",
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "INT-005",
+      "name": "Supabase Edge Functions (analyze-guitar)",
+      "description": "AI-powered guitar analysis using Claude Sonnet 4.5 with two-pass image analysis",
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "INT-006",
+      "name": "DiceBear Avatars API",
+      "description": "Fallback avatar generation for users without custom avatars",
+      "source": "UI",
+      "confidence": "CONFIRMED"
+    }
+  ],
+
+  "open_questions": [
+    {
+      "question": "Is password reset fully implemented? The 'Forgot Password' button exists but the handler appears incomplete.",
+      "context": "Affects auth flow testing — if broken, users locked out of accounts cannot recover.",
+      "related_ids": ["ACN-002", "ENT-002"]
+    },
+    {
+      "question": "Are comments on GuitarDetail fully backed by database, or UI-only with mock data?",
+      "context": "Affects social feature testing — if mock-only, comment tests should be skipped or flagged as future.",
+      "related_ids": ["ENT-001"]
+    },
+    {
+      "question": "Is the follow/unfollow user feature backend-connected or UI placeholder?",
+      "context": "Affects social graph testing — UserProfile page shows follow button but implementation unclear.",
+      "related_ids": ["ENT-002"]
+    },
+    {
+      "question": "What is the exact behavior for transfer expiry (7-day deadline)? Is it enforced by a cron job or checked on read?",
+      "context": "Affects transfer lifecycle testing — need to know if expired transfers auto-cancel.",
+      "related_ids": ["STA-002", "ENT-004"]
+    },
+    {
+      "question": "Are phone/video calls in messaging planned features or permanently 'coming soon'?",
+      "context": "Currently shows toast 'coming soon'. Tests should verify toast behavior but not call functionality.",
+      "related_ids": ["ENT-007"]
+    }
+  ]
+}

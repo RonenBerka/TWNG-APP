@@ -1,0 +1,13 @@
+{
+  "name": "twng-cover-generator",
+  "version": "1.0.0",
+  "description": "TWNG Magazine Cover Generator - Automated cover creation",
+  "main": "generate.js",
+  "scripts": {
+    "generate": "node generate.js",
+    "batch": "node batch.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0"
+  }
+}

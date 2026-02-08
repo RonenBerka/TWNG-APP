@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--twng-bg-deep, #0C0A09);
+  color: var(--twng-txt, #FAFAF9);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--twng-bg-deep, #0C0A09); }
+::-webkit-scrollbar-thumb { background: var(--twng-border, #2E2A27); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--twng-border-acc, #78350F); }
+
+a { text-decoration: none; color: inherit; }
+
+/* ─── Mobile Responsive Baseline ─── */
+@media (max-width: 640px) {
+  body {
+    font-size: 14px;
+  }
+  /* Minimum touch target size for accessibility */
+  button, a, input, select, textarea {
+    min-height: 44px;
+  }
+  /* Prevent horizontal overflow */
+  img, video, iframe, table {
+    max-width: 100%;
+  }
+  /* Full-width inputs on mobile */
+  input[type="text"], input[type="email"], input[type="password"],
+  input[type="search"], input[type="url"], input[type="number"],
+  select, textarea {
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Stack flex containers on very small screens */
+  .mobile-stack {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+}
