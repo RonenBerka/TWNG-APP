@@ -179,6 +179,16 @@ export function AuthProvider({ children }) {
       },
     });
     if (error) throw error;
+
+    // Trigger welcome email sequence (non-blocking)
+    if (data?.user?.id) {
+      import('../lib/email/emailService').then(({ triggerWelcomeSequence }) => {
+        triggerWelcomeSequence(data.user.id, email, displayName || email.split('@')[0]).catch((e) =>
+          console.warn('Welcome email failed (non-critical):', e.message)
+        );
+      }).catch(() => { /* email module not critical */ });
+    }
+
     return data;
   }, []);
 

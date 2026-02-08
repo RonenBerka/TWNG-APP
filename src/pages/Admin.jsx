@@ -2327,10 +2327,19 @@ const InstrumentManagementPage = () => {
     try {
       const photoUrls = await getGuitarPhotoUrls(guitar.id);
 
-      const { data, error: fnError } = await supabase.functions.invoke(
-        "verify-guitar",
+      // Use fetch directly to avoid Supabase JS client adding apikey header
+      // which can fail CORS preflight on some Edge Function configurations
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/verify-guitar`,
         {
-          body: {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
             guitarId: guitar.id,
             brand: guitar.brand,
             model: guitar.model,
@@ -2340,11 +2349,14 @@ const InstrumentManagementPage = () => {
             finish: guitar.finish,
             specifications: guitar.specifications,
             photoUrls,
-          },
+          }),
         },
       );
 
-      if (fnError) throw fnError;
+      if (!response.ok) {
+        throw new Error(`Edge Function returned ${response.status}`);
+      }
+      const data = await response.json();
       if (data?.error) throw new Error(data.error);
 
       setVerifyResult({ guitarId: guitar.id, ...data });

@@ -983,6 +983,30 @@ Every Guitar Has a Story · TWNG`;
 };
 
 // ============================================================================
+// TEMPLATE MAPPING FOR EMAIL SERVICE
+// ============================================================================
+
+export const emailTemplates = {
+  welcome: {
+    welcome: welcomeSequence.welcome,
+    completeProfile: welcomeSequence.completeProfile,
+    firstGuitar: welcomeSequence.addFirstGuitar,
+    community: welcomeSequence.exploreConnect,
+  },
+  claim: {
+    claimApproved: claimSequence.claimConfirmed,
+    addMoreGuitars: claimSequence.addPhotosStory,
+    buildCollection: claimSequence.shareCollection,
+    exploreFeatures: claimSequence.inviteCollectors,
+  },
+  reengagement: {
+    comeBack: reengagementSequence.missYou,
+    newFeatures: reengagementSequence.newInBrand,
+    exclusiveOffer: reengagementSequence.featuredSpotlight,
+  },
+};
+
+// ============================================================================
 // EXPORT ALL SEQUENCES
 // ============================================================================
 

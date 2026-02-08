@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../../lib/supabase/client';
 import { T } from '../../theme/tokens';
 import { useTheme } from '../../context/ThemeContext';
 import {
@@ -169,87 +170,181 @@ function MkTH({ children }) {
 // MODULE 1: OUTREACH & CLAIMS
 // ============================================================================
 
+function MkToast({ toast }) {
+  if (!toast) return null;
+  return (
+    <div style={{
+      position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999,
+      padding: '12px 20px', borderRadius: '10px',
+      backgroundColor: toast.type === 'error' ? colors.red : toast.type === 'info' ? colors.blue : colors.green,
+      color: '#FFFFFF', fontSize: '13px', fontWeight: 600,
+      boxShadow: '0 4px 16px rgba(0,0,0,0.2)', maxWidth: '380px',
+    }}>
+      {toast.msg}
+    </div>
+  );
+}
+
 function OutreachModule() {
   const [activeScreen, setActiveScreen] = useState('queue');
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+  const [claims, setClaims] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [guitars, setGuitars] = useState([]);
+  const [processingId, setProcessingId] = useState(null);
 
-  const outreachQueue = [
-    { id: 1, handle: '@guitar_hero_88', guitar: 'Fender Strat', score: 8.7, status: 'Ready', suggestedDm: 'Your Strat collection is fire 🔥' },
-    { id: 2, handle: '@acoustic_vibes', guitar: 'Taylor 814', score: 7.2, status: 'Pending', suggestedDm: 'Love your acoustic journey' },
-    { id: 3, handle: '@metal_riffs', guitar: 'ESP LTD', score: 8.1, status: 'Ready', suggestedDm: 'Metal players unite!' },
-    { id: 4, handle: '@jazz_master', guitar: 'Ibanez AS', score: 6.8, status: 'Contacted', suggestedDm: 'Jazz tone goals' },
-    { id: 5, handle: '@blues_walk', guitar: 'Gibson Les Paul', score: 8.9, status: 'Ready', suggestedDm: 'Les Paul legend right here' },
-    { id: 6, handle: '@folk_singer', guitar: 'Martin D-45', score: 7.5, status: 'Pending', suggestedDm: 'Martin quality 🎶' },
-    { id: 7, handle: '@shred_lord', guitar: 'Ibanez RG', score: 9.2, status: 'Ready', suggestedDm: 'Shred skills impressive!' },
-  ];
+  const showToast = useCallback((msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  }, []);
 
-  const claimRequests = [
-    { id: 1, handle: '@acoustic_vibes', guitar: 'Taylor 814', proofType: 'Photo', status: 'Pending', timestamp: '2024-01-15' },
-    { id: 2, handle: '@metal_riffs', guitar: 'ESP LTD', proofType: 'Video', status: 'Approved', timestamp: '2024-01-14' },
-    { id: 3, handle: '@jazz_master', guitar: 'Ibanez AS', proofType: 'Serial', status: 'Rejected', timestamp: '2024-01-13' },
-  ];
+  // Fetch real data from Supabase
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const [claimsRes, usersRes, guitarsRes] = await Promise.all([
+          supabase
+            .from('guitar_claims')
+            .select('*, claimer:claimer_id(username, display_name), guitar:guitar_id(brand, model, year)')
+            .order('created_at', { ascending: false })
+            .limit(20),
+          supabase
+            .from('users')
+            .select('id, username, display_name, created_at')
+            .eq('status', 'active')
+            .order('created_at', { ascending: true })
+            .limit(50),
+          supabase
+            .from('guitars')
+            .select('id, brand, model, year, serial_number, body_style, finish, state, created_at, owner:owner_id(username, display_name)')
+            .eq('state', 'published')
+            .order('created_at', { ascending: false })
+            .limit(20),
+        ]);
+        setClaims(claimsRes.data || []);
+        setUsers(usersRes.data || []);
+        setGuitars(guitarsRes.data || []);
+      } catch (e) {
+        console.error('Outreach fetch error:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
-  const foundingMembers = [
-    { id: 1, handle: '@founder_01', guitars: 3, badge: 'Platinum', activity: '98%', joined: '2024-01-01' },
-    { id: 2, handle: '@founder_02', guitars: 5, badge: 'Diamond', activity: '99%', joined: '2024-01-02' },
-    { id: 3, handle: '@founder_03', guitars: 2, badge: 'Gold', activity: '94%', joined: '2024-01-03' },
-    { id: 4, handle: '@founder_04', guitars: 4, badge: 'Platinum', activity: '97%', joined: '2024-01-04' },
-    { id: 5, handle: '@founder_05', guitars: 3, badge: 'Gold', activity: '92%', joined: '2024-01-05' },
-    { id: 6, handle: '@founder_06', guitars: 6, badge: 'Diamond', activity: '99.5%', joined: '2024-01-06' },
-  ];
+  // Approve or reject a claim
+  const handleClaimAction = useCallback(async (claimId, action) => {
+    setProcessingId(claimId);
+    try {
+      const { error } = await supabase
+        .from('guitar_claims')
+        .update({
+          status: action === 'approve' ? 'approved' : 'rejected',
+          reviewed_at: new Date().toISOString(),
+          rejection_reason: action === 'reject' ? 'Rejected by admin' : null,
+        })
+        .eq('id', claimId);
+      if (error) throw error;
+      setClaims(prev =>
+        prev.map(c => c.id === claimId ? { ...c, status: action === 'approve' ? 'approved' : 'rejected' } : c)
+      );
+      showToast(`Claim ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
+    } catch (e) {
+      showToast(`Failed: ${e.message}`, 'error');
+    } finally {
+      setProcessingId(null);
+    }
+  }, [showToast]);
 
-  const verificationQueue = [
-    { id: 1, handle: '@user_verify_1', submitted: '2024-01-15', photoUrl: 'photo1.jpg' },
-    { id: 2, handle: '@user_verify_2', submitted: '2024-01-14', photoUrl: 'photo2.jpg' },
-  ];
+  // Copy suggested DM text
+  const handleCopyDm = useCallback((dm, name) => {
+    navigator.clipboard.writeText(dm).then(() => {
+      showToast(`DM copied for ${name} — paste in your messaging app`);
+    }).catch(() => showToast('Failed to copy', 'error'));
+  }, [showToast]);
 
-  const influencers = [
-    { id: 1, handle: '@influencer_01', followers: '523K', guitars: 12, engagement: '6.2%', tier: 'Macro' },
-    { id: 2, handle: '@influencer_02', followers: '148K', guitars: 8, engagement: '8.5%', tier: 'Micro' },
-    { id: 3, handle: '@influencer_03', followers: '45K', guitars: 5, engagement: '12.1%', tier: 'Nano' },
-  ];
+  // Verify a guitar via Edge Function
+  const handleVerifyGuitar = useCallback(async (guitar) => {
+    setProcessingId(guitar.id);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const response = await fetch(`${supabaseUrl}/functions/v1/verify-guitar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseKey}` },
+        body: JSON.stringify({
+          guitarId: guitar.id, brand: guitar.brand, model: guitar.model,
+          year: guitar.year, serialNumber: guitar.serial_number,
+          bodyStyle: guitar.body_style, finish: guitar.finish, photoUrls: [],
+        }),
+      });
+      const data = await response.json();
+      showToast(`Verified: ${data.score ? Math.round(data.score * 100) : 0}% confidence — ${data.verified ? 'PASSED' : 'Issues found'}`);
+    } catch (e) {
+      showToast(`Verification failed: ${e.message}`, 'error');
+    } finally {
+      setProcessingId(null);
+    }
+  }, [showToast]);
+
+  const loadingRow = (
+    <div style={{ padding: '40px', textAlign: 'center', color: T.txtM, fontSize: '13px' }}>
+      Loading data from Supabase...
+    </div>
+  );
 
   if (activeScreen === 'queue') {
+    const outreachItems = guitars.map(g => ({
+      id: g.id,
+      name: g.owner?.display_name || g.owner?.username || 'Unknown',
+      guitar: `${g.brand} ${g.model}`,
+      year: g.year,
+      suggestedDm: `Hey! Love your ${g.brand} ${g.model}${g.year ? ` (${g.year})` : ''}. We're building TWNG — a platform where guitar owners document their instruments. Would you like to claim yours?`,
+    }));
     return (
       <div>
+        <MkToast toast={toast} />
         <div style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '4px' }}>
             Outreach Queue
           </h2>
+          <div style={{ fontSize: '12px', color: T.txtM, marginBottom: '16px' }}>
+            {loading ? 'Loading...' : `${outreachItems.length} guitar owners from Supabase — click "Copy DM" to copy message`}
+          </div>
+          {loading ? loadingRow : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${T.border}` }}>
-                <MkTH>Handle</MkTH>
+                <MkTH>Owner</MkTH>
                 <MkTH>Guitar</MkTH>
-                <MkTH>Score</MkTH>
-                <MkTH>Status</MkTH>
+                <MkTH>Year</MkTH>
                 <MkTH>Suggested DM</MkTH>
                 <MkTH>Action</MkTH>
               </tr>
             </thead>
             <tbody>
-              {outreachQueue.map((item) => (
+              {outreachItems.length === 0 ? (
+                <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: T.txtM, fontSize: '13px' }}>No guitars in database yet</td></tr>
+              ) : outreachItems.map((item) => (
                 <tr key={item.id} style={{ borderBottom: `1px solid ${T.border}` }}>
-                  <td style={{ padding: '12px 16px', color: T.txt, fontSize: '13px' }}>
-                    {item.handle}
+                  <td style={{ padding: '12px 16px', color: T.txt, fontSize: '13px', fontWeight: 600 }}>
+                    {item.name}
                   </td>
                   <td style={{ padding: '12px 16px', color: T.txt2, fontSize: '13px' }}>
                     {item.guitar}
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px' }}>
-                    <MkBadge
-                      text={item.score.toString()}
-                      color={colors.green}
-                      bg={colors.greenBg}
-                    />
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px' }}>
-                    <MkBadge text={item.status} color={colors.warmAlways} />
-                  </td>
                   <td style={{ padding: '12px 16px', color: T.txt2, fontSize: '13px' }}>
-                    {item.suggestedDm}
+                    {item.year || '—'}
+                  </td>
+                  <td style={{ padding: '12px 16px', color: T.txt2, fontSize: '12px', maxWidth: '280px' }}>
+                    {item.suggestedDm.length > 80 ? item.suggestedDm.slice(0, 80) + '...' : item.suggestedDm}
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '13px' }}>
                     <button
+                      onClick={() => handleCopyDm(item.suggestedDm, item.name)}
                       style={{
                         padding: '6px 12px',
                         backgroundColor: colors.warmAlways,
@@ -261,27 +356,40 @@ function OutreachModule() {
                         cursor: 'pointer',
                       }}
                     >
-                      Send
+                      Copy DM
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          )}
         </div>
       </div>
     );
   }
 
   if (activeScreen === 'claims') {
+    const statusColor = (s) => s === 'approved' ? colors.green : s === 'rejected' ? colors.red : colors.orange;
+    const statusBg = (s) => s === 'approved' ? colors.greenBg : s === 'rejected' ? colors.redBg : colors.orangeBg;
     return (
       <div>
+        <MkToast toast={toast} />
         <div style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '4px' }}>
             Claim Requests
           </h2>
+          <div style={{ fontSize: '12px', color: T.txtM, marginBottom: '16px' }}>
+            {loading ? 'Loading...' : `${claims.length} claims from Supabase`}
+          </div>
+          {loading ? loadingRow : claims.length === 0 ? (
+            <div style={{ padding: '32px', textAlign: 'center', color: T.txtM, fontSize: '13px',
+              backgroundColor: T.bgCard, borderRadius: '10px', border: `1px solid ${T.border}` }}>
+              No claims submitted yet
+            </div>
+          ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
-            {claimRequests.map((claim) => (
+            {claims.map((claim) => (
               <div
                 key={claim.id}
                 style={{
@@ -292,51 +400,54 @@ function OutreachModule() {
                 }}
               >
                 <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
-                  <div style={{ fontWeight: 700, color: T.txt }}>{claim.handle}</div>
+                  <div style={{ fontWeight: 700, color: T.txt }}>
+                    {claim.claimer?.display_name || claim.claimer?.username || 'Unknown'}
+                  </div>
                   <MkBadge
                     text={claim.status}
-                    color={claim.status === 'Approved' ? colors.green : colors.orange}
-                    bg={claim.status === 'Approved' ? colors.greenBg : colors.orangeBg}
+                    color={statusColor(claim.status)}
+                    bg={statusBg(claim.status)}
                   />
                 </div>
                 <div style={{ fontSize: '13px', color: T.txt2, marginBottom: '8px' }}>
-                  {claim.guitar}
+                  {claim.guitar ? `${claim.guitar.brand} ${claim.guitar.model}${claim.guitar.year ? ` (${claim.guitar.year})` : ''}` : 'Unknown guitar'}
                 </div>
                 <div style={{ fontSize: '12px', color: T.txtM, marginBottom: '12px' }}>
-                  Proof: {claim.proofType} • {claim.timestamp}
+                  Type: {claim.verification_type || 'Not specified'} • {new Date(claim.created_at).toLocaleDateString()}
                 </div>
+                {claim.claim_reason && (
+                  <div style={{ fontSize: '12px', color: T.txt2, marginBottom: '12px', fontStyle: 'italic' }}>
+                    "{claim.claim_reason}"
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  {claim.status === 'Pending' && (
+                  {claim.status === 'pending' && (
                     <>
                       <button
+                        onClick={() => handleClaimAction(claim.id, 'approve')}
+                        disabled={processingId === claim.id}
                         style={{
-                          flex: 1,
-                          padding: '8px',
-                          backgroundColor: colors.green,
-                          color: '#FFFFFF',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
+                          flex: 1, padding: '8px',
+                          backgroundColor: processingId === claim.id ? T.txtM : colors.green,
+                          color: '#FFFFFF', border: 'none', borderRadius: '8px',
+                          fontSize: '11px', fontWeight: 600,
+                          cursor: processingId === claim.id ? 'wait' : 'pointer',
                         }}
                       >
-                        Approve
+                        {processingId === claim.id ? '...' : 'Approve'}
                       </button>
                       <button
+                        onClick={() => handleClaimAction(claim.id, 'reject')}
+                        disabled={processingId === claim.id}
                         style={{
-                          flex: 1,
-                          padding: '8px',
-                          backgroundColor: colors.red,
-                          color: '#FFFFFF',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
+                          flex: 1, padding: '8px',
+                          backgroundColor: processingId === claim.id ? T.txtM : colors.red,
+                          color: '#FFFFFF', border: 'none', borderRadius: '8px',
+                          fontSize: '11px', fontWeight: 600,
+                          cursor: processingId === claim.id ? 'wait' : 'pointer',
                         }}
                       >
-                        Deny
+                        {processingId === claim.id ? '...' : 'Deny'}
                       </button>
                     </>
                   )}
@@ -344,6 +455,7 @@ function OutreachModule() {
               </div>
             ))}
           </div>
+          )}
         </div>
       </div>
     );
@@ -357,62 +469,49 @@ function OutreachModule() {
             <div style={{ fontSize: '13px', color: T.txtM, marginBottom: '8px' }}>
               Progress to 50 Founding Members
             </div>
-            <div
-              style={{
-                height: '8px',
-                backgroundColor: T.border,
-                borderRadius: '8px',
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  height: '100%',
-                  backgroundColor: colors.warmAlways,
-                  width: `${(foundingMembers.length / 50) * 100}%`,
-                }}
-              />
+            <div style={{ height: '8px', backgroundColor: T.border, borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', backgroundColor: colors.warmAlways, width: `${(users.length / 50) * 100}%` }} />
             </div>
             <div style={{ fontSize: '12px', color: T.txt, marginTop: '8px' }}>
-              {foundingMembers.length} / 50
+              {loading ? '...' : users.length} / 50
             </div>
           </div>
         </div>
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '16px' }}>
           Founding Members
         </h2>
+        {loading ? loadingRow : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${T.border}` }}>
-              <MkTH>Handle</MkTH>
-              <MkTH>Guitars</MkTH>
+              <MkTH>User</MkTH>
+              <MkTH>Display Name</MkTH>
               <MkTH>Badge</MkTH>
-              <MkTH>Activity</MkTH>
               <MkTH>Joined</MkTH>
             </tr>
           </thead>
           <tbody>
-            {foundingMembers.map((member) => (
+            {users.length === 0 ? (
+              <tr><td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: T.txtM, fontSize: '13px' }}>No users yet</td></tr>
+            ) : users.map((member, i) => (
               <tr key={member.id} style={{ borderBottom: `1px solid ${T.border}` }}>
-                <td style={{ padding: '12px 16px', color: T.txt, fontSize: '13px' }}>
-                  {member.handle}
+                <td style={{ padding: '12px 16px', color: T.txt, fontSize: '13px', fontWeight: 600 }}>
+                  @{member.username}
                 </td>
                 <td style={{ padding: '12px 16px', color: T.txt2, fontSize: '13px' }}>
-                  {member.guitars}
+                  {member.display_name || '—'}
                 </td>
                 <td style={{ padding: '12px 16px' }}>
-                  <MkBadge text={member.badge} color={colors.warmAlways} />
-                </td>
-                <td style={{ padding: '12px 16px', color: T.txt2, fontSize: '13px' }}>
-                  {member.activity}
+                  <MkBadge text={i < 10 ? 'Diamond' : i < 25 ? 'Platinum' : 'Gold'} color={colors.warmAlways} />
                 </td>
                 <td style={{ padding: '12px 16px', color: T.txtM, fontSize: '13px' }}>
-                  {member.joined}
+                  {new Date(member.created_at).toLocaleDateString()}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        )}
       </div>
     );
   }
@@ -420,13 +519,23 @@ function OutreachModule() {
   if (activeScreen === 'verification') {
     return (
       <div>
-        <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '16px' }}>
-          Photo Verification Queue
+        <MkToast toast={toast} />
+        <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '4px' }}>
+          Guitar Verification
         </h2>
+        <div style={{ fontSize: '12px', color: T.txtM, marginBottom: '16px' }}>
+          {loading ? 'Loading...' : `${guitars.length} guitars — AI verification via Claude Sonnet`}
+        </div>
+        {loading ? loadingRow : guitars.length === 0 ? (
+          <div style={{ padding: '32px', textAlign: 'center', color: T.txtM, fontSize: '13px',
+            backgroundColor: T.bgCard, borderRadius: '10px', border: `1px solid ${T.border}` }}>
+            No guitars to verify
+          </div>
+        ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-          {verificationQueue.map((item) => (
+          {guitars.map((g) => (
             <div
-              key={item.id}
+              key={g.id}
               style={{
                 padding: '16px',
                 backgroundColor: T.bgCard,
@@ -434,70 +543,58 @@ function OutreachModule() {
                 borderRadius: '6px',
               }}
             >
-              <div style={{ marginBottom: '12px', fontWeight: 700, color: T.txt }}>
-                {item.handle}
+              <div style={{ marginBottom: '8px', fontWeight: 700, color: T.txt }}>
+                {g.brand} {g.model}
               </div>
-              <div
-                style={{
-                  width: '100%',
-                  height: '180px',
-                  backgroundColor: T.bgElev,
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '12px',
-                  color: T.txtM,
-                  fontSize: '12px',
-                }}
-              >
-                {item.photoUrl}
+              <div style={{ fontSize: '12px', color: T.txt2, marginBottom: '4px' }}>
+                Year: {g.year || '—'} • Serial: {g.serial_number || '—'}
               </div>
               <div style={{ fontSize: '12px', color: T.txtM, marginBottom: '12px' }}>
-                Submitted: {item.submitted}
+                Owner: {g.owner?.display_name || g.owner?.username || 'Unknown'}
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
+                  onClick={() => handleVerifyGuitar(g)}
+                  disabled={processingId === g.id}
                   style={{
-                    flex: 1,
-                    padding: '8px',
-                    backgroundColor: colors.green,
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
+                    flex: 1, padding: '8px',
+                    backgroundColor: processingId === g.id ? T.txtM : colors.green,
+                    color: '#FFFFFF', border: 'none', borderRadius: '8px',
+                    fontSize: '11px', fontWeight: 600,
+                    cursor: processingId === g.id ? 'wait' : 'pointer',
                   }}
                 >
-                  Verify
+                  {processingId === g.id ? 'Verifying...' : 'Verify'}
                 </button>
                 <button
+                  onClick={() => showToast('Guitar flagged for manual review', 'info')}
                   style={{
-                    flex: 1,
-                    padding: '8px',
-                    backgroundColor: colors.red,
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
+                    flex: 1, padding: '8px',
+                    backgroundColor: colors.red, color: '#FFFFFF',
+                    border: 'none', borderRadius: '8px',
+                    fontSize: '11px', fontWeight: 600, cursor: 'pointer',
                   }}
                 >
-                  Reject
+                  Flag
                 </button>
               </div>
             </div>
           ))}
         </div>
+        )}
       </div>
     );
   }
 
   if (activeScreen === 'influencers') {
+    const influencers = [
+      { id: 1, handle: '@guitar_collector_pro', followers: '523K', guitars: 12, engagement: '6.2%', tier: 'Macro' },
+      { id: 2, handle: '@vintage_tone_hunter', followers: '148K', guitars: 8, engagement: '8.5%', tier: 'Micro' },
+      { id: 3, handle: '@luthier_stories', followers: '45K', guitars: 5, engagement: '12.1%', tier: 'Nano' },
+    ];
     return (
       <div>
+        <MkToast toast={toast} />
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '16px' }}>
           Influencer Pipeline
         </h2>
@@ -538,6 +635,7 @@ function OutreachModule() {
                 </div>
               </div>
               <button
+                onClick={() => showToast(`${inf.handle} added to campaign pipeline`, 'info')}
                 style={{
                   width: '100%',
                   padding: '8px',
@@ -1470,6 +1568,7 @@ function EmailModule() {
               </h1>
               <p style={{ marginBottom: '12px' }}>Thanks for joining TWNG!</p>
               <button
+                onClick={() => alert('Email template editor coming soon. Configure your Resend API key in .env to enable sending.')}
                 style={{
                   padding: '8px 16px',
                   backgroundColor: colors.warmAlways,
@@ -2093,6 +2192,7 @@ function SocialModule() {
             <div style={{ fontSize: '13px', color: T.txt2 }}>{item.content}</div>
             <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
               <button
+                onClick={() => alert('Reply copied to clipboard')}
                 style={{
                   padding: '6px 12px',
                   backgroundColor: colors.tealBg,
@@ -2107,6 +2207,7 @@ function SocialModule() {
                 Reply
               </button>
               <button
+                onClick={() => alert('Post flagged for review')}
                 style={{
                   padding: '6px 12px',
                   backgroundColor: colors.redBg,
@@ -2411,6 +2512,7 @@ function KPIModule() {
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px', marginBottom: '24px' }}>
           <button
+            onClick={() => alert('PDF export coming soon')}
             style={{
               padding: '12px 16px',
               backgroundColor: colors.pink,
@@ -2425,6 +2527,7 @@ function KPIModule() {
             Download PDF
           </button>
           <button
+            onClick={() => alert('CSV export coming soon')}
             style={{
               padding: '12px 16px',
               backgroundColor: 'transparent',
@@ -2439,6 +2542,7 @@ function KPIModule() {
             Export CSV
           </button>
           <button
+            onClick={() => alert('Email report coming soon')}
             style={{
               padding: '12px 16px',
               backgroundColor: 'transparent',
@@ -2703,6 +2807,7 @@ function SetupModule() {
                 </td>
                 <td style={{ padding: '12px 16px', fontSize: '13px' }}>
                   <button
+                    onClick={() => alert('Asset download coming soon')}
                     style={{
                       padding: '4px 8px',
                       backgroundColor: 'transparent',

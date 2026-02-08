@@ -38,12 +38,12 @@ import { emailTemplates } from './templates';
 
 // Provider configuration — set via system_config or env
 const EMAIL_CONFIG = {
-  provider: process.env.VITE_EMAIL_PROVIDER || 'resend', // 'resend' | 'sendgrid' | 'supabase'
-  from: process.env.VITE_EMAIL_FROM || 'TWNG <hello@twng.com>',
-  replyTo: process.env.VITE_EMAIL_REPLY_TO || 'support@twng.com',
-  resendApiKey: process.env.VITE_RESEND_API_KEY,
-  sendgridApiKey: process.env.VITE_SENDGRID_API_KEY,
-  baseUrl: typeof window !== 'undefined' ? window.location.origin : (process.env.VITE_BASE_URL || 'https://twng.com'),
+  provider: import.meta.env.VITE_EMAIL_PROVIDER || 'resend', // 'resend' | 'sendgrid' | 'supabase'
+  from: import.meta.env.VITE_EMAIL_FROM || 'TWNG <hello@twng.com>',
+  replyTo: import.meta.env.VITE_EMAIL_REPLY_TO || 'support@twng.com',
+  resendApiKey: import.meta.env.VITE_RESEND_API_KEY,
+  sendgridApiKey: import.meta.env.VITE_SENDGRID_API_KEY,
+  baseUrl: typeof window !== 'undefined' ? window.location.origin : (import.meta.env.VITE_BASE_URL || 'https://twng.com'),
 };
 
 /**
