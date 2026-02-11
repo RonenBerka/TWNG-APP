@@ -730,9 +730,9 @@ function DataSettings() {
     try {
       setExportLoading(true);
       const { data, error } = await supabase
-        .from('guitars')
+        .from('instruments')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('current_owner_id', user.id);
 
       if (error) throw error;
 
@@ -760,9 +760,9 @@ function DataSettings() {
     try {
       setExportLoading(true);
       const { data, error } = await supabase
-        .from('guitars')
+        .from('instruments')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('current_owner_id', user.id);
 
       if (error) throw error;
 

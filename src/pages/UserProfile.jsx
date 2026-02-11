@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
   Guitar,
   Heart,
@@ -16,185 +16,13 @@ import {
 } from "lucide-react";
 import { T } from "../theme/tokens";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabase/client";
 import {
   isFollowing,
   toggleFollow,
   getFollowerCount,
   getFollowingCount,
 } from "../lib/supabase/follows";
-
-// MOCK USER DATA
-const mockUser = {
-  id: "usr_001",
-  displayName: "Michael Torres",
-  username: "vintage_mike",
-  avatar:
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop",
-  bio: "Guitar collector, luthier, and TWNG pioneer. Vintage acoustics are my passion. Est. 2024",
-  location: "Nashville, TN",
-  website: "https://vintageguitars.com",
-  memberSince: new Date("2024-01-15"),
-  guitarCount: 12,
-  followers: 847,
-  following: 234,
-  badges: ["Pioneer", "Founding Member"],
-  isVerified: true,
-};
-
-const mockGuitars = [
-  {
-    id: "g1",
-    name: "1952 Gibson Les Paul",
-    year: 1952,
-    brand: "Gibson",
-    model: "Les Paul",
-    image:
-      "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=300&h=300&fit=crop",
-    likes: 243,
-    loved: false,
-  },
-  {
-    id: "g2",
-    name: "1965 Fender Stratocaster",
-    year: 1965,
-    brand: "Fender",
-    model: "Stratocaster",
-    image:
-      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop",
-    likes: 189,
-    loved: false,
-  },
-  {
-    id: "g3",
-    name: "1973 Martin D-35",
-    year: 1973,
-    brand: "Martin",
-    model: "D-35",
-    image:
-      "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300&h=300&fit=crop",
-    likes: 156,
-    loved: true,
-  },
-  {
-    id: "g4",
-    name: "1960 Epiphone Texan",
-    year: 1960,
-    brand: "Epiphone",
-    model: "Texan",
-    image:
-      "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=300&h=300&fit=crop",
-    likes: 124,
-    loved: false,
-  },
-  {
-    id: "g5",
-    name: "1978 Yamaha LL2",
-    year: 1978,
-    brand: "Yamaha",
-    model: "LL2",
-    image:
-      "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300&h=300&fit=crop",
-    likes: 98,
-    loved: false,
-  },
-  {
-    id: "g6",
-    name: "1954 Gretsch 6120",
-    year: 1954,
-    brand: "Gretsch",
-    model: "6120",
-    image:
-      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop",
-    likes: 167,
-    loved: true,
-  },
-  {
-    id: "g7",
-    name: "1969 Guild F-512",
-    year: 1969,
-    brand: "Guild",
-    model: "F-512",
-    image:
-      "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=300&h=300&fit=crop",
-    likes: 142,
-    loved: false,
-  },
-  {
-    id: "g8",
-    name: "1982 Ibanez Artist",
-    year: 1982,
-    brand: "Ibanez",
-    model: "Artist",
-    image:
-      "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300&h=300&fit=crop",
-    likes: 87,
-    loved: false,
-  },
-];
-
-const mockCollections = [
-  {
-    id: "c1",
-    name: "Vintage Gibsons",
-    description: "Classic Gibson guitars from the golden era",
-    guitarCount: 5,
-    coverImage: mockGuitars[0].image,
-  },
-  {
-    id: "c2",
-    name: "Daily Players",
-    description: "Guitars I actually play and enjoy",
-    guitarCount: 3,
-    coverImage: mockGuitars[2].image,
-  },
-];
-
-const mockActivity = [
-  {
-    id: "a1",
-    type: "added_guitar",
-    description: "Added 1952 Gibson Les Paul to collection",
-    timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
-    icon: "guitar",
-  },
-  {
-    id: "a2",
-    type: "commented",
-    description: "Commented on vintage stratocasters",
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-    icon: "comment",
-  },
-  {
-    id: "a3",
-    type: "loved",
-    description: "Loved 1973 Martin D-35",
-    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-    icon: "heart",
-  },
-  {
-    id: "a4",
-    type: "followed",
-    description: "Started following guitar_collector",
-    timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-    icon: "users",
-  },
-  {
-    id: "a5",
-    type: "added_guitar",
-    description: "Added 1965 Fender Stratocaster",
-    timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-    icon: "guitar",
-  },
-  {
-    id: "a6",
-    type: "loved",
-    description: "Loved 1954 Gretsch 6120",
-    timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
-    icon: "heart",
-  },
-];
-
-const mockLovedGuitars = mockGuitars.filter((g) => g.loved);
 
 // UTILITY: Format relative time
 function formatTime(date) {
@@ -254,13 +82,17 @@ function Badge({ children, variant = "default" }) {
 
 // GuitarCard Component
 function GuitarCard({ guitar, onLove }) {
-  const [loved, setLoved] = useState(guitar.loved);
+  const [loved, setLoved] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
 
   const handleLove = () => {
     setLoved(!loved);
     if (onLove) onLove(guitar.id, !loved);
   };
+
+  const guitarImage = guitar.image_urls?.[0] ||
+    "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=300&h=300&fit=crop";
+  const guitarName = `${guitar.year} ${guitar.make} ${guitar.model}`.trim();
 
   return (
     <div
@@ -287,8 +119,8 @@ function GuitarCard({ guitar, onLove }) {
         }}
       >
         <img
-          src={guitar.image}
-          alt={guitar.name}
+          src={guitarImage}
+          alt={guitarName}
           style={{
             position: "absolute",
             top: 0,
@@ -351,7 +183,7 @@ function GuitarCard({ guitar, onLove }) {
             textOverflow: "ellipsis",
           }}
         >
-          {guitar.name}
+          {guitarName}
         </h4>
         <p
           style={{
@@ -361,7 +193,7 @@ function GuitarCard({ guitar, onLove }) {
             margin: "0 0 8px 0",
           }}
         >
-          {guitar.year} • {guitar.brand}
+          {guitar.year} • {guitar.make}
         </p>
         <div
           style={{
@@ -373,7 +205,7 @@ function GuitarCard({ guitar, onLove }) {
           }}
         >
           <Heart size={14} />
-          <span>{guitar.likes} likes</span>
+          <span>0 likes</span>
         </div>
       </div>
     </div>
@@ -408,20 +240,6 @@ function CollectionCard({ collection }) {
           backgroundColor: T.bgElev,
         }}
       >
-        <img
-          src={collection.coverImage}
-          alt={collection.name}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            opacity: isHovering ? 0.8 : 1,
-            transition: "opacity 0.3s ease",
-          }}
-        />
         <div
           style={{
             position: "absolute",
@@ -431,8 +249,15 @@ function CollectionCard({ collection }) {
             bottom: 0,
             background:
               "linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.6))",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: T.txt2,
+            fontSize: "12px",
           }}
-        />
+        >
+          No image
+        </div>
       </div>
 
       {/* Content */}
@@ -456,7 +281,7 @@ function CollectionCard({ collection }) {
             margin: 0,
           }}
         >
-          {collection.guitarCount} guitar{collection.guitarCount !== 1 ? "s" : ""}
+          {collection.description || "No description"}
         </p>
       </div>
     </div>
@@ -538,12 +363,16 @@ function ActivityItem({ activity }) {
 // MAIN PROFILE COMPONENT
 export default function TWNGProfile() {
   const { user } = useAuth();
+  const { username } = useParams();
   const [activeTab, setActiveTab] = useState("guitars");
-  const [isOwnProfile] = useState(true);
-  const [following, setFollowing] = useState(false);
-  const [lovedGuitarIds, setLovedGuitarIds] = useState(
-    new Set(mockLovedGuitars.map((g) => g.id))
-  );
+
+  // Profile data state
+  const [profileUser, setProfileUser] = useState(null);
+  const [instruments, setInstruments] = useState([]);
+  const [collections, setCollections] = useState([]);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [userNotFound, setUserNotFound] = useState(false);
 
   // Follow/count state with graceful fallbacks
   const [followState, setFollowState] = useState({
@@ -559,29 +388,112 @@ export default function TWNGProfile() {
     {
       id: "guitars",
       label: "Guitars",
-      count: mockUser.guitarCount,
+      count: instruments.length,
     },
     {
       id: "collections",
       label: "Collections",
-      count: mockCollections.length,
+      count: collections.length,
     },
     {
       id: "activity",
       label: "Activity",
-      count: mockActivity.length,
+      count: 0,
     },
     {
       id: "loved",
       label: "Loved",
-      count: lovedGuitarIds.size,
+      count: 0,
     },
   ];
 
-  // Load follow data on mount and when user changes
+  // Load profile data on mount and when username changes
+  useEffect(() => {
+    const loadProfileData = async () => {
+      setLoading(true);
+      setUserNotFound(false);
+
+      try {
+        // Fetch user profile by username
+        let { data: profileData, error: profileError } = await supabase
+          .from("users")
+          .select("*")
+          .eq("username", username)
+          .single();
+
+        // If not found by username, try matching by email prefix
+        if ((profileError || !profileData) && username) {
+          const { data: fallbackData } = await supabase
+            .from("users")
+            .select("*")
+            .ilike("email", `${username}@%`)
+            .single();
+
+          if (fallbackData) {
+            profileData = fallbackData;
+            profileError = null;
+          }
+        }
+
+        // If still not found, check if this is the current user's own profile
+        if ((profileError || !profileData) && user?.id) {
+          const { data: ownData } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", user.id)
+            .single();
+
+          if (ownData) {
+            profileData = ownData;
+            profileError = null;
+          }
+        }
+
+        if (profileError || !profileData) {
+          setUserNotFound(true);
+          setLoading(false);
+          return;
+        }
+
+        setProfileUser(profileData);
+
+        // Determine if this is the user's own profile
+        const isOwn = user?.id === profileData.id;
+        setIsOwnProfile(isOwn);
+
+        // Fetch user's instruments
+        const { data: instrumentsData } = await supabase
+          .from("instruments")
+          .select("*")
+          .eq("current_owner_id", profileData.id)
+          .order("created_at", { ascending: false });
+
+        setInstruments(instrumentsData || []);
+
+        // Fetch user's collections
+        const { data: collectionsData } = await supabase
+          .from("collections")
+          .select("*")
+          .eq("user_id", profileData.id);
+
+        setCollections(collectionsData || []);
+
+        setLoading(false);
+      } catch (err) {
+        console.error("Error loading profile:", err);
+        setLoading(false);
+      }
+    };
+
+    if (username) {
+      loadProfileData();
+    }
+  }, [username, user?.id]);
+
+  // Load follow data on mount and when profileUser changes
   useEffect(() => {
     const loadFollowData = async () => {
-      if (!user?.id || isOwnProfile) {
+      if (!user?.id || !profileUser?.id || isOwnProfile) {
         setFollowState((prev) => ({ ...prev, loading: false }));
         return;
       }
@@ -589,9 +501,9 @@ export default function TWNGProfile() {
       try {
         // Load follow status and counts
         const [following, followerCount, followingCount] = await Promise.all([
-          isFollowing(user.id, mockUser.id),
-          getFollowerCount(mockUser.id),
-          getFollowingCount(mockUser.id),
+          isFollowing(user.id, profileUser.id),
+          getFollowerCount(profileUser.id),
+          getFollowingCount(profileUser.id),
         ]);
 
         setFollowState({
@@ -603,7 +515,6 @@ export default function TWNGProfile() {
           isAvailable: true,
         });
       } catch (err) {
-        // Graceful fallback — follows table doesn't exist yet
         console.warn("Follows feature not available:", err.message);
         setFollowState({
           isFollowing: false,
@@ -616,16 +527,18 @@ export default function TWNGProfile() {
       }
     };
 
-    loadFollowData();
-  }, [user?.id, isOwnProfile]);
+    if (profileUser?.id && user?.id) {
+      loadFollowData();
+    }
+  }, [user?.id, profileUser?.id, isOwnProfile]);
 
   // Handle follow button click
   const handleToggleFollow = async () => {
-    if (!user?.id || !followState.isAvailable) return;
+    if (!user?.id || !profileUser?.id || !followState.isAvailable) return;
 
     try {
       setFollowState((prev) => ({ ...prev, loading: true }));
-      const newFollowState = await toggleFollow(user.id, mockUser.id);
+      const newFollowState = await toggleFollow(user.id, profileUser.id);
 
       // Update local state and counts
       const newFollowerCount = newFollowState
@@ -638,8 +551,6 @@ export default function TWNGProfile() {
         followerCount: newFollowerCount,
         loading: false,
       }));
-
-      setFollowing(newFollowState);
     } catch (err) {
       console.error("Failed to toggle follow:", err.message);
       setFollowState((prev) => ({
@@ -650,15 +561,60 @@ export default function TWNGProfile() {
     }
   };
 
-  const handleLoveGuitar = (guitarId, isLoved) => {
-    const newLoved = new Set(lovedGuitarIds);
-    if (isLoved) {
-      newLoved.add(guitarId);
-    } else {
-      newLoved.delete(guitarId);
-    }
-    setLovedGuitarIds(newLoved);
-  };
+  // Show loading state
+  if (loading) {
+    return (
+      <div
+        style={{
+          backgroundColor: T.bgDeep,
+          color: T.txt,
+          minHeight: "100vh",
+          fontFamily: "DM Sans, sans-serif",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <p style={{ fontSize: "16px", color: T.txtM }}>Loading profile...</p>
+      </div>
+    );
+  }
+
+  // Show user not found
+  if (userNotFound) {
+    return (
+      <div
+        style={{
+          backgroundColor: T.bgDeep,
+          color: T.txt,
+          minHeight: "100vh",
+          fontFamily: "DM Sans, sans-serif",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <h1 style={{ fontSize: "28px", fontWeight: 700, marginBottom: "12px" }}>
+            User Not Found
+          </h1>
+          <p style={{ fontSize: "14px", color: T.txtM, marginBottom: "20px" }}>
+            The user "{username}" does not exist.
+          </p>
+          <Link
+            to="/"
+            style={{
+              color: T.amber,
+              textDecoration: "none",
+              fontWeight: 600,
+            }}
+          >
+            Go Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -689,17 +645,33 @@ export default function TWNGProfile() {
               overflow: "hidden",
               border: `2px solid ${T.borderAcc}`,
               flexShrink: 0,
+              backgroundColor: T.bgCard,
             }}
           >
-            <img
-              src={mockUser.avatar}
-              alt={mockUser.displayName}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }}
-            />
+            {profileUser?.avatar_url ? (
+              <img
+                src={profileUser.avatar_url}
+                alt={profileUser.display_name}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: T.txtM,
+                }}
+              >
+                No avatar
+              </div>
+            )}
           </div>
 
           {/* Info Section */}
@@ -721,9 +693,9 @@ export default function TWNGProfile() {
                   margin: 0,
                 }}
               >
-                {mockUser.displayName}
+                {profileUser?.display_name || profileUser?.username}
               </h1>
-              {mockUser.isVerified && (
+              {profileUser?.is_verified && (
                 <Shield
                   size={24}
                   color={T.amber}
@@ -742,22 +714,24 @@ export default function TWNGProfile() {
                 margin: "0 0 16px 0",
               }}
             >
-              @{mockUser.username}
+              @{profileUser?.username}
             </p>
 
             {/* Bio */}
-            <p
-              style={{
-                color: T.txt2,
-                fontSize: "14px",
-                fontFamily: "DM Sans",
-                margin: "0 0 16px 0",
-                lineHeight: "1.5",
-                maxWidth: "500px",
-              }}
-            >
-              {mockUser.bio}
-            </p>
+            {profileUser?.bio && (
+              <p
+                style={{
+                  color: T.txt2,
+                  fontSize: "14px",
+                  fontFamily: "DM Sans",
+                  margin: "0 0 16px 0",
+                  lineHeight: "1.5",
+                  maxWidth: "500px",
+                }}
+              >
+                {profileUser.bio}
+              </p>
+            )}
 
             {/* Location & Website */}
             <div
@@ -769,28 +743,12 @@ export default function TWNGProfile() {
                 fontSize: "14px",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <MapPin size={16} color={T.txtM} />
-                <span style={{ color: T.txt2 }}>{mockUser.location}</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Link2 size={16} color={T.txtM} />
-                <a
-                  href={mockUser.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    color: T.amber,
-                    textDecoration: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
-                  vintageguitars.com
-                  <ExternalLink size={12} />
-                </a>
-              </div>
+              {profileUser?.location && (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <MapPin size={16} color={T.txtM} />
+                  <span style={{ color: T.txt2 }}>{profileUser.location}</span>
+                </div>
+              )}
             </div>
 
             {/* Member Since */}
@@ -806,7 +764,7 @@ export default function TWNGProfile() {
               <Calendar size={14} />
               <span>
                 Member since{" "}
-                {mockUser.memberSince.toLocaleDateString("en-US", {
+                {new Date(profileUser?.created_at).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                 })}
@@ -934,7 +892,7 @@ export default function TWNGProfile() {
                 margin: 0,
               }}
             >
-              {mockUser.guitarCount}
+              {instruments.length}
             </p>
             <p
               style={{
@@ -1000,13 +958,11 @@ export default function TWNGProfile() {
         </div>
 
         {/* Badges */}
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          {mockUser.badges.map((badge) => (
-            <Badge key={badge} variant="default">
-              {badge}
-            </Badge>
-          ))}
-        </div>
+        {profileUser?.is_luthier && (
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <Badge variant="verified">Luthier</Badge>
+          </div>
+        )}
       </div>
 
       {/* TABS */}
@@ -1084,16 +1040,18 @@ export default function TWNGProfile() {
               marginBottom: "60px",
             }}
           >
-            {mockGuitars.map((guitar) => (
-              <GuitarCard
-                key={guitar.id}
-                guitar={{
-                  ...guitar,
-                  loved: lovedGuitarIds.has(guitar.id),
-                }}
-                onLove={handleLoveGuitar}
-              />
-            ))}
+            {instruments.length > 0 ? (
+              instruments.map((guitar) => (
+                <GuitarCard
+                  key={guitar.id}
+                  guitar={guitar}
+                />
+              ))
+            ) : (
+              <p style={{ color: T.txtM, fontSize: "14px" }}>
+                No guitars yet
+              </p>
+            )}
           </div>
         )}
 
@@ -1107,9 +1065,15 @@ export default function TWNGProfile() {
               marginBottom: "60px",
             }}
           >
-            {mockCollections.map((collection) => (
-              <CollectionCard key={collection.id} collection={collection} />
-            ))}
+            {collections.length > 0 ? (
+              collections.map((collection) => (
+                <CollectionCard key={collection.id} collection={collection} />
+              ))
+            ) : (
+              <p style={{ color: T.txtM, fontSize: "14px" }}>
+                No collections yet
+              </p>
+            )}
           </div>
         )}
 
@@ -1121,9 +1085,9 @@ export default function TWNGProfile() {
               marginBottom: "60px",
             }}
           >
-            {mockActivity.map((item) => (
-              <ActivityItem key={item.id} activity={item} />
-            ))}
+            <p style={{ color: T.txtM, fontSize: "14px" }}>
+              Coming soon - activity feed is being developed
+            </p>
           </div>
         )}
 
@@ -1137,18 +1101,9 @@ export default function TWNGProfile() {
               marginBottom: "60px",
             }}
           >
-            {mockGuitars
-              .filter((g) => lovedGuitarIds.has(g.id))
-              .map((guitar) => (
-                <GuitarCard
-                  key={guitar.id}
-                  guitar={{
-                    ...guitar,
-                    loved: true,
-                  }}
-                  onLove={handleLoveGuitar}
-                />
-              ))}
+            <p style={{ color: T.txtM, fontSize: "14px" }}>
+              Coming soon - loved guitars feature is being developed
+            </p>
           </div>
         )}
       </div>

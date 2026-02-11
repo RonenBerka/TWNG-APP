@@ -1,9 +1,15 @@
 /**
  * Data adapters — map Supabase row shapes to frontend component shapes.
  *
- * The DB schema uses snake_case and separates concerns (IE + OCC),
+ * The DB schema uses snake_case and separates concerns (instruments + OCC),
  * while the frontend components expect a flattened shape with camelCase.
  * These adapters bridge that gap.
+ *
+ * Schema changes:
+ * - guitars → instruments
+ * - OCC fields: removed position, admin_hidden; added title, is_published
+ * - OCC content_data split: content (text) + media_url (text)
+ * - OCC visible_to_future_owners → visible_to_owners
  */
 
 import { GUITAR_IMAGES } from '../../utils/placeholders';
@@ -41,30 +47,30 @@ function brandPlaceholder(brand) {
 }
 
 /**
- * Map a Supabase guitar row (with joined owner + OCC) to the
+ * Map a Supabase instrument row (with joined owner + OCC) to the
  * shape that ExploreGuitarCard and GuitarDetail expect.
  */
-export function adaptGuitar(row) {
+export function adaptInstrument(row) {
   if (!row) return null;
 
-  // Extract primary image from OCC
+  // Extract primary image from OCC (content_type='image', media_url)
   const images = (row.occ || [])
     .filter((o) => o.content_type === 'image' && o.visible_publicly)
-    .sort((a, b) => (a.position || 0) - (b.position || 0));
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-  const primaryImage = images[0]?.content_data?.url
-    || images[0]?.content_data?.thumbnail_url
-    || brandPlaceholder(row.brand);
+  const primaryImage = images[0]?.media_url || brandPlaceholder(row.make);
 
-  // Extract nickname and story from OCC
+  // Extract nickname (content_type=text, title='nickname' or infer from content)
   const nicknameOcc = (row.occ || []).find(
-    (o) => o.content_type === 'nickname' && o.visible_publicly
-  );
-  const storyOcc = (row.occ || []).find(
-    (o) => o.content_type === 'story' && o.visible_publicly
+    (o) => o.content_type === 'text' && o.title === 'Nickname' && o.visible_publicly
   );
 
-  // Map body_style to display label
+  // Extract story (content_type=text, title='story')
+  const storyOcc = (row.occ || []).find(
+    (o) => o.content_type === 'text' && o.title === 'Story' && o.visible_publicly
+  );
+
+  // Map to display label
   const bodyTypeMap = {
     solid: 'Solid Body',
     'semi-hollow': 'Semi-Hollow',
@@ -74,74 +80,81 @@ export function adaptGuitar(row) {
     bass: 'Bass',
   };
 
-  // Extract condition from specs JSONB
-  const condition = row.specifications?.condition || 'Not specified';
+  // Extract condition from custom_fields JSONB
+  const condition = row.custom_fields?.condition || 'Not specified';
 
   // Raw OCC array for detail page visibility filtering
   const rawOcc = (row.occ || []).map((o) => ({
     id: o.id,
     contentType: o.content_type,
-    contentData: o.content_data,
+    title: o.title,
+    content: o.content,
+    mediaUrl: o.media_url,
     visible_publicly: o.visible_publicly,
-    visible_to_future_owners: o.visible_to_future_owners,
-    admin_hidden: o.admin_hidden,
-    creator_id: o.creator_id,
-    position: o.position,
+    visible_to_owners: o.visible_to_owners,
+    is_published: o.is_published,
+    creator_id: o.current_owner_id,
   }));
 
   return {
     id: row.id,
-    brand: row.brand,
+    make: row.make,
     model: row.model,
     year: row.year,
     serialNumber: row.serial_number,
-    nickname: nicknameOcc?.content_data?.name || null,
-    story: storyOcc?.content_data?.text || null,
+    nickname: nicknameOcc?.content || null,
+    story: storyOcc?.content || null,
     image: primaryImage,
     images: images.map((img) => ({
       id: img.id,
-      url: img.content_data?.url,
-      thumbnail: img.content_data?.thumbnail_url,
-      alt: img.content_data?.alt_text,
+      url: img.media_url,
+      alt: img.title || 'Instrument image',
     })),
     rawOcc,
-    owner: row.owner
+    owner: row.current_owner
       ? {
-          handle: row.owner.username,
-          displayName: row.owner.display_name,
-          avatar: row.owner.avatar_url,
+          id: row.current_owner.id,
+          username: row.current_owner.username,
+          avatar: row.current_owner.avatar_url,
         }
       : null,
-    verified: row.source === 'automation' || row.specifications?.verified === true,
-    bodyType: bodyTypeMap[row.body_style] || row.body_style || 'Unknown',
-    instrumentType: row.instrument_type,
-    condition,
-    finish: row.finish,
-    specs: {
-      body: row.specifications?.body_material || null,
-      neck: row.specifications?.neck_material || null,
-      fretboard: row.specifications?.fretboard || null,
-      pickups: row.specifications?.pickups || null,
-      bridge: row.specifications?.bridge || null,
-      tuners: row.specifications?.tuners || null,
-      finish: row.finish || null,
-      weight: row.specifications?.weight || null,
-      scale: row.specifications?.scale_length || null,
-    },
-    tags: row.specifications?.tags || [],
-    state: row.state,
-    source: row.source,
-    ownerId: row.owner_id,
-    iaGracePeriodEnds: row.ia_grace_period_ends,
-    iaLockedAt: row.ia_locked_at,
+    uploader: row.uploader
+      ? {
+          id: row.uploader.id,
+          username: row.uploader.username,
+          avatar: row.uploader.avatar_url,
+        }
+      : null,
+    description: row.description,
+    mainImage: row.main_image_url,
+    isFeatured: row.is_featured,
+    isArchived: row.is_archived,
+    moderationStatus: row.moderation_status,
+    isForSale: row.is_for_sale,
+    specs: row.specs || {},
+    customFields: row.custom_fields || {},
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
 /**
- * Adapt a list of guitar rows.
+ * Adapt a list of instrument rows.
+ */
+export function adaptInstruments(rows) {
+  return (rows || []).map(adaptInstrument);
+}
+
+/**
+ * Legacy function for backwards compatibility (guitar -> instrument)
+ */
+export function adaptGuitar(row) {
+  return adaptInstrument(row);
+}
+
+/**
+ * Legacy function for backwards compatibility
  */
 export function adaptGuitars(rows) {
-  return (rows || []).map(adaptGuitar);
+  return adaptInstruments(rows);
 }

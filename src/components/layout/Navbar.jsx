@@ -1,23 +1,26 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Menu, X, User, Bell, Plus, Settings, LogOut, Shield, Sun, Moon } from 'lucide-react';
+import { Search, Menu, X, User, Plus, Settings, LogOut, Shield, Sun, Moon, MessageSquare } from 'lucide-react';
 import { T } from '../../theme/tokens';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import Logo from '../ui/Logo';
+import NotificationDropdown from '../ui/NotificationDropdown';
+import MessageDropdown from '../ui/MessageDropdown';
+import GlobalSearchBar from '../GlobalSearchBar';
 
 const BASE_NAV_LINKS = [
   { label: "Explore", path: "/explore" },
-  { label: "Collections", path: "/collection" },
+  { label: "Collections", path: "/collections" },
   { label: "Articles", path: "/articles" },
-  { label: "Community", path: "/community" },
-  { label: "Luthiers", path: "/luthiers" },
+  { label: "Forum", path: "/forum" },
 ];
 
 export default function Navbar({ transparent = false }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const userMenuRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -55,6 +58,7 @@ export default function Navbar({ transparent = false }) {
   // Close user menu on route change
   useEffect(() => {
     setUserMenuOpen(false);
+    setMenuOpen(false);
   }, [location.pathname]);
 
   const showBg = scrolled || !transparent;
@@ -99,16 +103,23 @@ export default function Navbar({ transparent = false }) {
 
           {/* Desktop Right Actions */}
           <div style={{
-            display: "flex", alignItems: "center", gap: "12px",
+            display: "flex", alignItems: "center", gap: "8px",
           }} className="desktop-nav">
-            <Link to="/search" aria-label="Search" style={{
-              padding: "8px", borderRadius: "8px", display: "flex",
-              alignItems: "center", justifyContent: "center",
-              backgroundColor: "transparent", border: "none",
-              color: TH.txt2, textDecoration: "none",
-            }}>
+            {/* Search toggle */}
+            <button
+              onClick={() => setShowSearch(!showSearch)}
+              aria-label="Search (Ctrl+K)"
+              style={{
+                padding: "8px", borderRadius: "8px", display: "flex",
+                alignItems: "center", justifyContent: "center",
+                backgroundColor: "transparent", border: "none",
+                color: TH.txt2, cursor: "pointer",
+              }}
+            >
               <Search size={18} />
-            </Link>
+            </button>
+
+            {/* Theme toggle */}
             <button
               onClick={toggleTheme}
               title={isDark ? "Switch to light mode" : "Switch to dark mode"}
@@ -123,6 +134,7 @@ export default function Navbar({ transparent = false }) {
             >
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
+
             {!isAuthenticated ? (
               <>
                 <Link to="/auth" style={{
@@ -145,16 +157,14 @@ export default function Navbar({ transparent = false }) {
               </>
             ) : (
               <>
-                <Link to="/notifications" aria-label="Notifications" style={{
-                  padding: "8px", borderRadius: "8px", display: "flex",
-                  alignItems: "center", justifyContent: "center",
-                  backgroundColor: "transparent", border: "none",
-                  color: T.txt2, textDecoration: "none", transition: "all 0.2s",
-                  position: "relative",
-                }}>
-                  <Bell size={18} />
-                </Link>
-                <Link to="/guitar/new" style={{
+                {/* Notifications dropdown */}
+                <NotificationDropdown />
+
+                {/* Messages dropdown */}
+                <MessageDropdown />
+
+                {/* Add Instrument */}
+                <Link to="/instrument/new" style={{
                   padding: "8px 16px", borderRadius: "8px",
                   fontSize: "14px", fontWeight: "600",
                   backgroundColor: T.warm, color: T.bgDeep,
@@ -163,8 +173,10 @@ export default function Navbar({ transparent = false }) {
                   transition: "all 0.2s",
                 }}>
                   <Plus size={16} />
-                  Add Guitar
+                  Add Instrument
                 </Link>
+
+                {/* User menu */}
                 <div ref={userMenuRef} style={{ position: "relative" }}>
                   <button onClick={() => setUserMenuOpen(!userMenuOpen)} aria-label="User menu" aria-expanded={userMenuOpen} style={{
                     width: "40px", height: "40px", borderRadius: "50%",
@@ -206,7 +218,7 @@ export default function Navbar({ transparent = false }) {
 
                       {/* Menu items */}
                       <div style={{ padding: "6px" }}>
-                        <button onClick={() => navigate(`/user/${profile?.username}`)} style={{
+                        <button onClick={() => navigate(`/user/${profile?.username || profile?.email?.split('@')[0] || 'me'}`)} style={{
                           width: "100%", display: "flex", alignItems: "center", gap: "10px",
                           padding: "10px 12px", borderRadius: "8px", border: "none",
                           background: "transparent", color: T.txt, fontSize: "13px",
@@ -214,6 +226,36 @@ export default function Navbar({ transparent = false }) {
                         }} onMouseEnter={e => e.currentTarget.style.background = T.bgElev}
                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                           <User size={15} color={T.txtM} /> My Profile
+                        </button>
+
+                        <button onClick={() => navigate("/my-instruments")} style={{
+                          width: "100%", display: "flex", alignItems: "center", gap: "10px",
+                          padding: "10px 12px", borderRadius: "8px", border: "none",
+                          background: "transparent", color: T.txt, fontSize: "13px",
+                          cursor: "pointer", textAlign: "left", transition: "background 0.15s",
+                        }} onMouseEnter={e => e.currentTarget.style.background = T.bgElev}
+                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                          🎸 My Instruments
+                        </button>
+
+                        <button onClick={() => navigate("/my-collections")} style={{
+                          width: "100%", display: "flex", alignItems: "center", gap: "10px",
+                          padding: "10px 12px", borderRadius: "8px", border: "none",
+                          background: "transparent", color: T.txt, fontSize: "13px",
+                          cursor: "pointer", textAlign: "left", transition: "background 0.15s",
+                        }} onMouseEnter={e => e.currentTarget.style.background = T.bgElev}
+                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                          📁 My Collections
+                        </button>
+
+                        <button onClick={() => navigate("/my-favorites")} style={{
+                          width: "100%", display: "flex", alignItems: "center", gap: "10px",
+                          padding: "10px 12px", borderRadius: "8px", border: "none",
+                          background: "transparent", color: T.txt, fontSize: "13px",
+                          cursor: "pointer", textAlign: "left", transition: "background 0.15s",
+                        }} onMouseEnter={e => e.currentTarget.style.background = T.bgElev}
+                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                          ❤️ Favorites
                         </button>
 
                         <button onClick={() => navigate("/settings")} style={{
@@ -262,20 +304,61 @@ export default function Navbar({ transparent = false }) {
             )}
           </div>
 
-          {/* Mobile Hamburger */}
-          <button
-            className="mobile-nav"
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={menuOpen}
-            style={{
-              display: "none", padding: "8px", border: "none",
-              backgroundColor: "transparent", color: T.txt, cursor: "pointer",
-            }}
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            {menuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          {/* Mobile Action Bar */}
+          <div className="mobile-nav" style={{ display: "none", alignItems: "center", gap: "4px" }}>
+            <button
+              onClick={() => setShowSearch(!showSearch)}
+              aria-label="Search"
+              style={{
+                padding: "8px", borderRadius: "8px", display: "flex",
+                alignItems: "center", justifyContent: "center",
+                backgroundColor: "transparent", border: "none",
+                color: TH.txt2, cursor: "pointer",
+              }}
+            >
+              <Search size={20} />
+            </button>
+            <button
+              onClick={toggleTheme}
+              aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              style={{
+                padding: "8px", borderRadius: "8px", display: "flex",
+                alignItems: "center", justifyContent: "center",
+                backgroundColor: "transparent", border: "none",
+                color: TH.txt2, cursor: "pointer",
+              }}
+            >
+              {isDark ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            {isAuthenticated && (
+              <>
+                <NotificationDropdown />
+                <MessageDropdown />
+              </>
+            )}
+            <button
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
+              style={{
+                padding: "8px", border: "none",
+                backgroundColor: "transparent", color: T.txt, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              {menuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
+
+        {/* Global Search Bar (slides down below nav) */}
+        {showSearch && (
+          <div style={{
+            maxWidth: "40rem", margin: "0 auto", padding: "0 24px 12px",
+          }}>
+            <GlobalSearchBar />
+          </div>
+        )}
       </nav>
 
       {/* Mobile Menu Overlay */}
@@ -317,19 +400,19 @@ export default function Navbar({ transparent = false }) {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "16px", width: "100%", maxWidth: "300px" }}>
-              <Link to="/collection" onClick={() => setMenuOpen(false)} style={{
+              <Link to="/my-instruments" onClick={() => setMenuOpen(false)} style={{
                 padding: "12px 24px", borderRadius: "8px", fontSize: "16px",
                 textDecoration: "none", color: T.txt, textAlign: "center",
-              }}>My Collection</Link>
-              <Link to="/guitar/new" onClick={() => setMenuOpen(false)} style={{
+              }}>My Instruments</Link>
+              <Link to="/my-collections" onClick={() => setMenuOpen(false)} style={{
+                padding: "12px 24px", borderRadius: "8px", fontSize: "16px",
+                textDecoration: "none", color: T.txt, textAlign: "center",
+              }}>My Collections</Link>
+              <Link to="/instrument/new" onClick={() => setMenuOpen(false)} style={{
                 padding: "12px 24px", borderRadius: "8px", fontSize: "16px",
                 fontWeight: "600", backgroundColor: T.warm,
                 color: T.bgDeep, textDecoration: "none", border: "none", textAlign: "center",
-              }}>Add Guitar</Link>
-              <Link to="/notifications" onClick={() => setMenuOpen(false)} style={{
-                padding: "12px 24px", borderRadius: "8px", fontSize: "16px",
-                textDecoration: "none", color: T.txt, textAlign: "center",
-              }}>Notifications</Link>
+              }}>Add Instrument</Link>
               <Link to="/messages" onClick={() => setMenuOpen(false)} style={{
                 padding: "12px 24px", borderRadius: "8px", fontSize: "16px",
                 textDecoration: "none", color: T.txt, textAlign: "center",
@@ -351,7 +434,7 @@ export default function Navbar({ transparent = false }) {
         </div>
       )}
 
-      {/* CSS for responsive show/hide - inline styles can't do media queries */}
+      {/* CSS for responsive show/hide */}
       <style>{`
         .desktop-nav { display: flex !important; }
         .mobile-nav { display: none !important; }

@@ -34,8 +34,8 @@ export default function ClaimGuitar() {
       try {
         setLoading(true);
         const { data, error: fetchError } = await supabase
-          .from('guitars')
-          .select('id, brand, model, year, serial_number, owner_id, is_claimable, image_url')
+          .from('instruments')
+          .select('id, make, model, year, serial_number, current_owner_id, is_claimable, image_url')
           .eq('id', guitarId)
           .single();
 
@@ -200,7 +200,7 @@ export default function ClaimGuitar() {
               <div style={{ width: '100%', height: '300px', overflow: 'hidden', backgroundColor: T.bgElev }}>
                 <img
                   src={guitar.image_url}
-                  alt={`${guitar.brand} ${guitar.model}`}
+                  alt={`${guitar.make} ${guitar.model}`}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={(e) => {
                     e.target.style.display = 'none';
@@ -212,7 +212,7 @@ export default function ClaimGuitar() {
             {/* Guitar Info */}
             <div style={{ padding: '30px' }}>
               <h1 style={{ color: T.txt, fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>
-                {guitar.brand} {guitar.model}
+                {guitar.make} {guitar.model}
               </h1>
               <p style={{ color: T.txt2, marginBottom: '20px' }}>{guitar.year}</p>
 
@@ -235,7 +235,7 @@ export default function ClaimGuitar() {
                     </div>
                   </div>
                 </div>
-              ) : guitar.owner_id && !guitar.is_claimable ? (
+              ) : guitar.current_owner_id && !guitar.is_claimable ? (
                 <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: '#EF4444', border: `1px solid #EF4444`, borderRadius: '8px', padding: '15px', marginBottom: '20px' }}>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <AlertCircle size={20} style={{ color: '#EF4444', flexShrink: 0 }} />
@@ -287,7 +287,7 @@ export default function ClaimGuitar() {
           <div style={{ backgroundColor: T.bgCard, borderColor: T.border, border: `1px solid ${T.border}`, borderRadius: '12px', padding: '30px' }}>
             <h1 style={{ color: T.txt, fontSize: '24px', fontWeight: 700, marginBottom: '8px' }}>Verify Your Ownership</h1>
             <p style={{ color: T.txt2, marginBottom: '30px' }}>
-              Tell us how you own this {guitar.brand} {guitar.model}
+              Tell us how you own this {guitar.make} {guitar.model}
             </p>
 
             {error && (

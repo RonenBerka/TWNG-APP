@@ -7,7 +7,28 @@
     <title>TWNG - Every Guitar Has a Story</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- This message shows if React fails to mount -->
+      <div id="boot-fallback" style="padding:40px;font-family:monospace;color:#ff6b6b;background:#0C0A09;min-height:100vh;">
+        <h2 style="color:#D97706;">TWNG is loading...</h2>
+        <p style="color:#A8A29E;margin-top:12px;">If this message stays visible for more than 5 seconds, check the browser console (F12 → Console) for errors.</p>
+        <p id="boot-error" style="color:#ff4444;margin-top:16px;display:none;"></p>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Hide boot fallback once React renders (or show error if module fails to load)
+      setTimeout(function() {
+        var fb = document.getElementById('boot-fallback');
+        if (fb && fb.parentElement.children.length === 1) {
+          // Still only the fallback div — React didn't render
+          fb.querySelector('h2').textContent = 'TWNG failed to start';
+          fb.querySelector('h2').style.color = '#ff4444';
+          var errEl = document.getElementById('boot-error');
+          errEl.style.display = 'block';
+          errEl.textContent = 'React did not mount. Check the browser console (F12) for module loading errors.';
+        }
+      }, 5000);
+    </script>
   </body>
 </html>

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase/client';
 import { T } from '../../theme/tokens';
 import { useTheme } from '../../context/ThemeContext';
+import { welcomeSequence, claimSequence, reengagementSequence } from '../../lib/email/templates';
+import { authTemplates, transactionalTemplates } from '../../lib/email/auth-templates';
 import {
   Users, Mail, TrendingUp, Settings, Share2, Zap, BarChart3, BookOpen,
   ChevronRight, ChevronDown, Download, Eye, Flag, Edit, Trash2,
@@ -194,6 +196,23 @@ function OutreachModule() {
   const [guitars, setGuitars] = useState([]);
   const [processingId, setProcessingId] = useState(null);
 
+  // Extract workflow state
+  const [extractUrl, setExtractUrl] = useState('');
+  const [extractLoading, setExtractLoading] = useState(false);
+  const [extractedData, setExtractedData] = useState(null);
+  const [extractedGuitar, setExtractedGuitar] = useState({
+    make: '', model: '', year: '', color: '', serial: '',
+  });
+  const [outreachRecipientEmail, setOutreachRecipientEmail] = useState('');
+  const [manualTextMode, setManualTextMode] = useState(false);
+  const [manualText, setManualText] = useState('');
+  const [extractedStory, setExtractedStory] = useState('');
+  const [outreachMessageEn, setOutreachMessageEn] = useState('');
+  const [outreachMessageHe, setOutreachMessageHe] = useState('');
+  const [messageLanguage, setMessageLanguage] = useState('en');
+  const [savedExtractions, setSavedExtractions] = useState([]);
+  const [extractionAction, setExtractionAction] = useState(null); // 'saving' or 'sending'
+
   const showToast = useCallback((msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
@@ -206,8 +225,8 @@ function OutreachModule() {
       try {
         const [claimsRes, usersRes, guitarsRes] = await Promise.all([
           supabase
-            .from('guitar_claims')
-            .select('*, claimer:claimer_id(username, display_name), guitar:guitar_id(brand, model, year)')
+            .from('ownership_claims')
+            .select('*, claimer:claimant_id(username, display_name), guitar:instrument_id(make, model, year)')
             .order('created_at', { ascending: false })
             .limit(20),
           supabase
@@ -217,8 +236,8 @@ function OutreachModule() {
             .order('created_at', { ascending: true })
             .limit(50),
           supabase
-            .from('guitars')
-            .select('id, brand, model, year, serial_number, body_style, finish, state, created_at, owner:owner_id(username, display_name)')
+            .from('instruments')
+            .select('id, make, model, year, serial_number, body_style, finish, state, created_at, owner:current_owner_id(username, display_name)')
             .eq('state', 'published')
             .order('created_at', { ascending: false })
             .limit(20),
@@ -240,7 +259,7 @@ function OutreachModule() {
     setProcessingId(claimId);
     try {
       const { error } = await supabase
-        .from('guitar_claims')
+        .from('ownership_claims')
         .update({
           status: action === 'approve' ? 'approved' : 'rejected',
           reviewed_at: new Date().toISOString(),
@@ -276,7 +295,7 @@ function OutreachModule() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseKey}` },
         body: JSON.stringify({
-          guitarId: guitar.id, brand: guitar.brand, model: guitar.model,
+          guitarId: guitar.id, brand: guitar.make, model: guitar.model,
           year: guitar.year, serialNumber: guitar.serial_number,
           bodyStyle: guitar.body_style, finish: guitar.finish, photoUrls: [],
         }),
@@ -290,9 +309,265 @@ function OutreachModule() {
     }
   }, [showToast]);
 
+  // Extract post — accepts URL scrape or manual text
+  const handleExtractPost = useCallback(async (useManualText = false) => {
+    if (!useManualText && !extractUrl.trim()) {
+      showToast('Please enter a URL', 'error');
+      return;
+    }
+    if (useManualText && !manualText.trim()) {
+      showToast('Please paste the post text', 'error');
+      return;
+    }
+    setExtractLoading(true);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      const payload = useManualText
+        ? {
+            text: manualText,
+            source_url: extractUrl || undefined,
+            source_author: extractedData?.manualAuthor || undefined,
+            source: extractedData?.manualSource || 'reddit',
+          }
+        : { url: extractUrl };
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/extract-post`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.error || 'Extraction failed');
+      }
+      const data = await response.json();
+      console.log('[extract-post] Response:', JSON.stringify(data, null, 2));
+
+      // Handle scrape failure — offer manual paste
+      if (data.scrapeError) {
+        showToast('Could not scrape this URL. Paste the post text below instead.', 'error');
+        setManualTextMode(true);
+        setExtractLoading(false);
+        return;
+      }
+
+      setExtractedData(data);
+      setManualTextMode(false);
+      const gi = data.guitarInfo || data.guitar || data.data || {};
+      console.log('[extract-post] Guitar info:', gi);
+      setExtractedGuitar({
+        make: gi.brand || '',
+        model: gi.model || '',
+        year: gi.year || '',
+        color: gi.color || '',
+        serial: gi.serial || '',
+      });
+      setExtractedStory(gi.story || data.data?.story || '');
+      setOutreachMessageEn(data.outreach?.en || data.data?.outreach_message_en || '');
+      setOutreachMessageHe(data.outreach?.he || data.data?.outreach_message_he || '');
+
+      // Warn if extraction succeeded but no guitar info was found
+      const hasAnyField = gi.make || gi.brand || gi.model || gi.year || gi.color || gi.story;
+      if (hasAnyField) {
+        showToast('Guitar info extracted successfully');
+      } else {
+        showToast('Post scraped but no guitar details found. Try pasting the text manually.', 'error');
+        setManualTextMode(true);
+      }
+    } catch (e) {
+      showToast(`Extraction failed: ${e.message}`, 'error');
+    } finally {
+      setExtractLoading(false);
+    }
+  }, [extractUrl, manualText, showToast]);
+
+  // Save extracted data to database
+  const handleSaveExtraction = useCallback(async () => {
+    if (!extractedData) {
+      showToast('No extraction to save', 'error');
+      return;
+    }
+    setExtractionAction('saving');
+    try {
+      const { error } = await supabase.from('instruments').insert([
+        {
+          make: extractedGuitar.make || null,
+          model: extractedGuitar.model || null,
+          year: extractedGuitar.year || null,
+          color: extractedGuitar.color || null,
+          serial: extractedGuitar.serial || null,
+          story: extractedStory || null,
+          images: extractedData?.data?.images || [],
+          source: extractedData?.data?.source || 'unknown',
+          source_url: extractUrl,
+          source_author: extractedData?.data?.source_author || null,
+          source_author_url: extractedData?.data?.source_author_url || null,
+          source_title: extractedData?.data?.source_title || null,
+          outreach_message_en: outreachMessageEn,
+          outreach_message_he: outreachMessageHe,
+          status: 'unclaimed',
+          current_owner_id: null,
+        },
+      ]);
+      if (error) throw error;
+      showToast('Extraction saved to database');
+      setExtractUrl('');
+      setExtractedData(null);
+      // Refetch saved extractions
+      await fetchSavedExtractions();
+    } catch (e) {
+      showToast(`Save failed: ${e.message}`, 'error');
+    } finally {
+      setExtractionAction(null);
+    }
+  }, [extractUrl, extractedData, extractedGuitar, extractedStory, outreachMessageEn, outreachMessageHe, showToast]);
+
+  // Send outreach — either via email (if address provided) or log as manual DM
+  const handleSendOutreach = useCallback(async (recipientEmail) => {
+    if (!extractedData) {
+      showToast('No extraction data', 'error');
+      return;
+    }
+    setExtractionAction('sending');
+    try {
+      const message = messageLanguage === 'en' ? outreachMessageEn : outreachMessageHe;
+      const method = recipientEmail ? 'email' : 'manual';
+
+      if (recipientEmail) {
+        // Send via email Edge Function
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            to: recipientEmail,
+            subject: 'Your guitar deserves to be documented — TWNG',
+            html: message.replace(/\n/g, '<br>'),
+          }),
+        });
+        if (!response.ok) throw new Error('Email send failed');
+      }
+
+      // Log to outreach_log
+      const guitarId = extractedData?.data?.id;
+      if (guitarId) {
+        await supabase.from('outreach_log').insert([{
+          unclaimed_guitar_id: guitarId,
+          method,
+          recipient: recipientEmail || extractedData?.data?.source_author || 'unknown',
+          subject: 'Your guitar deserves to be documented — TWNG',
+          message_body: message,
+          language: messageLanguage,
+          status: recipientEmail ? 'sent' : 'pending',
+          sent_at: recipientEmail ? new Date().toISOString() : null,
+        }]);
+      }
+
+      showToast(recipientEmail ? 'Outreach email sent' : 'Outreach logged — copy the message to send manually');
+    } catch (e) {
+      showToast(`Outreach failed: ${e.message}`, 'error');
+    } finally {
+      setExtractionAction(null);
+    }
+  }, [extractedData, messageLanguage, outreachMessageEn, outreachMessageHe, showToast]);
+
+  // Copy outreach message to clipboard
+  const handleCopyOutreachMessage = useCallback(() => {
+    const message = messageLanguage === 'en' ? outreachMessageEn : outreachMessageHe;
+    navigator.clipboard.writeText(message).then(() => {
+      showToast('Outreach message copied to clipboard');
+    }).catch(() => showToast('Failed to copy', 'error'));
+  }, [messageLanguage, outreachMessageEn, outreachMessageHe, showToast]);
+
+  // Fetch saved extractions
+  const fetchSavedExtractions = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('instruments')
+        .select('*')
+        .is('current_owner_id', null)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      setSavedExtractions(data || []);
+    } catch (e) {
+      console.error('Fetch saved extractions error:', e);
+    }
+  }, []);
+
+  // Load saved extraction
+  const handleLoadExtraction = useCallback((extraction) => {
+    setExtractUrl(extraction.source_url);
+    setExtractedData({
+      platform: extraction.source_platform,
+      author_email: extraction.author_email,
+      story: extraction.story,
+      guitar: {
+        make: extraction.make,
+        model: extraction.guitar_model,
+        year: extraction.guitar_year,
+        color: extraction.guitar_color,
+      },
+    });
+    setExtractedGuitar({
+      make: extraction.make,
+      model: extraction.guitar_model,
+      year: extraction.guitar_year || '',
+      color: extraction.guitar_color,
+    });
+    setExtractedStory(extraction.story);
+    setOutreachMessageEn(extraction.outreach_message_en);
+    setOutreachMessageHe(extraction.outreach_message_he);
+    showToast('Extraction loaded');
+  }, [showToast]);
+
+  // Fetch saved extractions on mount
+  useEffect(() => {
+    fetchSavedExtractions();
+  }, [fetchSavedExtractions]);
+
   const loadingRow = (
     <div style={{ padding: '40px', textAlign: 'center', color: T.txtM, fontSize: '13px' }}>
       Loading data from Supabase...
+    </div>
+  );
+
+  const outreachTabs = (
+    <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+      {[
+        { key: 'queue', label: 'Outreach Queue' },
+        { key: 'extract', label: 'Create Outreach' },
+        { key: 'claims', label: 'Claim Reviews' },
+        { key: 'founding', label: 'Founding Members' },
+        { key: 'verification', label: 'Verification' },
+        { key: 'influencers', label: 'Influencers' },
+      ].map((tab) => (
+        <button
+          key={tab.key}
+          onClick={() => setActiveScreen(tab.key)}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: activeScreen === tab.key ? colors.warmAlways : 'transparent',
+            color: activeScreen === tab.key ? '#FFFFFF' : T.txt,
+            border: `1px solid ${activeScreen === tab.key ? colors.warmAlways : T.border}`,
+            borderRadius: '8px',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          {tab.label}
+        </button>
+      ))}
     </div>
   );
 
@@ -300,12 +575,13 @@ function OutreachModule() {
     const outreachItems = guitars.map(g => ({
       id: g.id,
       name: g.owner?.display_name || g.owner?.username || 'Unknown',
-      guitar: `${g.brand} ${g.model}`,
+      guitar: `${g.make} ${g.model}`,
       year: g.year,
-      suggestedDm: `Hey! Love your ${g.brand} ${g.model}${g.year ? ` (${g.year})` : ''}. We're building TWNG — a platform where guitar owners document their instruments. Would you like to claim yours?`,
+      suggestedDm: `Hey! Love your ${g.make} ${g.model}${g.year ? ` (${g.year})` : ''}. We're building TWNG — a platform where guitar owners document their instruments. Would you like to claim yours?`,
     }));
     return (
       <div>
+        {outreachTabs}
         <MkToast toast={toast} />
         <div style={{ marginBottom: '24px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '4px' }}>
@@ -374,6 +650,7 @@ function OutreachModule() {
     const statusBg = (s) => s === 'approved' ? colors.greenBg : s === 'rejected' ? colors.redBg : colors.orangeBg;
     return (
       <div>
+        {outreachTabs}
         <MkToast toast={toast} />
         <div style={{ marginBottom: '24px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '4px' }}>
@@ -410,7 +687,7 @@ function OutreachModule() {
                   />
                 </div>
                 <div style={{ fontSize: '13px', color: T.txt2, marginBottom: '8px' }}>
-                  {claim.guitar ? `${claim.guitar.brand} ${claim.guitar.model}${claim.guitar.year ? ` (${claim.guitar.year})` : ''}` : 'Unknown guitar'}
+                  {claim.guitar ? `${claim.guitar.make} ${claim.guitar.model}${claim.guitar.year ? ` (${claim.guitar.year})` : ''}` : 'Unknown guitar'}
                 </div>
                 <div style={{ fontSize: '12px', color: T.txtM, marginBottom: '12px' }}>
                   Type: {claim.verification_type || 'Not specified'} • {new Date(claim.created_at).toLocaleDateString()}
@@ -464,6 +741,7 @@ function OutreachModule() {
   if (activeScreen === 'founding') {
     return (
       <div>
+        {outreachTabs}
         <div style={{ marginBottom: '24px' }}>
           <div style={{ marginBottom: '16px' }}>
             <div style={{ fontSize: '13px', color: T.txtM, marginBottom: '8px' }}>
@@ -519,6 +797,7 @@ function OutreachModule() {
   if (activeScreen === 'verification') {
     return (
       <div>
+        {outreachTabs}
         <MkToast toast={toast} />
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '4px' }}>
           Guitar Verification
@@ -544,7 +823,7 @@ function OutreachModule() {
               }}
             >
               <div style={{ marginBottom: '8px', fontWeight: 700, color: T.txt }}>
-                {g.brand} {g.model}
+                {g.make} {g.model}
               </div>
               <div style={{ fontSize: '12px', color: T.txt2, marginBottom: '4px' }}>
                 Year: {g.year || '—'} • Serial: {g.serial_number || '—'}
@@ -586,6 +865,426 @@ function OutreachModule() {
     );
   }
 
+  if (activeScreen === 'extract') {
+    return (
+      <div>
+        {outreachTabs}
+        <MkToast toast={toast} />
+        <div style={{ marginBottom: '32px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '4px' }}>
+            Create Outreach
+          </h2>
+          <div style={{ fontSize: '12px', color: T.txtM, marginBottom: '16px' }}>
+            Paste a URL → AI extracts guitar info automatically → review & send outreach
+          </div>
+
+          {/* URL Input */}
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: T.txt, marginBottom: '8px' }}>
+              Post URL
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                placeholder="https://reddit.com/r/guitars/comments/..."
+                value={extractUrl}
+                onChange={(e) => setExtractUrl(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  backgroundColor: T.bgCard,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: '8px',
+                  color: T.txt,
+                  fontSize: '13px',
+                }}
+              />
+              <button
+                onClick={() => handleExtractPost(false)}
+                disabled={extractLoading || !extractUrl.trim()}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: extractLoading ? T.txtM : !extractUrl.trim() ? T.txtM : colors.warmAlways,
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: extractLoading || !extractUrl.trim() ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {extractLoading ? 'Extracting...' : 'Extract'}
+              </button>
+            </div>
+
+            {/* Manual text fallback — shows when scrape fails */}
+            {manualTextMode && (
+              <div style={{ marginTop: '12px', padding: '14px', backgroundColor: T.bgDeep, borderRadius: '8px', border: `1px solid ${colors.warmAlways}40` }}>
+                <p style={{ color: colors.warmAlways, fontSize: '12px', fontWeight: 600, marginBottom: '8px' }}>
+                  Scraping blocked — paste the post text below as fallback:
+                </p>
+                <textarea
+                  placeholder="Copy the post text from the page and paste here..."
+                  value={manualText}
+                  onChange={(e) => setManualText(e.target.value)}
+                  style={{ width: '100%', padding: '10px', backgroundColor: T.bgElev, border: `1px solid ${T.border}`, borderRadius: '6px', color: T.txt, fontSize: '12px', fontFamily: 'inherit', minHeight: '100px', resize: 'vertical' }}
+                />
+                <button
+                  onClick={() => handleExtractPost(true)}
+                  disabled={extractLoading || !manualText.trim()}
+                  style={{ marginTop: '8px', padding: '8px 16px', backgroundColor: extractLoading ? T.txtM : colors.warmAlways, color: '#FFF', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {extractLoading ? 'Extracting...' : 'Extract from Text'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Step 2: Review Results */}
+          {extractedData && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+              {/* Left Column: Guitar Info */}
+              <div>
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: T.bgCard,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: '8px',
+                  marginBottom: '16px',
+                }}>
+                  <h3 style={{ fontSize: '14px', fontWeight: 700, color: T.txt, marginBottom: '12px' }}>
+                    Guitar Information
+                  </h3>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: T.txtM, marginBottom: '4px' }}>
+                      Brand
+                    </label>
+                    <input
+                      type="text"
+                      value={extractedGuitar.make}
+                      onChange={(e) => setExtractedGuitar({ ...extractedGuitar, make: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        backgroundColor: T.bgElev,
+                        border: `1px solid ${T.border}`,
+                        borderRadius: '6px',
+                        color: T.txt,
+                        fontSize: '12px',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: T.txtM, marginBottom: '4px' }}>
+                      Model
+                    </label>
+                    <input
+                      type="text"
+                      value={extractedGuitar.model}
+                      onChange={(e) => setExtractedGuitar({ ...extractedGuitar, model: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        backgroundColor: T.bgElev,
+                        border: `1px solid ${T.border}`,
+                        borderRadius: '6px',
+                        color: T.txt,
+                        fontSize: '12px',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: T.txtM, marginBottom: '4px' }}>
+                      Year
+                    </label>
+                    <input
+                      type="text"
+                      value={extractedGuitar.year}
+                      onChange={(e) => setExtractedGuitar({ ...extractedGuitar, year: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        backgroundColor: T.bgElev,
+                        border: `1px solid ${T.border}`,
+                        borderRadius: '6px',
+                        color: T.txt,
+                        fontSize: '12px',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: T.txtM, marginBottom: '4px' }}>
+                      Color
+                    </label>
+                    <input
+                      type="text"
+                      value={extractedGuitar.color}
+                      onChange={(e) => setExtractedGuitar({ ...extractedGuitar, color: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        backgroundColor: T.bgElev,
+                        border: `1px solid ${T.border}`,
+                        borderRadius: '6px',
+                        color: T.txt,
+                        fontSize: '12px',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Story */}
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: T.bgCard,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: '8px',
+                }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: T.txt, marginBottom: '8px' }}>
+                    Story / Description
+                  </label>
+                  <textarea
+                    value={extractedStory}
+                    onChange={(e) => setExtractedStory(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      backgroundColor: T.bgElev,
+                      border: `1px solid ${T.border}`,
+                      borderRadius: '6px',
+                      color: T.txt,
+                      fontSize: '12px',
+                      fontFamily: 'inherit',
+                      minHeight: '120px',
+                      resize: 'vertical',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Right Column: Outreach Messages */}
+              <div>
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: T.bgCard,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: '8px',
+                }}>
+                  <h3 style={{ fontSize: '14px', fontWeight: 700, color: T.txt, marginBottom: '12px' }}>
+                    Outreach Message
+                  </h3>
+
+                  {/* Language tabs */}
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', borderBottom: `1px solid ${T.border}`, paddingBottom: '12px' }}>
+                    <button
+                      onClick={() => setMessageLanguage('en')}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: messageLanguage === 'en' ? colors.warmAlways : 'transparent',
+                        color: messageLanguage === 'en' ? '#FFFFFF' : T.txt,
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      English
+                    </button>
+                    <button
+                      onClick={() => setMessageLanguage('he')}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: messageLanguage === 'he' ? colors.warmAlways : 'transparent',
+                        color: messageLanguage === 'he' ? '#FFFFFF' : T.txt,
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Hebrew
+                    </button>
+                  </div>
+
+                  <textarea
+                    value={messageLanguage === 'en' ? outreachMessageEn : outreachMessageHe}
+                    onChange={(e) => messageLanguage === 'en' ? setOutreachMessageEn(e.target.value) : setOutreachMessageHe(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      backgroundColor: T.bgElev,
+                      border: `1px solid ${T.border}`,
+                      borderRadius: '6px',
+                      color: T.txt,
+                      fontSize: '12px',
+                      fontFamily: 'inherit',
+                      minHeight: '200px',
+                      resize: 'vertical',
+                    }}
+                  />
+
+                  {/* Copy for DM */}
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                    <button
+                      onClick={() => { handleCopyOutreachMessage(); handleSendOutreach(); }}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        backgroundColor: colors.blue,
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                      }}
+                    >
+                      <Copy size={14} /> Copy & Log as DM
+                    </button>
+                  </div>
+
+                  {/* Or send via email */}
+                  <div style={{ marginTop: '10px', padding: '10px', backgroundColor: T.bgDeep, borderRadius: '8px' }}>
+                    <p style={{ color: T.txt2, fontSize: '11px', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Or send via email</p>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="email"
+                        placeholder="recipient@email.com"
+                        value={outreachRecipientEmail}
+                        onChange={(e) => setOutreachRecipientEmail(e.target.value)}
+                        style={{
+                          flex: 1,
+                          padding: '8px 10px',
+                          backgroundColor: T.bgElev,
+                          border: `1px solid ${T.border}`,
+                          borderRadius: '6px',
+                          color: T.txt,
+                          fontSize: '12px',
+                        }}
+                      />
+                      <button
+                        onClick={() => handleSendOutreach(outreachRecipientEmail)}
+                        disabled={extractionAction === 'sending' || !outreachRecipientEmail.trim()}
+                        style={{
+                          padding: '8px 14px',
+                          backgroundColor: !outreachRecipientEmail.trim() ? T.txtM : extractionAction === 'sending' ? T.txtM : colors.green,
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: !outreachRecipientEmail.trim() ? 'not-allowed' : 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {extractionAction === 'sending' ? 'Sending...' : 'Send Email'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <button
+                  onClick={handleSaveExtraction}
+                  disabled={extractionAction === 'saving'}
+                  style={{
+                    width: '100%',
+                    marginTop: '12px',
+                    padding: '12px',
+                    backgroundColor: extractionAction === 'saving' ? T.txtM : colors.warmAlways,
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: extractionAction === 'saving' ? 'wait' : 'pointer',
+                  }}
+                >
+                  {extractionAction === 'saving' ? 'Saving...' : 'Save to Database'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Saved Extractions */}
+        <div>
+          <h3 style={{ fontSize: '14px', fontWeight: 700, color: T.txt, marginBottom: '12px' }}>
+            Recent Extractions ({savedExtractions.length})
+          </h3>
+          {savedExtractions.length === 0 ? (
+            <div style={{
+              padding: '24px',
+              textAlign: 'center',
+              color: T.txtM,
+              fontSize: '13px',
+              backgroundColor: T.bgCard,
+              borderRadius: '8px',
+              border: `1px solid ${T.border}`,
+            }}>
+              No extractions yet
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+              {savedExtractions.map((extraction) => (
+                <div
+                  key={extraction.id}
+                  style={{
+                    padding: '16px',
+                    backgroundColor: T.bgCard,
+                    border: `1px solid ${T.border}`,
+                    borderRadius: '8px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: T.txt, fontSize: '13px' }}>
+                        {extraction.make} {extraction.guitar_model}
+                      </div>
+                      <div style={{ fontSize: '11px', color: T.txtM, marginTop: '4px' }}>
+                        {extraction.source_platform}
+                      </div>
+                    </div>
+                    <MkBadge
+                      text={extraction.status}
+                      color={extraction.status === 'claimed' ? colors.green : colors.orange}
+                    />
+                  </div>
+                  <div style={{ fontSize: '11px', color: T.txt2, marginBottom: '12px' }}>
+                    {new Date(extraction.created_at).toLocaleDateString()}
+                  </div>
+                  <button
+                    onClick={() => handleLoadExtraction(extraction)}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      backgroundColor: colors.blue,
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Load & Edit
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (activeScreen === 'influencers') {
     const influencers = [
       { id: 1, handle: '@guitar_collector_pro', followers: '523K', guitars: 12, engagement: '6.2%', tier: 'Macro' },
@@ -594,6 +1293,7 @@ function OutreachModule() {
     ];
     return (
       <div>
+        {outreachTabs}
         <MkToast toast={toast} />
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '16px' }}>
           Influencer Pipeline
@@ -657,34 +1357,11 @@ function OutreachModule() {
     );
   }
 
+  // Fallback — should not reach here, but just in case
   return (
     <div>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-        {[
-          { key: 'queue', label: 'Outreach Queue' },
-          { key: 'claims', label: 'Claim Reviews' },
-          { key: 'founding', label: 'Founding Members' },
-          { key: 'verification', label: 'Verification' },
-          { key: 'influencers', label: 'Influencers' },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveScreen(tab.key)}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: activeScreen === tab.key ? colors.warmAlways : 'transparent',
-              color: activeScreen === tab.key ? '#FFFFFF' : T.txt,
-              border: `1px solid ${activeScreen === tab.key ? colors.warmAlways : T.border}`,
-              borderRadius: '8px',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {outreachTabs}
+      <p style={{ color: T.txtM, fontSize: '13px' }}>Select a tab above.</p>
     </div>
   );
 }
@@ -1294,6 +1971,14 @@ function ContentModule() {
 
 function EmailModule() {
   const [activeScreen, setActiveScreen] = useState('sequences');
+  const [selectedCategory, setSelectedCategory] = useState('welcome');
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState('welcome');
+  const [editedHtml, setEditedHtml] = useState('');
+  const [editedSubject, setEditedSubject] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null); // 'saved' | 'error' | null
+  const [hasChanges, setHasChanges] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
 
   const sequences = [
     {
@@ -1520,67 +2205,427 @@ function EmailModule() {
   }
 
   if (activeScreen === 'template') {
+    // Template Registry with all 17 templates
+    const TEMPLATE_REGISTRY = {
+      welcome: {
+        label: 'Welcome Sequence',
+        templates: {
+          welcome: { label: 'Welcome Email', variables: ['username', 'profileUrl'], sampleData: { username: 'GuitarDave', profileUrl: 'https://twng.com/profile' } },
+          completeProfile: { label: 'Complete Profile', variables: ['username', 'profileUrl'], sampleData: { username: 'GuitarDave', profileUrl: 'https://twng.com/profile' } },
+          addFirstGuitar: { label: 'Add First Guitar', variables: ['username', 'addGuitarUrl'], sampleData: { username: 'GuitarDave', addGuitarUrl: 'https://twng.com/add' } },
+          exploreConnect: { label: 'Explore & Connect', variables: ['username', 'exploreUrl'], sampleData: { username: 'GuitarDave', exploreUrl: 'https://twng.com/explore' } },
+        },
+      },
+      claim: {
+        label: 'Claim Process',
+        templates: {
+          claimConfirmed: { label: 'Claim Confirmed', variables: ['username', 'brand', 'model', 'guitarUrl'], sampleData: { username: 'GuitarDave', brand: 'Gibson', model: 'Les Paul Standard', guitarUrl: 'https://twng.com/guitars/123' } },
+          addPhotosStory: { label: 'Add Photos & Story', variables: ['username', 'brand', 'model', 'guitarUrl'], sampleData: { username: 'GuitarDave', brand: 'Gibson', model: 'Les Paul Standard', guitarUrl: 'https://twng.com/guitars/123' } },
+          shareCollection: { label: 'Share Collection', variables: ['username', 'collectionUrl'], sampleData: { username: 'GuitarDave', collectionUrl: 'https://twng.com/collection/dave' } },
+          inviteCollectors: { label: 'Invite Collectors', variables: ['username', 'inviteUrl'], sampleData: { username: 'GuitarDave', inviteUrl: 'https://twng.com/invite' } },
+        },
+      },
+      reengagement: {
+        label: 'Re-engagement',
+        templates: {
+          missYou: { label: 'We Miss You', variables: ['username', 'exploreUrl'], sampleData: { username: 'GuitarDave', exploreUrl: 'https://twng.com/explore' } },
+          newInBrand: { label: 'New in Your Brand', variables: ['username', 'preferredBrand', 'exploreUrl'], sampleData: { username: 'GuitarDave', preferredBrand: 'Fender', exploreUrl: 'https://twng.com/explore?brand=fender' } },
+          featuredSpotlight: { label: 'Featured Spotlight', variables: ['username', 'featuredUrl'], sampleData: { username: 'GuitarDave', featuredUrl: 'https://twng.com/featured' } },
+        },
+      },
+      auth: {
+        label: 'Authentication',
+        templates: {
+          passwordReset: { label: 'Password Reset', variables: ['username', 'resetUrl'], sampleData: { username: 'GuitarDave', resetUrl: 'https://twng.com/reset?token=abc123' } },
+          magicLink: { label: 'Magic Link', variables: ['username', 'magicLinkUrl'], sampleData: { username: 'GuitarDave', magicLinkUrl: 'https://twng.com/auth?token=xyz789' } },
+          confirmSignup: { label: 'Confirm Signup', variables: ['username', 'confirmUrl'], sampleData: { username: 'GuitarDave', confirmUrl: 'https://twng.com/confirm?token=def456' } },
+          changeEmail: { label: 'Change Email', variables: ['username', 'confirmUrl', 'newEmail'], sampleData: { username: 'GuitarDave', confirmUrl: 'https://twng.com/confirm-email', newEmail: 'dave@newmail.com' } },
+        },
+      },
+      transaction: {
+        label: 'Transactional',
+        templates: {
+          claimDenied: { label: 'Claim Denied', variables: ['username', 'brand', 'model', 'reason', 'supportUrl'], sampleData: { username: 'GuitarDave', brand: 'Fender', model: 'Stratocaster', reason: 'Serial number could not be verified with manufacturer records.', supportUrl: 'https://twng.com/support' } },
+          claimPendingReview: { label: 'Claim Pending', variables: ['username', 'brand', 'model', 'claimUrl'], sampleData: { username: 'GuitarDave', brand: 'Fender', model: 'Stratocaster', claimUrl: 'https://twng.com/claims/456' } },
+        },
+      },
+    };
+
+    // Helper function to get template output
+    const getTemplateOutput = (category, key) => {
+      const registry = TEMPLATE_REGISTRY[category]?.templates[key];
+      if (!registry) return null;
+
+      const templateMaps = {
+        welcome: { welcome: welcomeSequence.welcome, completeProfile: welcomeSequence.completeProfile, addFirstGuitar: welcomeSequence.addFirstGuitar, exploreConnect: welcomeSequence.exploreConnect },
+        claim: { claimConfirmed: claimSequence.claimConfirmed, addPhotosStory: claimSequence.addPhotosStory, shareCollection: claimSequence.shareCollection, inviteCollectors: claimSequence.inviteCollectors },
+        reengagement: { missYou: reengagementSequence.missYou, newInBrand: reengagementSequence.newInBrand, featuredSpotlight: reengagementSequence.featuredSpotlight },
+        auth: { passwordReset: authTemplates.passwordReset, magicLink: authTemplates.magicLink, confirmSignup: authTemplates.confirmSignup, changeEmail: authTemplates.changeEmail },
+        transaction: { claimDenied: transactionalTemplates.claimDenied, claimPendingReview: transactionalTemplates.claimPendingReview },
+      };
+
+      const fn = templateMaps[category]?.[key];
+      if (!fn) return null;
+      return fn(registry.sampleData);
+    };
+
+    // Load template on mount or when selection changes
+    useEffect(() => {
+      const loadTemplate = async () => {
+        // First check for custom version in system_config
+        const { data } = await supabase
+          .from('system_config')
+          .select('value')
+          .eq('key', `email_template:${selectedCategory}:${selectedTemplateKey}`)
+          .single();
+
+        if (data?.value) {
+          const custom = JSON.parse(data.value);
+          setEditedHtml(custom.html);
+          setEditedSubject(custom.subject);
+        } else {
+          // Load default from template code
+          const output = getTemplateOutput(selectedCategory, selectedTemplateKey);
+          if (output) {
+            setEditedHtml(output.html);
+            setEditedSubject(output.subject);
+          }
+        }
+        setHasChanges(false);
+        setSaveStatus(null);
+      };
+
+      loadTemplate();
+    }, [selectedCategory, selectedTemplateKey]);
+
+    // Handle save
+    const handleSave = async () => {
+      setIsSaving(true);
+      try {
+        await supabase.from('system_config').upsert({
+          key: `email_template:${selectedCategory}:${selectedTemplateKey}`,
+          value: JSON.stringify({ subject: editedSubject, html: editedHtml }),
+          updated_at: new Date().toISOString(),
+        });
+        setSaveStatus('saved');
+        setHasChanges(false);
+        setTimeout(() => setSaveStatus(null), 3000);
+      } catch (error) {
+        console.error('Save failed:', error);
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus(null), 3000);
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    // Handle reset
+    const handleReset = async () => {
+      if (!confirm('Are you sure? This will discard all changes.')) return;
+      try {
+        await supabase
+          .from('system_config')
+          .delete()
+          .eq('key', `email_template:${selectedCategory}:${selectedTemplateKey}`);
+        const output = getTemplateOutput(selectedCategory, selectedTemplateKey);
+        if (output) {
+          setEditedHtml(output.html);
+          setEditedSubject(output.subject);
+        }
+        setHasChanges(false);
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus(null), 3000);
+      } catch (error) {
+        console.error('Reset failed:', error);
+      }
+    };
+
+    // Handle send test email
+    const handleSendTest = async () => {
+      const testEmail = prompt('Enter email address for test:');
+      if (!testEmail) return;
+
+      setSendingTest(true);
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseKey}` },
+          body: JSON.stringify({ to: testEmail, subject: editedSubject, html: editedHtml }),
+        });
+        if (response.ok) {
+          alert('Test email sent successfully!');
+        } else {
+          alert('Failed to send test email');
+        }
+      } catch (error) {
+        console.error('Send test failed:', error);
+        alert('Error sending test email');
+      } finally {
+        setSendingTest(false);
+      }
+    };
+
+    const currentRegistry = TEMPLATE_REGISTRY[selectedCategory];
+    const currentTemplate = currentRegistry?.templates[selectedTemplateKey];
+    const variables = currentTemplate?.variables || [];
+
     return (
       <div>
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '16px' }}>
           Email Template Editor
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, color: T.txt, marginBottom: '12px' }}>
-              Editor
-            </h3>
-            <div
+
+        {/* Category Tabs */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          {Object.entries(TEMPLATE_REGISTRY).map(([catKey, catData]) => (
+            <button
+              key={catKey}
+              onClick={() => {
+                setSelectedCategory(catKey);
+                setSelectedTemplateKey(Object.keys(catData.templates)[0]);
+              }}
               style={{
+                padding: '8px 16px',
+                backgroundColor: selectedCategory === catKey ? colors.purple : T.bgCard,
+                color: selectedCategory === catKey ? '#fff' : T.txt2,
+                border: `1px solid ${selectedCategory === catKey ? colors.purple : T.border}`,
+                borderRadius: '20px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 600,
+                transition: 'all 0.2s',
+              }}
+            >
+              {catData.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Template Selector & Subject Line */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: T.txt2, marginBottom: '6px' }}>
+              Template
+            </label>
+            <select
+              value={selectedTemplateKey}
+              onChange={(e) => setSelectedTemplateKey(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                backgroundColor: T.bgElev,
+                color: T.txt,
+                border: `1px solid ${T.border}`,
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontFamily: 'inherit',
+                cursor: 'pointer',
+              }}
+            >
+              {Object.entries(currentRegistry?.templates || {}).map(([key, tmpl]) => (
+                <option key={key} value={key}>
+                  {tmpl.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: T.txt2, marginBottom: '6px' }}>
+              Subject Line
+            </label>
+            <input
+              type="text"
+              value={editedSubject}
+              onChange={(e) => {
+                setEditedSubject(e.target.value);
+                setHasChanges(true);
+              }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                backgroundColor: T.bgElev,
+                color: T.txt,
+                border: `1px solid ${T.border}`,
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontFamily: 'inherit',
+              }}
+              placeholder="Email subject line"
+            />
+          </div>
+        </div>
+
+        {/* Variables Reference */}
+        {variables.length > 0 && (
+          <div style={{ marginBottom: '16px', padding: '8px 12px', backgroundColor: colors.purpleBg, borderRadius: '6px', borderLeft: `3px solid ${colors.purple}` }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: T.txt2, marginRight: '8px' }}>Available variables:</span>
+            {variables.map((variable) => (
+              <span
+                key={variable}
+                style={{
+                  display: 'inline-block',
+                  marginRight: '8px',
+                  padding: '4px 8px',
+                  backgroundColor: T.bgElev,
+                  color: colors.purple,
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  fontFamily: 'monospace',
+                  fontWeight: 600,
+                }}
+              >
+                {`{{${variable}}}`}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Split pane: Code Editor (left) | Live Preview (right) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '55% 45%', gap: '16px', marginBottom: '16px' }}>
+          {/* Code Editor */}
+          <div>
+            <h3 style={{ fontSize: '14px', fontWeight: 700, color: T.txt, marginBottom: '8px' }}>
+              HTML Code
+            </h3>
+            <textarea
+              value={editedHtml}
+              onChange={(e) => {
+                setEditedHtml(e.target.value);
+                setHasChanges(true);
+              }}
+              style={{
+                width: '100%',
+                height: '500px',
                 padding: '16px',
                 backgroundColor: T.bgElev,
+                color: T.txt,
                 border: `1px solid ${T.border}`,
                 borderRadius: '6px',
                 fontFamily: 'monospace',
                 fontSize: '12px',
-                color: T.txt2,
-                minHeight: '300px',
+                fontWeight: 500,
+                lineHeight: '1.5',
+                resize: 'vertical',
               }}
-            >
-              {'<div>'}<br />
-              {'  <h1>Welcome {name}</h1>'}<br />
-              {'  <p>Thanks for joining TWNG!</p>'}<br />
-              {'  <button>Get Started</button>'}<br />
-              {'</div>'}
+              placeholder="Enter HTML email template..."
+            />
+            <div style={{ fontSize: '11px', color: T.txt2, marginTop: '4px' }}>
+              {editedHtml.length} characters
             </div>
           </div>
+
+          {/* Live Preview */}
           <div>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, color: T.txt, marginBottom: '12px' }}>
-              Preview
+            <h3 style={{ fontSize: '14px', fontWeight: 700, color: T.txt, marginBottom: '8px' }}>
+              Live Preview
             </h3>
-            <div
+            <iframe
+              srcDoc={editedHtml}
               style={{
-                padding: '16px',
-                backgroundColor: '#fff',
+                width: '100%',
+                height: '500px',
                 border: `1px solid ${T.border}`,
                 borderRadius: '6px',
-                minHeight: '300px',
-                color: '#000',
+                backgroundColor: '#fff',
+                boxShadow: `0 2px 8px rgba(0,0,0,0.1)`,
               }}
-            >
-              <h1 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
-                Welcome John
-              </h1>
-              <p style={{ marginBottom: '12px' }}>Thanks for joining TWNG!</p>
+              title="Email preview"
+              sandbox={{ allow: ['same-origin'] }}
+            />
+          </div>
+        </div>
+
+        {/* Bottom Action Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderTop: `1px solid ${T.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', color: T.txt2 }}>
+            <span>{variables.length} variables</span>
+            <span>•</span>
+            <span>{editedHtml.length} characters</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {hasChanges && (
               <button
-                onClick={() => alert('Email template editor coming soon. Configure your Resend API key in .env to enable sending.')}
+                onClick={handleReset}
                 style={{
-                  padding: '8px 16px',
-                  backgroundColor: colors.warmAlways,
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '8px',
+                  padding: '8px 14px',
+                  backgroundColor: 'transparent',
+                  color: T.txt2,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: '6px',
+                  fontSize: '12px',
                   fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = T.bgCard;
+                  e.target.style.color = T.txt;
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = T.txt2;
                 }}
               >
-                Get Started
+                Reset to Default
               </button>
-            </div>
+            )}
+
+            <button
+              onClick={handleSendTest}
+              disabled={sendingTest}
+              style={{
+                padding: '8px 14px',
+                backgroundColor: colors.cyan,
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: sendingTest ? 'not-allowed' : 'pointer',
+                opacity: sendingTest ? 0.6 : 1,
+                transition: 'all 0.2s',
+              }}
+            >
+              {sendingTest ? 'Sending...' : 'Send Test Email'}
+            </button>
+
+            <button
+              onClick={handleSave}
+              disabled={isSaving || !hasChanges}
+              style={{
+                padding: '8px 14px',
+                backgroundColor: colors.purple,
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: isSaving || !hasChanges ? 'not-allowed' : 'pointer',
+                opacity: isSaving || !hasChanges ? 0.6 : 1,
+                transition: 'all 0.2s',
+              }}
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+
+            {saveStatus && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 10px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                fontWeight: 600,
+                backgroundColor: saveStatus === 'saved' ? colors.greenBg : colors.redBg,
+                color: saveStatus === 'saved' ? colors.green : colors.red,
+              }}>
+                {saveStatus === 'saved' ? '✓ Saved' : '✗ Error'}
+              </div>
+            )}
           </div>
         </div>
       </div>

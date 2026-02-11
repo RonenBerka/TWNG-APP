@@ -98,6 +98,7 @@ import {
   denyChangeRequest,
 } from "../lib/supabase/iaChangeRequests";
 import MarketingConsole from "./admin/MarketingConsole";
+import ContentExtractor from "./admin/ContentExtractor";
 
 // ─────────────────────────────────────────────────────
 // SHARED COMPONENTS
@@ -1897,6 +1898,49 @@ const UserManagementPage = () => {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [pendingRole, setPendingRole] = useState("");
   const [roleChanging, setRoleChanging] = useState(false);
+  const [viewingUserId, setViewingUserId] = useState(null);
+  const [viewUserData, setViewUserData] = useState(null);
+  const [viewUserLoading, setViewUserLoading] = useState(false);
+
+  const handleViewUser = async (user) => {
+    if (viewingUserId === user.id) {
+      setViewingUserId(null);
+      setViewUserData(null);
+      return;
+    }
+    setViewingUserId(user.id);
+    setViewUserLoading(true);
+    try {
+      // Fetch user's guitars
+      const { data: guitars } = await supabase
+        .from("instrument_entities")
+        .select("id, make, model, year, state, created_at")
+        .eq("current_owner_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      // Fetch user's claims
+      const { data: claims } = await supabase
+        .from("ownership_claims")
+        .select("id, status, created_at")
+        .eq("claimant_id", user.id)
+        .limit(5);
+      // Fetch user profile details
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+      setViewUserData({
+        profile: profile || {},
+        guitars: guitars || [],
+        claims: claims || [],
+      });
+    } catch (e) {
+      setViewUserData({ profile: {}, guitars: [], claims: [], error: e.message });
+    } finally {
+      setViewUserLoading(false);
+    }
+  };
 
   const loadUsers = useCallback(async () => {
     setUsersLoading(true);
@@ -1977,7 +2021,8 @@ const UserManagementPage = () => {
               </thead>
               <tbody>
                 {users.map((u) => (
-                  <TR key={u.id}>
+                  <React.Fragment key={u.id}>
+                  <TR>
                     <TD>
                       <div className="flex items-center gap-3">
                         <div
@@ -2005,13 +2050,110 @@ const UserManagementPage = () => {
                     <TD>{formatDate(u.created_at)}</TD>
                     <TD style={{ textAlign: "right" }}>
                       <ActionBtn
-                        onClick={() => {}}
-                        color={WARM}
-                        icon={Eye}
-                        label="View"
+                        onClick={() => handleViewUser(u)}
+                        color={viewingUserId === u.id ? "#3B82F6" : WARM}
+                        icon={viewingUserId === u.id ? X : Eye}
+                        label={viewingUserId === u.id ? "Close" : "View"}
                       />
                     </TD>
                   </TR>
+                  {viewingUserId === u.id && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: "0" }}>
+                        <div style={{
+                          backgroundColor: T.bgElev,
+                          borderTop: `2px solid ${WARM}`,
+                          padding: "20px 24px",
+                        }}>
+                          {viewUserLoading ? (
+                            <div style={{ display: "flex", justifyContent: "center", padding: "20px" }}><Spinner size={24} /></div>
+                          ) : viewUserData ? (
+                            <>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                                <span style={{ color: WARM, fontWeight: 600, fontSize: "14px" }}>User Profile</span>
+                                <div style={{ display: "flex", gap: "8px" }}>
+                                  {u.username && (
+                                    <button onClick={() => window.open(`/user/${u.username}`, "_blank")} style={{
+                                      padding: "4px 12px", borderRadius: "6px", border: `1px solid ${T.border}`,
+                                      backgroundColor: "transparent", color: T.txt, fontSize: "12px", cursor: "pointer",
+                                    }}>Open Public Profile ↗</button>
+                                  )}
+                                  <button onClick={() => { setViewingUserId(null); setViewUserData(null); }} style={{
+                                    padding: "4px 10px", borderRadius: "6px", border: "none",
+                                    backgroundColor: "rgba(255,255,255,0.05)", color: T.txt2, fontSize: "12px", cursor: "pointer",
+                                  }}>✕</button>
+                                </div>
+                              </div>
+                              {/* User info grid */}
+                              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px", marginBottom: "16px" }}>
+                                {[
+                                  ["Display Name", viewUserData.profile.display_name || u.display_name || "—"],
+                                  ["Username", viewUserData.profile.username || u.username || "—"],
+                                  ["Email", u.email],
+                                  ["Role", u.role],
+                                  ["Location", viewUserData.profile.location || "—"],
+                                  ["Bio", viewUserData.profile.bio || "—"],
+                                  ["Joined", formatDate(u.created_at)],
+                                  ["Last Sign In", formatDate(viewUserData.profile.last_sign_in_at || u.last_sign_in_at)],
+                                  ["User ID", u.id],
+                                ].map(([label, value]) => (
+                                  <div key={label}>
+                                    <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", color: T.txtM, marginBottom: "2px" }}>{label}</div>
+                                    <div style={{ fontSize: "13px", color: T.txt, wordBreak: "break-all" }}>{value || "—"}</div>
+                                  </div>
+                                ))}
+                              </div>
+                              {/* Guitars section */}
+                              <div style={{ marginBottom: "12px" }}>
+                                <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", color: T.txtM, marginBottom: "6px" }}>
+                                  Guitars ({viewUserData.guitars.length}{viewUserData.guitars.length === 10 ? "+" : ""})
+                                </div>
+                                {viewUserData.guitars.length === 0 ? (
+                                  <div style={{ color: T.txt2, fontSize: "12px" }}>No guitars registered</div>
+                                ) : (
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                                    {viewUserData.guitars.map((g) => (
+                                      <span key={g.id} style={{
+                                        padding: "3px 10px", borderRadius: "12px", fontSize: "11px",
+                                        backgroundColor: `${WARM}18`, color: WARM, fontWeight: 500,
+                                        cursor: "pointer",
+                                      }} onClick={() => window.open(`/guitar/${g.id}`, "_blank")}>
+                                        {g.make} {g.model} {g.year ? `(${g.year})` : ""}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              {/* Claims section */}
+                              {viewUserData.claims.length > 0 && (
+                                <div>
+                                  <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", color: T.txtM, marginBottom: "6px" }}>
+                                    Recent Claims ({viewUserData.claims.length})
+                                  </div>
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                                    {viewUserData.claims.map((c) => (
+                                      <span key={c.id} style={{
+                                        padding: "3px 10px", borderRadius: "12px", fontSize: "11px",
+                                        backgroundColor: c.status === "approved" ? "rgba(16,185,129,0.15)" : c.status === "rejected" ? "rgba(239,68,68,0.15)" : "rgba(234,179,8,0.15)",
+                                        color: c.status === "approved" ? "#10B981" : c.status === "rejected" ? "#EF4444" : "#EAB308",
+                                        fontWeight: 500,
+                                      }}>
+                                        {c.status} — {formatDate(c.created_at)}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {viewUserData.error && (
+                                <div style={{ color: "#EF4444", fontSize: "12px", marginTop: "8px" }}>Error loading details: {viewUserData.error}</div>
+                              )}
+                            </>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -2289,6 +2431,10 @@ const InstrumentManagementPage = () => {
   const [stateFilter, setStateFilter] = useState("");
   const [verifying, setVerifying] = useState(null); // guitar ID being verified
   const [verifyResult, setVerifyResult] = useState(null); // { guitarId, ...result }
+  const [viewingGuitar, setViewingGuitar] = useState(null); // guitar ID for detail view
+  const [editingGuitar, setEditingGuitar] = useState(null); // guitar ID for inline edit
+  const [editForm, setEditForm] = useState({});
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -2341,7 +2487,7 @@ const InstrumentManagementPage = () => {
           },
           body: JSON.stringify({
             guitarId: guitar.id,
-            brand: guitar.brand,
+            brand: guitar.make,
             model: guitar.model,
             year: guitar.year,
             serialNumber: guitar.serial_number,
@@ -2374,6 +2520,74 @@ const InstrumentManagementPage = () => {
     }
   };
 
+  const handleView = (guitar) => {
+    setEditingGuitar(null);
+    setViewingGuitar(viewingGuitar === guitar.id ? null : guitar.id);
+  };
+
+  const handleEdit = (guitar) => {
+    setViewingGuitar(null);
+    if (editingGuitar === guitar.id) {
+      setEditingGuitar(null);
+      return;
+    }
+    setEditingGuitar(guitar.id);
+    setEditForm({
+      make: guitar.make || "",
+      model: guitar.model || "",
+      year: guitar.year || "",
+      serial_number: guitar.serial_number || "",
+      body_style: guitar.body_style || "",
+      finish: guitar.finish || "",
+      state: guitar.state || "draft",
+    });
+  };
+
+  const handleEditSave = async (guitarId) => {
+    setSaving(true);
+    try {
+      const { error: err } = await supabase
+        .from("instrument_entities")
+        .update({
+          make: editForm.make,
+          model: editForm.model,
+          year: editForm.year ? parseInt(editForm.year) : null,
+          serial_number: editForm.serial_number || null,
+          body_style: editForm.body_style || null,
+          finish: editForm.finish || null,
+          state: editForm.state,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", guitarId);
+      if (err) throw err;
+      setEditingGuitar(null);
+      load();
+    } catch (e) {
+      alert("Save failed: " + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleStateChange = async (guitarId, newState) => {
+    try {
+      await updateGuitarState(guitarId, newState);
+      load();
+    } catch (e) {
+      alert("State update failed: " + e.message);
+    }
+  };
+
+  const handleDelete = async (guitar) => {
+    if (!window.confirm(`Delete "${guitar.make} ${guitar.model}"? This cannot be undone.`)) return;
+    try {
+      await adminDeleteGuitar(guitar.id);
+      load();
+    } catch (e) {
+      alert("Delete failed: " + e.message);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -2385,7 +2599,7 @@ const InstrumentManagementPage = () => {
         <SearchInput
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by brand, model, serial…"
+          placeholder="Search by make, model, serial…"
         />
         <FilterSelect
           value={stateFilter}
@@ -2410,7 +2624,7 @@ const InstrumentManagementPage = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr>
-                  <TH>Brand / Model</TH>
+                  <TH>Make / Model</TH>
                   <TH>Serial</TH>
                   <TH>Year</TH>
                   <TH>Owner</TH>
@@ -2424,7 +2638,7 @@ const InstrumentManagementPage = () => {
                   <React.Fragment key={g.id}>
                     <TR>
                       <TD>
-                        {g.brand} {g.model}
+                        {g.make} {g.model}
                       </TD>
                       <TD mono>{g.serial_number || "—"}</TD>
                       <TD>{g.year || "—"}</TD>
@@ -2445,16 +2659,22 @@ const InstrumentManagementPage = () => {
                             }
                           />
                           <ActionBtn
-                            onClick={() => {}}
-                            color={WARM}
+                            onClick={() => handleView(g)}
+                            color={viewingGuitar === g.id ? "#3B82F6" : WARM}
                             icon={Eye}
-                            label="View"
+                            label={viewingGuitar === g.id ? "Close" : "View"}
                           />
                           <ActionBtn
-                            onClick={() => {}}
-                            color={T.txt2}
+                            onClick={() => handleEdit(g)}
+                            color={editingGuitar === g.id ? "#3B82F6" : T.txt2}
                             icon={Edit}
-                            label="Edit"
+                            label={editingGuitar === g.id ? "Cancel" : "Edit"}
+                          />
+                          <ActionBtn
+                            onClick={() => handleDelete(g)}
+                            color="#EF4444"
+                            icon={Trash2}
+                            label="Delete"
                           />
                         </div>
                       </TD>
@@ -2467,6 +2687,134 @@ const InstrumentManagementPage = () => {
                             result={verifyResult}
                             onClose={() => setVerifyResult(null)}
                           />
+                        </td>
+                      </tr>
+                    )}
+                    {/* View detail panel */}
+                    {viewingGuitar === g.id && (
+                      <tr>
+                        <td colSpan={7} style={{ padding: "0" }}>
+                          <div style={{
+                            backgroundColor: T.bgElev,
+                            borderTop: `2px solid ${WARM}`,
+                            padding: "20px 24px",
+                          }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                              <span style={{ color: WARM, fontWeight: 600, fontSize: "14px" }}>Instrument Details</span>
+                              <div style={{ display: "flex", gap: "8px" }}>
+                                <button onClick={() => window.open(`/guitar/${g.id}`, "_blank")} style={{
+                                  padding: "4px 12px", borderRadius: "6px", border: `1px solid ${T.border}`,
+                                  backgroundColor: "transparent", color: T.txt, fontSize: "12px", cursor: "pointer",
+                                }}>Open Public Page ↗</button>
+                                <button onClick={() => setViewingGuitar(null)} style={{
+                                  padding: "4px 10px", borderRadius: "6px", border: "none",
+                                  backgroundColor: "rgba(255,255,255,0.05)", color: T.txt2, fontSize: "12px", cursor: "pointer",
+                                }}>✕</button>
+                              </div>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px" }}>
+                              {[
+                                ["Make", g.make],
+                                ["Model", g.model],
+                                ["Year", g.year || "—"],
+                                ["Serial Number", g.serial_number || "—"],
+                                ["Body Style", g.body_style || "—"],
+                                ["Finish", g.finish || "—"],
+                                ["State", g.state],
+                                ["Owner", g.owner?.display_name || g.owner?.email || "—"],
+                                ["Created", formatDate(g.created_at)],
+                                ["Updated", formatDate(g.updated_at)],
+                                ["Country of Origin", g.country_of_origin || "—"],
+                                ["ID", g.id],
+                              ].map(([label, value]) => (
+                                <div key={label}>
+                                  <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", color: T.txtM, marginBottom: "2px" }}>{label}</div>
+                                  <div style={{ fontSize: "13px", color: T.txt, wordBreak: "break-all" }}>{value}</div>
+                                </div>
+                              ))}
+                            </div>
+                            {g.specifications && Object.keys(g.specifications).length > 0 && (
+                              <div style={{ marginTop: "16px" }}>
+                                <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", color: T.txtM, marginBottom: "6px" }}>Specifications</div>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "8px" }}>
+                                  {Object.entries(g.specifications).map(([k, v]) => (
+                                    <div key={k} style={{ fontSize: "12px" }}>
+                                      <span style={{ color: T.txt2 }}>{k}: </span>
+                                      <span style={{ color: T.txt }}>{String(v)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    {/* Edit inline panel */}
+                    {editingGuitar === g.id && (
+                      <tr>
+                        <td colSpan={7} style={{ padding: "0" }}>
+                          <div style={{
+                            backgroundColor: T.bgElev,
+                            borderTop: "2px solid #3B82F6",
+                            padding: "20px 24px",
+                          }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                              <span style={{ color: "#3B82F6", fontWeight: 600, fontSize: "14px" }}>Edit Instrument</span>
+                              <div style={{ display: "flex", gap: "8px" }}>
+                                <button onClick={() => handleEditSave(g.id)} disabled={saving} style={{
+                                  padding: "5px 16px", borderRadius: "6px", border: "none",
+                                  backgroundColor: "#10B981", color: "#fff", fontSize: "12px", fontWeight: 600,
+                                  cursor: saving ? "wait" : "pointer", opacity: saving ? 0.6 : 1,
+                                }}>{saving ? "Saving..." : "Save Changes"}</button>
+                                <button onClick={() => setEditingGuitar(null)} style={{
+                                  padding: "5px 12px", borderRadius: "6px", border: `1px solid ${T.border}`,
+                                  backgroundColor: "transparent", color: T.txt2, fontSize: "12px", cursor: "pointer",
+                                }}>Cancel</button>
+                              </div>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px" }}>
+                              {[
+                                ["Make", "make", "text"],
+                                ["Model", "model", "text"],
+                                ["Year", "year", "number"],
+                                ["Serial Number", "serial_number", "text"],
+                                ["Body Style", "body_style", "text"],
+                                ["Finish", "finish", "text"],
+                              ].map(([label, field, type]) => (
+                                <div key={field}>
+                                  <label style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", color: T.txtM, marginBottom: "4px", display: "block" }}>{label}</label>
+                                  <input
+                                    type={type}
+                                    value={editForm[field] || ""}
+                                    onChange={(e) => setEditForm((f) => ({ ...f, [field]: e.target.value }))}
+                                    style={{
+                                      width: "100%", padding: "6px 10px", borderRadius: "6px",
+                                      border: `1px solid ${T.border}`, backgroundColor: T.bgCard,
+                                      color: T.txt, fontSize: "13px", outline: "none",
+                                    }}
+                                  />
+                                </div>
+                              ))}
+                              <div>
+                                <label style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", color: T.txtM, marginBottom: "4px", display: "block" }}>State</label>
+                                <select
+                                  value={editForm.state || "draft"}
+                                  onChange={(e) => setEditForm((f) => ({ ...f, state: e.target.value }))}
+                                  style={{
+                                    width: "100%", padding: "6px 10px", borderRadius: "6px",
+                                    border: `1px solid ${T.border}`, backgroundColor: T.bgCard,
+                                    color: T.txt, fontSize: "13px", outline: "none",
+                                  }}
+                                >
+                                  <option value="draft">Draft</option>
+                                  <option value="published">Published</option>
+                                  <option value="archived">Archived</option>
+                                  <option value="pending_transfer">Pending Transfer</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -2595,7 +2943,7 @@ const TransferManagementPage = () => {
                     </TD>
                     <TD>
                       {t.guitar
-                        ? `${t.guitar.brand} ${t.guitar.model}`
+                        ? `${t.guitar.make} ${t.guitar.model}`
                         : t.ie_id?.slice(0, 8)}
                     </TD>
                     <TD>
@@ -2692,13 +3040,27 @@ const ContentModerationPage = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 style={{ color: T.txt }} className="text-3xl font-bold mb-2">
-          Content Moderation
-        </h1>
-        <p style={{ color: T.txt2 }} className="text-sm">
-          Review and moderate user-generated content
-        </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <h1 style={{ color: T.txt }} className="text-3xl font-bold mb-2">
+            Content Moderation
+          </h1>
+          <p style={{ color: T.txt2 }} className="text-sm">
+            Review and moderate user-generated content
+          </p>
+        </div>
+        <button
+          onClick={() => window.open("/admin/articles/new", "_blank")}
+          style={{
+            display: "flex", alignItems: "center", gap: "6px",
+            padding: "8px 16px", borderRadius: "8px", border: "none",
+            backgroundColor: WARM, color: "#fff", fontSize: "13px",
+            fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+          }}
+          className="hover:opacity-90"
+        >
+          <Plus size={16} /> Write Article
+        </button>
       </div>
 
       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
@@ -2827,6 +3189,13 @@ const ContentModerationPage = () => {
                               Archive
                             </button>
                           )}
+                          <button
+                            onClick={() => window.open(`/admin/articles/edit/${a.id}`, "_blank")}
+                            style={{ color: WARM }}
+                            className="hover:opacity-75 text-xs font-medium"
+                          >
+                            Edit
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -3805,7 +4174,7 @@ const ClaimsManagementPage = () => {
                       }
                     >
                       <TD>
-                        {claim.guitar?.brand} {claim.guitar?.model}{" "}
+                        {claim.guitar?.make} {claim.guitar?.model}{" "}
                         {claim.guitar?.year && `(${claim.guitar.year})`}
                       </TD>
                       <TD>
@@ -4117,7 +4486,7 @@ const ChangeRequestsPage = () => {
                 {requests.map((request) => (
                   <TR key={request.id}>
                     <TD>
-                      {request.guitar?.brand} {request.guitar?.model}
+                      {request.guitar?.make} {request.guitar?.model}
                       {request.guitar?.year && ` (${request.guitar.year})`}
                     </TD>
                     <TD style={{ fontSize: "12px" }}>
@@ -4378,7 +4747,6 @@ export default function TWNGAdmin() {
       icon: LayoutDashboard,
       color: warmAlways,
     },
-    { id: "kpis", label: "KPIs", icon: BarChart3, color: "#3B82F6" },
     { id: "homepage", label: "Homepage", icon: Home, color: "#22C55E" },
     { id: "users", label: "Users", icon: Users, color: "#7C3AED" },
     { id: "instruments", label: "Instruments", icon: Guitar, color: "#EA580C" },
@@ -4391,10 +4759,9 @@ export default function TWNGAdmin() {
       color: "#06B6D4",
     },
     { id: "content", label: "Content", icon: FileText, color: "#0D9488" },
+    { id: "extractor", label: "Content Extractor", icon: Search, color: "#F97316" },
     { id: "luthiers", label: "Luthiers", icon: Shield, color: "#DB2777" },
-    { id: "privacy", label: "Privacy", icon: Lock, color: "#6366F1" },
     { id: "config", label: "Configuration", icon: Settings, color: "#64748B" },
-    { id: "audit", label: "Audit Logs", icon: ScrollText, color: "#EAB308" },
     {
       id: "marketing",
       label: "Marketing",
@@ -4412,8 +4779,6 @@ export default function TWNGAdmin() {
     switch (activePage) {
       case "dashboard":
         return <DashboardPage />;
-      case "kpis":
-        return <KPIDashboardPage />;
       case "homepage":
         return <HomepageManagementPage />;
       case "users":
@@ -4428,14 +4793,12 @@ export default function TWNGAdmin() {
         return <TransferManagementPage />;
       case "content":
         return <ContentModerationPage />;
+      case "extractor":
+        return <ContentExtractor />;
       case "luthiers":
         return <LuthierManagementPage />;
-      case "privacy":
-        return <PrivacyControlsPage />;
       case "config":
         return <ConfigurationPage />;
-      case "audit":
-        return <AuditLogsPage />;
       case "marketing":
         return <MarketingConsole />;
       default:

@@ -1,22 +1,23 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase/client';
 
-const ADMIN_ROLES = ['admin', 'super_admin'];
-const STAFF_ROLES = ['admin', 'super_admin', 'moderator', 'support', 'auditor'];
+const ADMIN_ROLES = ['admin'];
+const STAFF_ROLES = ['admin', 'moderator'];
+
+export const ROLES = ['user', 'moderator', 'support', 'auditor', 'admin', 'super_admin'];
 
 const AuthContext = createContext(null);
 
 /**
  * Build a minimal profile from the JWT/session — no DB call needed.
- * The role is synced to auth.users.raw_app_meta_data by our DB trigger,
- * so it's always available in the JWT without hitting the users table.
+ * With the new schema, we initialize with an empty roles array.
+ * Roles will be populated from the user_roles table when the full profile loads.
  */
 function profileFromSession(sessionUser) {
-  const role = sessionUser.app_metadata?.role || 'user';
   return {
     id: sessionUser.id,
     email: sessionUser.email,
-    role,
+    roles: [], // Will be populated from user_roles table
     display_name:
       sessionUser.user_metadata?.display_name ||
       sessionUser.user_metadata?.full_name ||
@@ -28,6 +29,13 @@ function profileFromSession(sessionUser) {
     status: 'active',
     is_verified: false,
     created_at: sessionUser.created_at || null,
+    // New schema fields (populated on DB fetch)
+    first_name: null,
+    last_name: null,
+    location: null,
+    is_luthier: false,
+    privacy_settings: null,
+    notification_settings: null,
   };
 }
 
@@ -38,11 +46,20 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const profileLoadedRef = useRef(false);
 
-  // Role reads from profile.role — which is set from JWT immediately,
-  // then enriched by DB fetch when it succeeds.
-  const isAdmin = useMemo(() => ADMIN_ROLES.includes(profile?.role), [profile?.role]);
-  const isStaff = useMemo(() => STAFF_ROLES.includes(profile?.role), [profile?.role]);
-  const hasRole = useCallback((role) => profile?.role === role, [profile?.role]);
+  // Roles are read from profile.roles array (from user_roles table)
+  // which is populated by the DB fetch when it succeeds.
+  const isAdmin = useMemo(
+    () => profile?.roles?.some(role => ADMIN_ROLES.includes(role)) || false,
+    [profile?.roles]
+  );
+  const isStaff = useMemo(
+    () => profile?.roles?.some(role => STAFF_ROLES.includes(role)) || false,
+    [profile?.roles]
+  );
+  const hasRole = useCallback(
+    (roleName) => profile?.roles?.includes(roleName) || false,
+    [profile?.roles]
+  );
 
   // ────────────────────────────────────────────────────────
   // Auth state listener — single source of truth.
@@ -60,14 +77,14 @@ export function AuthProvider({ children }) {
           setUser(session.user);
           setIsAuthenticated(true);
 
-          // Build profile from JWT immediately — role, email, display_name
-          // This makes isAdmin/isStaff work without any DB fetch.
+          // Build profile from JWT immediately — email, display_name
+          // Roles will be populated from user_roles table on DB fetch.
           const jwtProfile = profileFromSession(session.user);
           setProfile((prev) => {
-            // If we already have a full DB profile, merge JWT role
-            // (in case role changed via token refresh)
+            // If we already have a full DB profile, keep its roles
+            // (they're enriched from the user_roles table)
             if (prev && profileLoadedRef.current) {
-              return { ...prev, role: jwtProfile.role };
+              return { ...prev, ...jwtProfile, roles: prev.roles };
             }
             // Otherwise use JWT profile as initial
             return jwtProfile;
@@ -112,9 +129,10 @@ export function AuthProvider({ children }) {
         if (cancelled) return;
 
         try {
+          // Step 1: Try the join query first (users + user_roles)
           const { data, error } = await supabase
             .from('users')
-            .select('*')
+            .select('*, user_roles(role)')
             .eq('id', user.id)
             .single();
 
@@ -126,13 +144,119 @@ export function AuthProvider({ children }) {
               await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
               continue;
             }
-            console.warn('Profile fetch error:', error.message);
-            return; // Non-retryable error; JWT profile is good enough
+
+            // Non-retryable error on join — try fallback approach
+            console.warn('Profile join fetch failed, attempting fallback:', error.message);
+
+            // Step 2: Try fetching user without the join
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', user.id)
+              .single();
+
+            if (cancelled) return;
+
+            if (userError) {
+              // Step 3: User doesn't exist in users table — create a basic record
+              if (userError.code === 'PGRST116') {
+                console.warn('User not found in users table, upserting basic record...');
+
+                const { data: newUser, error: upsertError } = await supabase
+                  .from('users')
+                  .upsert({
+                    id: user.id,
+                    email: user.email,
+                    display_name: user.user_metadata?.display_name || user.email?.split('@')[0],
+                    username: user.email?.split('@')[0] + '_' + Date.now().toString(36),
+                  }, { onConflict: 'id' })
+                  .select()
+                  .single();
+
+                if (cancelled) return;
+
+                if (upsertError) {
+                  console.warn('User upsert failed:', upsertError.message);
+                  return;
+                }
+
+                // Successfully created user, now fetch roles
+                const { data: roleData } = await supabase
+                  .from('user_roles')
+                  .select('role')
+                  .eq('user_id', user.id);
+
+                if (cancelled) return;
+
+                const roles = (roleData || []).map(r => r.role);
+                const enrichedProfile = {
+                  ...newUser,
+                  roles,
+                };
+                profileLoadedRef.current = true;
+                setProfile(enrichedProfile);
+                return;
+              }
+
+              console.warn('User fetch failed:', userError.message);
+              return;
+            }
+
+            // User exists but join failed — separately fetch roles
+            const { data: roleData } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', user.id);
+
+            if (cancelled) return;
+
+            const roles = (roleData || []).map(r => r.role);
+            const enrichedProfile = {
+              ...userData,
+              roles,
+            };
+
+            // If username is null, generate from email and update DB
+            if (!enrichedProfile.username && user.email) {
+              const generatedUsername = user.email.split('@')[0].replace(/[^a-z0-9_]/gi, '_');
+              enrichedProfile.username = generatedUsername;
+              supabase
+                .from('users')
+                .update({ username: generatedUsername })
+                .eq('id', user.id)
+                .then(() => {})
+                .catch(() => {});
+            }
+
+            profileLoadedRef.current = true;
+            setProfile(enrichedProfile);
+            return;
           }
 
           if (data && !cancelled) {
+            // Transform user_roles relation into a flat roles array
+            const roles = data.user_roles?.map(ur => ur.role) || [];
+            const enrichedProfile = {
+              ...data,
+              roles, // Replace user_roles relation with flat array
+              user_roles: undefined, // Remove the relation object
+            };
+
+            // If username is null, generate from email and update DB
+            if (!enrichedProfile.username && user.email) {
+              const generatedUsername = user.email.split('@')[0].replace(/[^a-z0-9_]/gi, '_');
+              enrichedProfile.username = generatedUsername;
+              // Non-blocking DB update
+              supabase
+                .from('users')
+                .update({ username: generatedUsername })
+                .eq('id', user.id)
+                .then(() => {})
+                .catch(() => {});
+            }
+
             profileLoadedRef.current = true;
-            setProfile(data);
+            setProfile(enrichedProfile);
           }
           return;
         } catch (err) {
@@ -250,9 +374,15 @@ export function AuthProvider({ children }) {
         display_name: "Alex Rivera",
         email: "alex@example.com",
         avatar_url: null,
-        role: "user",
+        roles: ["user"], // New schema: roles array
         bio: "Heritage enthusiast. Kalamazoo or bust.",
         created_at: "2024-06-15",
+        first_name: "Alex",
+        last_name: "Rivera",
+        location: "Kalamazoo, MI",
+        is_luthier: false,
+        privacy_settings: null,
+        notification_settings: null,
       };
       setUser(mockUser);
       setProfile(mockProfile);
@@ -268,6 +398,7 @@ export function AuthProvider({ children }) {
     isAdmin,
     isStaff,
     hasRole,
+    roles: profile?.roles || [],
     login,
     signup,
     loginWithGoogle,

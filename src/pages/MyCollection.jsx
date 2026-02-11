@@ -14,7 +14,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { T } from "../theme/tokens";
-import { useGuitars } from "../hooks/useGuitars";
+import { getInstruments } from "../lib/supabase/instruments";
 import { useAuth } from "../context/AuthContext";
 
 const filterOptions = [
@@ -25,14 +25,14 @@ const filterOptions = [
   { label: "Bass", value: "bass" },
 ];
 
-/* ─── Guitar Card ──────────────────────────────────────────────── */
-function CollectionCard({ guitar, view }) {
+/* ─── Instrument Card ──────────────────────────────────────────────── */
+function CollectionCard({ instrument, view }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
 
   if (view === "list") {
     return (
-      <Link to={`/guitar/${guitar.id}`} style={{ textDecoration: "none" }}>
+      <Link to={`/instrument/${instrument.id}`} style={{ textDecoration: "none" }}>
         <div
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
@@ -44,8 +44,8 @@ function CollectionCard({ guitar, view }) {
           }}
         >
           <img
-            src={guitar.image}
-            alt={guitar.model}
+            src={instrument.image}
+            alt={instrument.model}
             style={{
               width: "80px", height: "80px", objectFit: "cover",
               borderRadius: "8px", backgroundColor: T.bgElev, flexShrink: 0,
@@ -56,17 +56,17 @@ function CollectionCard({ guitar, view }) {
               <span style={{
                 fontSize: "12px", color: T.warm,
                 fontFamily: "'JetBrains Mono', monospace",
-              }}>{guitar.brand} · {guitar.year}</span>
-              {guitar.verified && (
+              }}>{instrument.make} · {instrument.year}</span>
+              {instrument.verified && (
                 <Shield size={14} color={T.warm} />
               )}
             </div>
             <p style={{
               fontSize: "15px", fontWeight: 600, color: T.txt,
               fontFamily: "'Playfair Display', serif",
-            }}>{guitar.model}</p>
+            }}>{instrument.model}</p>
             <p style={{ fontSize: "12px", color: T.txtM, fontStyle: "italic" }}>
-              {guitar.nickname}
+              {instrument.nickname}
             </p>
           </div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
@@ -74,7 +74,7 @@ function CollectionCard({ guitar, view }) {
               padding: "4px 10px", borderRadius: "6px", fontSize: "11px",
               backgroundColor: T.bgElev, color: T.txt2, border: `1px solid ${T.border}`,
               fontFamily: "'JetBrains Mono', monospace",
-            }}>{guitar.condition}</span>
+            }}>{instrument.condition}</span>
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(!menuOpen); }}
               aria-label="More options"
@@ -93,7 +93,7 @@ function CollectionCard({ guitar, view }) {
 
   /* ── Grid Card ───────────────────────────────────────────────── */
   return (
-    <Link to={`/guitar/${guitar.id}`} style={{ textDecoration: "none" }}>
+    <Link to={`/instrument/${instrument.id}`} style={{ textDecoration: "none" }}>
       <div
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -110,8 +110,8 @@ function CollectionCard({ guitar, view }) {
           backgroundColor: T.bgElev,
         }}>
           <img
-            src={guitar.image}
-            alt={guitar.model}
+            src={instrument.image}
+            alt={instrument.model}
             style={{
               width: "100%", height: "100%", objectFit: "cover",
               transition: "transform 0.4s ease",
@@ -126,7 +126,7 @@ function CollectionCard({ guitar, view }) {
             fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
             border: `1px solid ${T.warm}`, color: T.warm,
             backgroundColor: "rgba(12,10,9,0.6)", backdropFilter: "blur(8px)",
-          }}>{guitar.year}</div>
+          }}>{instrument.year}</div>
 
           {/* Menu button */}
           <button
@@ -144,7 +144,7 @@ function CollectionCard({ guitar, view }) {
           </button>
 
           {/* Verified badge */}
-          {guitar.verified && (
+          {instrument.verified && (
             <div style={{
               position: "absolute", bottom: "14px", right: "14px",
               padding: "4px 10px", borderRadius: "6px", fontSize: "11px",
@@ -164,19 +164,19 @@ function CollectionCard({ guitar, view }) {
             <span style={{
               fontSize: "12px", color: T.warm,
               fontFamily: "'JetBrains Mono', monospace",
-            }}>{guitar.brand} · {guitar.year}</span>
+            }}>{instrument.make} · {instrument.year}</span>
           </div>
           <h4 style={{
             fontSize: "16px", fontWeight: 600, color: T.txt,
             fontFamily: "'Playfair Display', serif", marginBottom: "4px",
-          }}>{guitar.model}</h4>
-          {guitar.nickname && (
+          }}>{instrument.model}</h4>
+          {instrument.nickname && (
             <p style={{ fontSize: "12px", color: T.txtM, fontStyle: "italic", marginBottom: "8px" }}>
-              {guitar.nickname}
+              {instrument.nickname}
             </p>
           )}
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-            {guitar.tags && guitar.tags.slice(0, 2).map(tag => (
+            {instrument.tags && instrument.tags.slice(0, 2).map(tag => (
               <span key={tag} style={{
                 padding: "3px 10px", borderRadius: "6px", fontSize: "11px",
                 backgroundColor: T.bgElev, color: T.txt2, border: `1px solid ${T.border}`,
@@ -190,8 +190,11 @@ function CollectionCard({ guitar, view }) {
   );
 }
 
+// Hook to fetch on mount
+import { useEffect } from "react";
+
 /* ═══════════════════════════════════════════════════════════════════
-   MAIN PAGE
+   MAIN PAGE (My Instruments)
    ═══════════════════════════════════════════════════════════════════ */
 export default function MyCollection() {
   const [view, setView] = useState("grid");
@@ -200,37 +203,51 @@ export default function MyCollection() {
   const [selectedFilter, setSelectedFilter] = useState("all");
   const { user } = useAuth();
 
-  // Fetch guitars owned by the current user (falls back to mock data)
-  const { guitars: rawGuitars } = useGuitars();
+  // Fetch instruments owned by the current user
+  const [collectionInstruments, setCollectionInstruments] = useState([]);
 
-  // Enrich guitars with collection-specific fields
-  const collectionGuitars = useMemo(() =>
-    (rawGuitars || []).map((g, i) => ({
-      ...g,
-      nickname: g.nickname || `Guitar #${i + 1}`,
-      dateAdded: g.createdAt || `2024-01-${String(15 - i).padStart(2, "0")}`,
-      serial: g.serialNumber || `SN-${100000 + (typeof g.id === 'number' ? g.id : i)}`,
+  useEffect(() => {
+    const fetchMyInstruments = async () => {
+      try {
+        // getInstruments filters by owner_id when called by auth user
+        const data = await getInstruments({ owner_id: user?.id });
+        setCollectionInstruments(data?.data || []);
+      } catch (err) {
+        console.error("Failed to fetch instruments:", err);
+      }
+    };
+    if (user?.id) fetchMyInstruments();
+  }, [user?.id]);
+
+  // Enrich instruments with collection-specific fields
+  const enrichedInstruments = useMemo(() =>
+    (collectionInstruments || []).map((i, idx) => ({
+      ...i,
+      nickname: i.nickname || `Instrument #${idx + 1}`,
+      dateAdded: i.created_at || `2024-01-${String(15 - idx).padStart(2, "0")}`,
+      serial: i.serial_number || `SN-${100000 + (typeof i.id === 'number' ? i.id : idx)}`,
       loves: 0, // TODO: wire to actual engagement metrics when available
     })),
-  [rawGuitars]);
+  [collectionInstruments]);
 
-  const filtered = collectionGuitars.filter(g => {
+  const filtered = enrichedInstruments.filter(i => {
     const q = searchQuery.toLowerCase();
+    // Updated: brand → make
     const matchSearch = !q ||
-      g.brand.toLowerCase().includes(q) ||
-      g.model.toLowerCase().includes(q) ||
-      (g.nickname && g.nickname.toLowerCase().includes(q));
+      i.make.toLowerCase().includes(q) ||
+      i.model.toLowerCase().includes(q) ||
+      (i.nickname && i.nickname.toLowerCase().includes(q));
     const matchFilter =
       selectedFilter === "all" ||
-      (selectedFilter === "verified" && g.verified) ||
-      (selectedFilter === "electric" && g.bodyType === "Solid Body") ||
-      (selectedFilter === "acoustic" && (g.bodyType === "Classical" || g.bodyType === "Acoustic")) ||
-      (selectedFilter === "bass" && g.bodyType === "Bass");
+      (selectedFilter === "verified" && i.verified) ||
+      (selectedFilter === "electric" && i.instrument_type === "Solid Body") ||
+      (selectedFilter === "acoustic" && (i.instrument_type === "Classical" || i.instrument_type === "Acoustic")) ||
+      (selectedFilter === "bass" && i.instrument_type === "Bass");
     return matchSearch && matchFilter;
   });
 
-  const verifiedCount = collectionGuitars.filter(g => g.verified).length;
-  const totalLoves = collectionGuitars.reduce((s, g) => s + g.loves, 0);
+  const verifiedCount = enrichedInstruments.filter(i => i.verified).length;
+  const totalLoves = enrichedInstruments.reduce((s, i) => s + i.loves, 0);
 
   return (
     <div style={{ backgroundColor: T.bgDeep, minHeight: "100vh" }}>
@@ -248,7 +265,7 @@ export default function MyCollection() {
             flexShrink: 0, backgroundColor: T.bgCard,
           }}>
             <img
-              src={collectionGuitars[0]?.image || ""}
+              src={collectionInstruments[0]?.image || ""}
               alt="Profile"
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
@@ -258,7 +275,7 @@ export default function MyCollection() {
               fontFamily: "'Playfair Display', serif",
               fontSize: "clamp(28px, 4vw, 42px)",
               fontWeight: 700, color: T.txt, lineHeight: 1.1,
-            }}>My Collection</h1>
+            }}>My Instruments</h1>
             <p style={{ fontSize: "14px", color: T.txt2, marginTop: "4px" }}>
               @{user?.user_metadata?.username || user?.email?.split('@')[0] || 'collector'} · Member since {new Date(user?.created_at).getFullYear() || new Date().getFullYear()}
             </p>
@@ -272,7 +289,7 @@ export default function MyCollection() {
           gap: "16px", marginBottom: "32px",
         }}>
           {[
-            { icon: "🎸", value: collectionGuitars.length, label: "Total Guitars" },
+            { icon: "🎸", value: enrichedInstruments.length, label: "Total Instruments" },
             { icon: "◇", value: verifiedCount, label: "Verified", accent: true },
             { icon: "♡", value: totalLoves.toLocaleString(), label: "Total Loves" },
           ].map((stat, i) => (
@@ -363,17 +380,17 @@ export default function MyCollection() {
           {/* Export button */}
           <button
             onClick={() => {
-              const dataStr = JSON.stringify(collectionGuitars, null, 2);
+              const dataStr = JSON.stringify(enrichedInstruments, null, 2);
               const dataBlob = new Blob([dataStr], { type: "application/json" });
               const url = URL.createObjectURL(dataBlob);
               const link = document.createElement("a");
               link.href = url;
-              link.download = `my-collection-${new Date().toISOString().split("T")[0]}.json`;
+              link.download = `my-instruments-${new Date().toISOString().split("T")[0]}.json`;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
               URL.revokeObjectURL(url);
-              alert("Collection exported successfully!");
+              alert("Instruments exported successfully!");
             }}
             style={{
               display: "flex", alignItems: "center", gap: "8px",
@@ -420,17 +437,17 @@ export default function MyCollection() {
             gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
             gap: "20px", marginTop: "24px",
           }}>
-            {filtered.map((guitar, idx) => (
-              <div key={guitar.id} style={{ animation: `fadeIn 0.4s ease-out ${idx * 0.04}s both` }}>
-                <CollectionCard guitar={guitar} view="grid" />
+            {filtered.map((instrument, idx) => (
+              <div key={instrument.id} style={{ animation: `fadeIn 0.4s ease-out ${idx * 0.04}s both` }}>
+                <CollectionCard instrument={instrument} view="grid" />
               </div>
             ))}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "24px" }}>
-            {filtered.map((guitar, idx) => (
-              <div key={guitar.id} style={{ animation: `fadeIn 0.4s ease-out ${idx * 0.04}s both` }}>
-                <CollectionCard guitar={guitar} view="list" />
+            {filtered.map((instrument, idx) => (
+              <div key={instrument.id} style={{ animation: `fadeIn 0.4s ease-out ${idx * 0.04}s both` }}>
+                <CollectionCard instrument={instrument} view="list" />
               </div>
             ))}
           </div>
@@ -438,15 +455,15 @@ export default function MyCollection() {
 
         {filtered.length === 0 && (
           <div style={{ textAlign: "center", padding: "80px 20px" }}>
-            <p style={{ fontSize: "20px", fontWeight: 600, color: T.txt, marginBottom: "8px" }}>No guitars match your search</p>
+            <p style={{ fontSize: "20px", fontWeight: 600, color: T.txt, marginBottom: "8px" }}>No instruments match your search</p>
             <p style={{ color: T.txt2 }}>Try a different search term</p>
           </div>
         )}
 
-        {/* ── Add Guitar CTA ──────────────────────────────────── */}
+        {/* ── Add Instrument CTA ──────────────────────────────────── */}
         <div style={{ marginTop: "48px", textAlign: "center" }}>
           <Link
-            to="/guitar/new"
+            to="/instrument/new"
             style={{
               display: "inline-flex", alignItems: "center", gap: "8px",
               padding: "14px 28px", borderRadius: "12px",
@@ -455,7 +472,7 @@ export default function MyCollection() {
               transition: "all 0.2s",
             }}
           >
-            <Plus size={18} /> Add Guitar
+            <Plus size={18} /> Add Instrument
           </Link>
         </div>
       </div>

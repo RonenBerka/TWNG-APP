@@ -4,7 +4,7 @@ import Badge from './Badge';
 import { Link } from 'react-router-dom';
 
 export default function GuitarCard({ guitar, compact = false }) {
-  const { id, brand, model, year, nickname, owner, image, verified, tags } = guitar;
+  const { id, make, model, year, nickname, owner, image, verified, tags } = guitar;
 
   return (
     <Link to={`/guitar/${id}`} style={{ textDecoration: "none", color: "inherit" }}>
@@ -17,7 +17,7 @@ export default function GuitarCard({ guitar, compact = false }) {
           position: "relative", aspectRatio: compact ? "1" : "4/3",
           backgroundColor: T.bgElev, overflow: "hidden",
         }}>
-          <img src={image} alt={`${brand} ${model}`} style={{
+          <img src={image} alt={`${make} ${model}`} style={{
             width: "100%", height: "100%", objectFit: "cover",
           }} />
           {verified && (
@@ -37,7 +37,7 @@ export default function GuitarCard({ guitar, compact = false }) {
               fontSize: "12px", fontWeight: "500",
               fontFamily: "'JetBrains Mono', monospace",
               color: T.warm, letterSpacing: "0.02em",
-            }}>{brand} · {year}</p>
+            }}>{make} · {year}</p>
             <Heart size={14} style={{ color: T.txtM }} />
           </div>
           <h3 style={{
