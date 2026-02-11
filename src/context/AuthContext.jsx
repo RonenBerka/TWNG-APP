@@ -129,10 +129,10 @@ export function AuthProvider({ children }) {
         if (cancelled) return;
 
         try {
-          // Step 1: Try the join query first (users + user_roles)
+          // Fetch user record from users table (role is a column on users, not a separate table)
           const { data, error } = await supabase
             .from('users')
-            .select('*, user_roles(role)')
+            .select('*')
             .eq('id', user.id)
             .single();
 
@@ -140,79 +140,52 @@ export function AuthProvider({ children }) {
 
           if (error) {
             if (error.message?.includes('AbortError') || error.name === 'AbortError') {
-              // Wait and retry — StrictMode AbortError
               await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
               continue;
             }
 
-            // Non-retryable error on join — try fallback approach
-            console.warn('Profile join fetch failed, attempting fallback:', error.message);
+            // User doesn't exist in users table — create a basic record
+            if (error.code === 'PGRST116') {
+              console.warn('User not found in users table, upserting basic record...');
 
-            // Step 2: Try fetching user without the join
-            const { data: userData, error: userError } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', user.id)
-              .single();
+              const generatedUsername = (user.email?.split('@')[0] || 'user') + '_' + Date.now().toString(36);
+              const { data: newUser, error: upsertError } = await supabase
+                .from('users')
+                .upsert({
+                  id: user.id,
+                  email: user.email,
+                  display_name: user.user_metadata?.display_name || user.email?.split('@')[0],
+                  username: generatedUsername,
+                  role: 'user',
+                }, { onConflict: 'id' })
+                .select()
+                .single();
 
-            if (cancelled) return;
+              if (cancelled) return;
 
-            if (userError) {
-              // Step 3: User doesn't exist in users table — create a basic record
-              if (userError.code === 'PGRST116') {
-                console.warn('User not found in users table, upserting basic record...');
-
-                const { data: newUser, error: upsertError } = await supabase
-                  .from('users')
-                  .upsert({
-                    id: user.id,
-                    email: user.email,
-                    display_name: user.user_metadata?.display_name || user.email?.split('@')[0],
-                    username: user.email?.split('@')[0] + '_' + Date.now().toString(36),
-                  }, { onConflict: 'id' })
-                  .select()
-                  .single();
-
-                if (cancelled) return;
-
-                if (upsertError) {
-                  console.warn('User upsert failed:', upsertError.message);
-                  return;
-                }
-
-                // Successfully created user, now fetch roles
-                const { data: roleData } = await supabase
-                  .from('user_roles')
-                  .select('role')
-                  .eq('user_id', user.id);
-
-                if (cancelled) return;
-
-                const roles = (roleData || []).map(r => r.role);
-                const enrichedProfile = {
-                  ...newUser,
-                  roles,
-                };
-                profileLoadedRef.current = true;
-                setProfile(enrichedProfile);
+              if (upsertError) {
+                console.warn('User upsert failed:', upsertError.message);
                 return;
               }
 
-              console.warn('User fetch failed:', userError.message);
+              const enrichedProfile = {
+                ...newUser,
+                roles: [newUser.role || 'user'],
+              };
+              profileLoadedRef.current = true;
+              setProfile(enrichedProfile);
               return;
             }
 
-            // User exists but join failed — separately fetch roles
-            const { data: roleData } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', user.id);
+            console.warn('User fetch failed:', error.message);
+            return;
+          }
 
-            if (cancelled) return;
-
-            const roles = (roleData || []).map(r => r.role);
+          if (data && !cancelled) {
+            // Build roles array from the single role column on users table
+            const roles = data.role ? [data.role] : ['user'];
             const enrichedProfile = {
-              ...userData,
+              ...data,
               roles,
             };
 
@@ -220,33 +193,6 @@ export function AuthProvider({ children }) {
             if (!enrichedProfile.username && user.email) {
               const generatedUsername = user.email.split('@')[0].replace(/[^a-z0-9_]/gi, '_');
               enrichedProfile.username = generatedUsername;
-              supabase
-                .from('users')
-                .update({ username: generatedUsername })
-                .eq('id', user.id)
-                .then(() => {})
-                .catch(() => {});
-            }
-
-            profileLoadedRef.current = true;
-            setProfile(enrichedProfile);
-            return;
-          }
-
-          if (data && !cancelled) {
-            // Transform user_roles relation into a flat roles array
-            const roles = data.user_roles?.map(ur => ur.role) || [];
-            const enrichedProfile = {
-              ...data,
-              roles, // Replace user_roles relation with flat array
-              user_roles: undefined, // Remove the relation object
-            };
-
-            // If username is null, generate from email and update DB
-            if (!enrichedProfile.username && user.email) {
-              const generatedUsername = user.email.split('@')[0].replace(/[^a-z0-9_]/gi, '_');
-              enrichedProfile.username = generatedUsername;
-              // Non-blocking DB update
               supabase
                 .from('users')
                 .update({ username: generatedUsername })
