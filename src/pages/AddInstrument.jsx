@@ -629,6 +629,74 @@ export default function AddInstrument() {
             )}
           </div>
 
+          {/* Alternatives */}
+          {analysis?.alternatives && analysis.alternatives.length > 0 && (
+            <div style={{ marginTop: "24px" }}>
+              <p style={{
+                fontSize: "13px", color: T.txtM, marginBottom: "12px",
+                fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px",
+              }}>
+                Other possibilities:
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {analysis.alternatives.map((alt, idx) => {
+                  const altPct = Math.round((alt.confidence || 0) * 100);
+                  const altColor = altPct >= 70 ? "#4CAF50" : altPct >= 40 ? "#FFC107" : "#FF5252";
+                  return (
+                    <div key={idx} style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "14px 16px", backgroundColor: T.bgCard, borderRadius: "10px",
+                      border: `1px solid ${T.border}`,
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{
+                          fontSize: "14px", fontWeight: 600, color: T.txt, margin: 0,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          {alt.brand} {alt.model}
+                        </p>
+                        {alt.reason && (
+                          <p style={{ fontSize: "11px", color: T.txtM, margin: "3px 0 0", lineHeight: 1.4 }}>
+                            {alt.reason}
+                          </p>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0, marginLeft: "12px" }}>
+                        <span style={{
+                          fontSize: "13px", fontWeight: 700, color: altColor,
+                          fontFamily: "'JetBrains Mono', monospace",
+                        }}>
+                          {altPct}%
+                        </span>
+                        <button
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              make: alt.brand || prev.make,
+                              model: alt.model || prev.model,
+                            }));
+                            setStep('edit');
+                          }}
+                          style={{
+                            padding: "6px 12px", borderRadius: "6px", fontSize: "12px",
+                            fontWeight: 600, border: `1px solid ${T.border}`,
+                            backgroundColor: "transparent", color: T.txt2,
+                            cursor: "pointer", whiteSpace: "nowrap",
+                            transition: "all 0.15s",
+                          }}
+                          onMouseEnter={(e) => { e.target.style.borderColor = T.warm; e.target.style.color = T.warm; }}
+                          onMouseLeave={(e) => { e.target.style.borderColor = T.border; e.target.style.color = T.txt2; }}
+                        >
+                          Use this &rarr;
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Buttons */}
           <button
             onClick={() => setStep('story')}

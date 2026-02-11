@@ -102,8 +102,26 @@ Return ONLY a valid JSON object (no markdown, no backticks, no explanation) with
   "tuners": { "value": "<tuner type/brand>", "confidence": <0.0-1.0> },
   "nutMaterial": { "value": "<nut material, e.g. Bone, TUSQ, Plastic, Graph Tech>", "confidence": <0.0-1.0> },
   "hardwareFinish": { "value": "<Chrome|Nickel|Gold|Black|Aged Nickel|Satin>", "confidence": <0.0-1.0> },
-  "notes": "<1-2 sentence summary of observations and any caveats>"
-}`;
+  "notes": "<detailed paragraph explaining identification reasoning: what visual cues were used, headstock text reading, body shape analysis, hardware details, finish characteristics, and any caveats about the identification>",
+  "alternatives": [
+    {
+      "brand": "<alternative brand>",
+      "model": "<alternative model>",
+      "confidence": <0.0-1.0>,
+      "reason": "<why this could also be the guitar>"
+    }
+  ]
+}
+
+## ALTERNATIVES — REQUIRED
+
+You MUST always provide 2-4 alternative identifications in the "alternatives" array, even if you are very confident in the primary ID. Think about:
+- Similar models from the same brand (e.g., if main is "Custom Shop 1951 Nocaster", alternatives could be "Custom Shop 1952 Telecaster Heavy Relic")
+- Same body style from boutique builders (e.g., if main is "Fender Telecaster", an alternative could be "Nash Guitars T-52")
+- Different year ranges or variants of the same model
+- If the guitar is clearly a Fender/Gibson, still consider boutique builders that replicate the style
+- Order alternatives by confidence (highest first)
+- Each alternative should be meaningfully different from the primary identification`;
 
 serve(async (req: Request) => {
   // Handle CORS preflight
@@ -237,7 +255,7 @@ serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-5-20250929",
-        max_tokens: 2048,
+        max_tokens: 3000,
         messages: [
           {
             role: "user",
