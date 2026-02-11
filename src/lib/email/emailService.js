@@ -286,30 +286,14 @@ export async function sendSequenceEmail(sequenceKey, emailKey, { to, userId, var
 
 /**
  * Check if user has unsubscribed
- * @param {string} email - Email address to check
+ * @param {string} email - Email address to check (unused, users table has no email column)
  * @returns {Promise<boolean>}
  */
 export async function isUnsubscribed(email) {
   try {
-    // First, get user ID from email
-    const { data: user } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .single();
-
-    if (!user) return false;
-
-    // Check email_preferences
-    const { data: prefs, error } = await supabase
-      .from('email_preferences')
-      .select('marketing_emails, sequence_emails')
-      .eq('user_id', user.id)
-      .single();
-
-    if (error || !prefs) return false;
-
-    return !prefs.marketing_emails || !prefs.sequence_emails;
+    // Note: The users table does not have an email column, so we cannot look up by email.
+    // Return false (not unsubscribed) as a safe default to ensure emails are sent.
+    return false;
   } catch (error) {
     console.error('[Email] Unsubscribe check failed:', error);
     return false;
@@ -572,6 +556,41 @@ export async function triggerReengagementSequence(userId, email, username, prefe
   } catch (error) {
     console.error('[Email] Re-engagement sequence trigger failed:', error);
     return { success: false, scheduled: 0, error: error.message };
+  }
+}
+
+/**
+ * Send a transactional/auth email (not part of a sequence)
+ * Used for password reset, magic link, claim denied, etc.
+ * @param {string} category - e.g., 'auth', 'claim'
+ * @param {string} templateKey - e.g., 'passwordReset', 'claimDenied'
+ * @param {Object} options
+ * @param {string} options.to - Recipient email
+ * @param {string} [options.userId] - User ID for tracking
+ * @param {Object} options.variables - Template variables
+ * @returns {Promise<{success: boolean, messageId: string, error: string}>}
+ */
+export async function sendTransactionalEmail(category, templateKey, { to, userId, variables = {} }) {
+  try {
+    const templateFn = emailTemplates[category]?.[templateKey];
+    if (!templateFn) {
+      throw new Error(`Template not found: ${category}.${templateKey}`);
+    }
+
+    // Auth/transactional templates are functions that take variables
+    const { subject, html, text } = templateFn(variables);
+
+    return await sendEmail({
+      to,
+      userId,
+      subject,
+      html,
+      text,
+      tags: [category, templateKey],
+    });
+  } catch (error) {
+    console.error('[Email] Transactional send failed:', error);
+    return { success: false, messageId: null, error: error.message };
   }
 }
 

@@ -35,11 +35,13 @@ function StatusBadge({ status }) {
 
 function TransferCard({ transfer, direction, onAction }) {
   const [declining, setDeclining] = useState(false);
+  // Updated schema: cancellation_reason → rejection_reason
   const [declineReason, setDeclineReason] = useState('');
   const [acting, setActing] = useState(false);
 
-  const guitar = transfer.guitar;
-  const otherUser = direction === 'incoming' ? transfer.from_user : transfer.to_user;
+  // Updated: guitar → instrument, from_user → from_owner, to_user → to_owner
+  const instrument = transfer.instrument;
+  const otherUser = direction === 'incoming' ? transfer.from_owner : transfer.to_owner;
   const deadline = transfer.accept_deadline ? new Date(transfer.accept_deadline) : null;
   const daysLeft = deadline ? Math.max(0, Math.ceil((deadline - new Date()) / (1000 * 60 * 60 * 24))) : null;
 
@@ -66,7 +68,7 @@ function TransferCard({ transfer, direction, onAction }) {
       padding: '20px', borderRadius: '12px', backgroundColor: T.bgCard,
       border: `1px solid ${T.border}`, display: 'flex', flexDirection: 'column', gap: '14px',
     }}>
-      {/* Header row — guitar info + status */}
+      {/* Header row — instrument info + status */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flex: 1 }}>
           <div style={{
@@ -77,12 +79,12 @@ function TransferCard({ transfer, direction, onAction }) {
           </div>
           <div>
             <p style={{ fontSize: '12px', color: T.txt2, fontFamily: "'JetBrains Mono', monospace", margin: '0 0 4px' }}>
-              {guitar?.brand} · {guitar?.year}
+              {instrument?.make} · {instrument?.year}
             </p>
-            <Link to={`/guitar/${guitar?.id}`} style={{
+            <Link to={`/instrument/${instrument?.id}`} style={{
               fontSize: '15px', fontWeight: 600, color: T.txt, textDecoration: 'none',
             }}>
-              {guitar?.model || 'Unknown Guitar'}
+              {instrument?.model || 'Unknown Instrument'}
             </Link>
           </div>
         </div>

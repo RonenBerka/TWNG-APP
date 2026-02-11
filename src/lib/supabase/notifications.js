@@ -3,18 +3,23 @@ import { supabase } from './client';
 /**
  * Notifications service — for managing user notifications.
  *
- * Provides functions to fetch, count, mark as read, and delete notifications
- * for the current authenticated user. Notifications are ordered by creation time
- * and support batch operations for marking multiple notifications as read.
+ * DB schema (notifications table):
+ *   id UUID, user_id UUID, type VARCHAR(50), title VARCHAR(255),
+ *   message TEXT, data JSONB, read BOOLEAN, created_at TIMESTAMPTZ
+ *
+ * Schema changes from previous version:
+ * - body → message
+ * - is_read → read
  */
 
 /**
  * Fetch all notifications for the current user, ordered by created_at descending.
  */
-export async function getNotifications() {
+export async function getNotifications(userId) {
   const { data, error } = await supabase
     .from('notifications')
     .select('*')
+    .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -22,16 +27,17 @@ export async function getNotifications() {
 }
 
 /**
- * Count unread notifications for the current user.
+ * Count unread notifications for a user.
  */
-export async function getUnreadCount() {
+export async function getUnreadCount(userId) {
   const { count, error } = await supabase
     .from('notifications')
     .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
     .eq('read', false);
 
   if (error) throw error;
-  return count;
+  return count || 0;
 }
 
 /**
@@ -40,7 +46,7 @@ export async function getUnreadCount() {
 export async function markAsRead(notificationId) {
   const { data, error } = await supabase
     .from('notifications')
-    .update({ read: true, read_at: new Date().toISOString() })
+    .update({ read: true })
     .eq('id', notificationId)
     .select()
     .single();
@@ -50,17 +56,18 @@ export async function markAsRead(notificationId) {
 }
 
 /**
- * Mark all unread notifications as read for the current user.
+ * Mark all unread notifications as read for a user.
  */
-export async function markAllAsRead() {
+export async function markAllAsRead(userId) {
   const { data, error } = await supabase
     .from('notifications')
-    .update({ read: true, read_at: new Date().toISOString() })
+    .update({ read: true })
+    .eq('user_id', userId)
     .eq('read', false)
     .select();
 
   if (error) throw error;
-  return data;
+  return data || [];
 }
 
 /**
@@ -73,4 +80,32 @@ export async function deleteNotification(notificationId) {
     .eq('id', notificationId);
 
   if (error) throw error;
+}
+
+/**
+ * Create a new notification.
+ *
+ * @param {Object} params - Notification parameters
+ * @param {string} params.userId - Recipient user UUID
+ * @param {string} params.type - Notification type
+ * @param {string} params.title - Notification title
+ * @param {string} params.message - Notification message
+ * @param {Object} params.data - Optional JSONB data
+ */
+export async function createNotification({ userId, type, title, message, data = null }) {
+  const { data: notification, error } = await supabase
+    .from('notifications')
+    .insert({
+      user_id: userId,
+      type,
+      title,
+      message,
+      data,
+      read: false,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return notification;
 }

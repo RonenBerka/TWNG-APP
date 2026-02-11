@@ -32,7 +32,7 @@ function NotificationItem({ notification, onMarkRead, onDelete }) {
   const [acting, setActing] = useState(false);
   const config = TYPE_CONFIG[notification.type] || TYPE_CONFIG.system;
   const Icon = config.icon;
-  const isUnread = !notification.read;
+  const isUnread = !notification.is_read;
   const timeAgo = getTimeAgo(notification.created_at);
 
   const handleMarkRead = async (e) => {
@@ -112,13 +112,13 @@ function NotificationItem({ notification, onMarkRead, onDelete }) {
             {notification.title || notification.message || 'Notification'}
           </p>
 
-          {notification.body && (
+          {notification.message && (
             <p style={{
               fontSize: '13px', color: T.txt2, margin: '4px 0 0',
               lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             }}>
-              {notification.body}
+              {notification.message}
             </p>
           )}
 
@@ -204,12 +204,14 @@ export default function Notifications() {
 
   const handleMarkRead = async (id) => {
     await markAsRead(id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true, read_at: new Date().toISOString() } : n));
+    // Updated schema: is_read field (not read)
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n));
   };
 
   const handleMarkAllRead = async () => {
     await markAllAsRead();
-    setNotifications(prev => prev.map(n => ({ ...n, read: true, read_at: new Date().toISOString() })));
+    // Updated schema: is_read field
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true, read_at: new Date().toISOString() })));
   };
 
   const handleDelete = async (id) => {
@@ -217,9 +219,9 @@ export default function Notifications() {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
   const displayList = filter === 'unread'
-    ? notifications.filter(n => !n.read)
+    ? notifications.filter(n => !n.is_read)
     : notifications;
 
   return (

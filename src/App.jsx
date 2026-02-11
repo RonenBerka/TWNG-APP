@@ -10,22 +10,19 @@ import { T } from './theme/tokens';
 // Lazy-loaded pages
 const Homepage = lazy(() => import('./pages/Homepage'));
 const Auth = lazy(() => import('./pages/Auth'));
-const GuitarDetail = lazy(() => import('./pages/GuitarDetail'));
-const AddGuitar = lazy(() => import('./pages/AddGuitar'));
+const InstrumentDetail = lazy(() => import('./pages/InstrumentDetail'));
+const AddInstrument = lazy(() => import('./pages/AddInstrument'));
 const MyCollection = lazy(() => import('./pages/MyCollection'));
 const Explore = lazy(() => import('./pages/Explore'));
 const SearchResults = lazy(() => import('./pages/SearchResults'));
 const UserProfile = lazy(() => import('./pages/UserProfile'));
-const LuthierDirectory = lazy(() => import('./pages/LuthierDirectory'));
-const LuthierProfile = lazy(() => import('./pages/LuthierProfile'));
 const Articles = lazy(() => import('./pages/Articles'));
-const Forum = lazy(() => import('./pages/Forum'));
 const Messaging = lazy(() => import('./pages/Messaging'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Admin = lazy(() => import('./pages/Admin'));
+const ArticleComposer = lazy(() => import('./pages/admin/ArticleComposer'));
 const FAQ = lazy(() => import('./pages/FAQ'));
 const Decoder = lazy(() => import('./pages/Decoder'));
-const ClaimGuitar = lazy(() => import('./pages/ClaimGuitar'));
 const TransferGuitar = lazy(() => import('./pages/TransferGuitar'));
 const MyTransfers = lazy(() => import('./pages/MyTransfers'));
 const Notifications = lazy(() => import('./pages/Notifications'));
@@ -33,6 +30,26 @@ const About = lazy(() => import('./pages/About'));
 const FoundingMembers = lazy(() => import('./pages/FoundingMembers'));
 const Legal = lazy(() => import('./pages/Legal'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+
+// New pages - Forum
+const ForumHome = lazy(() => import('./pages/ForumHome'));
+const ForumCategory = lazy(() => import('./pages/ForumCategory'));
+const NewThread = lazy(() => import('./pages/NewThread'));
+const ThreadDetail = lazy(() => import('./pages/ThreadDetail'));
+
+// New pages - Collections & Favorites
+const CollectionsBrowse = lazy(() => import('./pages/CollectionsBrowse'));
+const CollectionDetail = lazy(() => import('./pages/CollectionDetail'));
+const CreateCollection = lazy(() => import('./pages/CreateCollection'));
+const EditCollection = lazy(() => import('./pages/EditCollection'));
+const MyCollections = lazy(() => import('./pages/MyCollections'));
+const MyFavorites = lazy(() => import('./pages/MyFavorites'));
+
+// New pages - Utility
+const Contact = lazy(() => import('./pages/Contact'));
+const PriceEvaluator = lazy(() => import('./pages/PriceEvaluator'));
+const BackgroundRemoval = lazy(() => import('./pages/BackgroundRemoval'));
+const TagsPage = lazy(() => import('./pages/TagsPage'));
 
 // Loading spinner
 function PageLoader() {
@@ -66,26 +83,38 @@ function App() {
               </Layout>
             } />
 
-            {/* Auth page - no footer, minimal chrome */}
+            {/* Auth page */}
             <Route path="/auth" element={
               <Layout noFooter>
                 <Auth />
               </Layout>
             } />
 
-            {/* Core Guitar Pages */}
-            <Route path="/guitar/:id" element={
+            {/* ============ Instruments ============ */}
+            <Route path="/instrument/:id" element={
               <Layout>
-                <GuitarDetail />
+                <InstrumentDetail />
               </Layout>
             } />
-            <Route path="/guitar/new" element={
+            {/* Legacy guitar route redirect */}
+            <Route path="/guitar/:id" element={
               <Layout>
-                <ProtectedRoute><AddGuitar /></ProtectedRoute>
+                <InstrumentDetail />
+              </Layout>
+            } />
+            <Route path="/instrument/new" element={
+              <Layout>
+                <ProtectedRoute><AddInstrument /></ProtectedRoute>
               </Layout>
             } />
 
-            {/* Discovery & Collection */}
+            {/* ============ Discovery ============ */}
+            <Route path="/my-instruments" element={
+              <Layout>
+                <ProtectedRoute><MyCollection /></ProtectedRoute>
+              </Layout>
+            } />
+            {/* Legacy route */}
             <Route path="/collection" element={
               <Layout>
                 <ProtectedRoute><MyCollection /></ProtectedRoute>
@@ -102,24 +131,74 @@ function App() {
               </Layout>
             } />
 
-            {/* Profiles */}
+            {/* ============ Collections ============ */}
+            <Route path="/collections" element={
+              <Layout>
+                <CollectionsBrowse />
+              </Layout>
+            } />
+            <Route path="/collections/new" element={
+              <Layout>
+                <ProtectedRoute><CreateCollection /></ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="/collections/:id" element={
+              <Layout>
+                <CollectionDetail />
+              </Layout>
+            } />
+            <Route path="/collections/:id/edit" element={
+              <Layout>
+                <ProtectedRoute><EditCollection /></ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="/my-collections" element={
+              <Layout>
+                <ProtectedRoute><MyCollections /></ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="/my-favorites" element={
+              <Layout>
+                <ProtectedRoute><MyFavorites /></ProtectedRoute>
+              </Layout>
+            } />
+
+            {/* ============ Profiles ============ */}
             <Route path="/user/:username" element={
               <Layout>
                 <UserProfile />
               </Layout>
             } />
-            <Route path="/luthiers" element={
+
+            {/* ============ Forum ============ */}
+            <Route path="/forum" element={
               <Layout>
-                <LuthierDirectory />
+                <ForumHome />
               </Layout>
             } />
-            <Route path="/luthier/:username" element={
+            <Route path="/forum/new" element={
               <Layout>
-                <LuthierProfile />
+                <ProtectedRoute><NewThread /></ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="/forum/category/:slug" element={
+              <Layout>
+                <ForumCategory />
+              </Layout>
+            } />
+            <Route path="/forum/thread/:id" element={
+              <Layout>
+                <ThreadDetail />
+              </Layout>
+            } />
+            {/* Legacy community routes */}
+            <Route path="/community" element={
+              <Layout>
+                <ForumHome />
               </Layout>
             } />
 
-            {/* Content & Community */}
+            {/* ============ Articles & Content ============ */}
             <Route path="/articles" element={
               <Layout>
                 <Articles />
@@ -130,65 +209,26 @@ function App() {
                 <Articles />
               </Layout>
             } />
-            <Route path="/community" element={
+            <Route path="/tags" element={
               <Layout>
-                <Forum />
+                <TagsPage />
               </Layout>
             } />
-            <Route path="/community/:id" element={
-              <Layout>
-                <Forum />
-              </Layout>
-            } />
+
+            {/* ============ Social ============ */}
             <Route path="/messages" element={
               <Layout noFooter>
                 <ProtectedRoute><Messaging /></ProtectedRoute>
               </Layout>
             } />
-
-            {/* Tools */}
-            <Route path="/decoder" element={
+            <Route path="/notifications" element={
               <Layout>
-                <Decoder />
+                <ProtectedRoute><Notifications /></ProtectedRoute>
               </Layout>
             } />
 
-            {/* Info */}
-            <Route path="/faq" element={
-              <Layout>
-                <FAQ />
-              </Layout>
-            } />
-            <Route path="/about" element={
-              <Layout>
-                <About />
-              </Layout>
-            } />
-            <Route path="/founding-members" element={
-              <Layout>
-                <FoundingMembers />
-              </Layout>
-            } />
-
-            {/* Settings & Admin */}
-            <Route path="/settings/*" element={
-              <Layout>
-                <ProtectedRoute><Settings /></ProtectedRoute>
-              </Layout>
-            } />
-            <Route path="/admin/*" element={
-              <Layout noFooter>
-                <AdminRoute><Admin /></AdminRoute>
-              </Layout>
-            } />
-
-            {/* Claims & Transfers */}
-            <Route path="/claim/:guitarId" element={
-              <Layout>
-                <ClaimGuitar />
-              </Layout>
-            } />
-            <Route path="/transfer/:guitarId" element={
+            {/* ============ Transfers ============ */}
+            <Route path="/transfer/:instrumentId" element={
               <Layout>
                 <ProtectedRoute><TransferGuitar /></ProtectedRoute>
               </Layout>
@@ -198,20 +238,74 @@ function App() {
                 <ProtectedRoute><MyTransfers /></ProtectedRoute>
               </Layout>
             } />
-            <Route path="/notifications" element={
+
+            {/* ============ Tools ============ */}
+            <Route path="/decoder" element={
               <Layout>
-                <ProtectedRoute><Notifications /></ProtectedRoute>
+                <Decoder />
+              </Layout>
+            } />
+            <Route path="/tools/price-evaluator" element={
+              <Layout>
+                <ProtectedRoute><PriceEvaluator /></ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="/tools/background-removal" element={
+              <Layout>
+                <ProtectedRoute><BackgroundRemoval /></ProtectedRoute>
               </Layout>
             } />
 
-            {/* Legal pages */}
+            {/* ============ Info Pages ============ */}
+            <Route path="/about" element={
+              <Layout>
+                <About />
+              </Layout>
+            } />
+            <Route path="/contact" element={
+              <Layout>
+                <Contact />
+              </Layout>
+            } />
+            <Route path="/faq" element={
+              <Layout>
+                <FAQ />
+              </Layout>
+            } />
+            <Route path="/founding-members" element={
+              <Layout>
+                <FoundingMembers />
+              </Layout>
+            } />
             <Route path="/legal/:page" element={
               <Layout>
                 <Legal />
               </Layout>
             } />
 
-            {/* Catch-all 404 route */}
+            {/* ============ Settings & Admin ============ */}
+            <Route path="/settings/*" element={
+              <Layout>
+                <ProtectedRoute><Settings /></ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="/admin/articles/new" element={
+              <Layout noFooter>
+                <AdminRoute><ArticleComposer /></AdminRoute>
+              </Layout>
+            } />
+            <Route path="/admin/articles/edit/:id" element={
+              <Layout noFooter>
+                <AdminRoute><ArticleComposer /></AdminRoute>
+              </Layout>
+            } />
+            <Route path="/admin/*" element={
+              <Layout noFooter>
+                <AdminRoute><Admin /></AdminRoute>
+              </Layout>
+            } />
+
+            {/* Catch-all 404 */}
             <Route path="*" element={
               <Layout>
                 <NotFound />

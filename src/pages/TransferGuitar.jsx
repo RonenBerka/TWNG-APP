@@ -3,14 +3,17 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Search, User, Globe, Users, EyeOff, Send, AlertTriangle, Check, Loader2, Guitar } from 'lucide-react';
 import { T } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
-import { useGuitar } from '../hooks/useGuitar';
+import { getInstrument } from '../lib/supabase/instruments';
 import { initiateTransfer, searchUsers } from '../lib/supabase/transfers';
 
 /**
- * Transfer Guitar page — 3-step flow:
+ * Transfer Instrument page — 3-step flow (renamed from TransferGuitar)
  *   1. Choose transfer type (to TWNG member / outside platform)
  *   2. Select recipient (member search) + privacy overrides
  *   3. Confirm and submit
+ *
+ * Updated schema: guitar → instrument, ie_id → instrument_id,
+ * from_user_id → from_owner_id, to_user_id → to_owner_id
  */
 
 const TRANSFER_TYPES = [
@@ -44,11 +47,28 @@ function PrivacyLabel(value) {
   return labels[value] || value;
 }
 
-export default function TransferGuitar() {
-  const { guitarId } = useParams();
+export default function TransferInstrument() {
+  const { instrumentId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { guitar, loading: guitarLoading } = useGuitar(guitarId);
+
+  // Updated: fetch instrument instead of guitar
+  const [instrument, setInstrument] = useState(null);
+  const [instrumentLoading, setInstrumentLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchInstrument = async () => {
+      try {
+        const data = await getInstrument(instrumentId);
+        setInstrument(data);
+      } catch (err) {
+        console.error("Failed to fetch instrument:", err);
+      } finally {
+        setInstrumentLoading(false);
+      }
+    };
+    if (instrumentId) fetchInstrument();
+  }, [instrumentId]);
 
   const [step, setStep] = useState(1);
   const [transferType, setTransferType] = useState(null);
@@ -67,8 +87,8 @@ export default function TransferGuitar() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
-  // Check ownership
-  const isOwner = !!(user && guitar && guitar.ownerId === user.id);
+  // Check ownership — updated field: owner_id (from ownerId)
+  const isOwner = !!(user && instrument && instrument.owner_id === user.id);
 
   // Search users with debounce
   useEffect(() => {
@@ -96,11 +116,12 @@ export default function TransferGuitar() {
     setSubmitting(true);
     setError(null);
     try {
+      // Updated schema: guitarId → instrument_id, toUserId → to_owner_id
       await initiateTransfer({
-        guitarId,
-        toUserId: transferType === 'to_member' ? selectedUser?.id : null,
-        transferType,
-        privacyOverrides,
+        instrument_id: instrumentId,
+        to_owner_id: transferType === 'to_member' ? selectedUser?.id : null,
+        transfer_type: transferType,
+        privacy_overrides: privacyOverrides,
       });
       setSuccess(true);
     } catch (err) {
@@ -129,7 +150,7 @@ export default function TransferGuitar() {
   };
 
   // --- Loading / Auth gates ---
-  if (guitarLoading) {
+  if (instrumentLoading) {
     return (
       <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: T.bgDeep }}>
         <Loader2 size={32} color={T.warm} style={{ animation: 'spin 1s linear infinite' }} />
@@ -138,14 +159,14 @@ export default function TransferGuitar() {
     );
   }
 
-  if (!guitar || !isOwner) {
+  if (!instrument || !isOwner) {
     return (
       <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: T.bgDeep, gap: '16px' }}>
         <Guitar size={48} color={T.txtM} />
         <p style={{ fontSize: '18px', fontWeight: 600, color: T.txt }}>
-          {!guitar ? 'Guitar not found' : 'Only the owner can transfer this guitar'}
+          {!instrument ? 'Instrument not found' : 'Only the owner can transfer this instrument'}
         </p>
-        <Link to={guitar ? `/guitar/${guitarId}` : '/collection'} style={{ color: T.warm, fontSize: '14px' }}>
+        <Link to={instrument ? `/instrument/${instrumentId}` : '/my-instruments'} style={{ color: T.warm, fontSize: '14px' }}>
           Go back
         </Link>
       </div>
@@ -168,11 +189,11 @@ export default function TransferGuitar() {
         <p style={{ color: T.txt2, fontSize: '15px', lineHeight: 1.6, marginBottom: '32px' }}>
           {transferType === 'to_member'
             ? `A transfer request has been sent to @${selectedUser?.username}. They have 7 days to accept.`
-            : 'The guitar has been marked as transferred. You have 24 hours to cancel if needed.'}
+            : 'The instrument has been marked as transferred. You have 24 hours to cancel if needed.'}
         </p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <Link to="/collection" style={{ ...btnSecondary, textDecoration: 'none' }}>My Collection</Link>
-          <Link to={`/guitar/${guitarId}`} style={{ ...btnPrimary, textDecoration: 'none' }}>View Guitar</Link>
+          <Link to="/my-instruments" style={{ ...btnSecondary, textDecoration: 'none' }}>My Instruments</Link>
+          <Link to={`/instrument/${instrumentId}`} style={{ ...btnPrimary, textDecoration: 'none' }}>View Instrument</Link>
         </div>
       </div>
     );
@@ -182,29 +203,29 @@ export default function TransferGuitar() {
     <div style={{ backgroundColor: T.bgDeep, color: T.txt, minHeight: '100vh' }}>
       <div style={{ maxWidth: '700px', margin: '0 auto', padding: '32px 24px 64px' }}>
         {/* Back link */}
-        <Link to={`/guitar/${guitarId}`} style={{
+        <Link to={`/instrument/${instrumentId}`} style={{
           display: 'inline-flex', alignItems: 'center', gap: '8px', color: T.txt2,
           textDecoration: 'none', fontSize: '14px', fontWeight: 500, marginBottom: '32px',
         }}>
-          <ArrowLeft size={18} /> Back to guitar
+          <ArrowLeft size={18} /> Back to instrument
         </Link>
 
-        {/* Guitar summary card */}
+        {/* Instrument summary card */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '16px', padding: '16px',
           backgroundColor: T.bgCard, borderRadius: '12px', border: `1px solid ${T.border}`, marginBottom: '32px',
         }}>
           <div style={{
             width: '64px', height: '64px', borderRadius: '10px', flexShrink: 0,
-            backgroundImage: `url('${guitar.image}')`, backgroundSize: 'cover', backgroundPosition: 'center',
+            backgroundImage: `url('${instrument.image}')`, backgroundSize: 'cover', backgroundPosition: 'center',
             backgroundColor: T.bgCard,
           }} />
           <div>
             <p style={{ fontSize: '12px', color: T.txt2, fontFamily: "'JetBrains Mono', monospace", margin: '0 0 4px' }}>
-              {guitar.brand} · {guitar.year}
+              {instrument.make} · {instrument.year}
             </p>
             <p style={{ fontSize: '16px', fontWeight: 600, color: T.txt, margin: 0 }}>
-              {guitar.model}
+              {instrument.model}
             </p>
           </div>
         </div>
@@ -302,10 +323,10 @@ export default function TransferGuitar() {
                         color: T.bgDeep, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '12px', fontWeight: 700,
                       }}>
-                        {(selectedUser.display_name || selectedUser.username || '?').substring(0, 2).toUpperCase()}
+                        {(selectedUser.username || '?').substring(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <p style={{ fontSize: '14px', fontWeight: 600, color: T.txt, margin: 0 }}>{selectedUser.display_name}</p>
+                        <p style={{ fontSize: '14px', fontWeight: 600, color: T.txt, margin: 0 }}>{selectedUser.username}</p>
                         <p style={{ fontSize: '12px', color: T.txt2, fontFamily: "'JetBrains Mono', monospace", margin: 0 }}>@{selectedUser.username}</p>
                       </div>
                     </div>
@@ -329,7 +350,7 @@ export default function TransferGuitar() {
                         onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                         <User size={16} color={T.txt2} />
                         <div>
-                          <p style={{ fontSize: '14px', color: T.txt, margin: 0 }}>{u.display_name || u.username}</p>
+                          <p style={{ fontSize: '14px', color: T.txt, margin: 0 }}>{u.username}</p>
                           <p style={{ fontSize: '11px', color: T.txtM, fontFamily: "'JetBrains Mono', monospace", margin: 0 }}>@{u.username}</p>
                         </div>
                       </button>
@@ -413,8 +434,8 @@ export default function TransferGuitar() {
             <div style={{ padding: '20px', borderRadius: '12px', backgroundColor: T.bgCard, border: `1px solid ${T.border}` }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: T.txtM, fontSize: '13px' }}>Guitar</span>
-                  <span style={{ color: T.txt, fontSize: '13px', fontWeight: 500 }}>{guitar.brand} {guitar.model} ({guitar.year})</span>
+                  <span style={{ color: T.txtM, fontSize: '13px' }}>Instrument</span>
+                  <span style={{ color: T.txt, fontSize: '13px', fontWeight: 500 }}>{instrument.make} {instrument.model} ({instrument.year})</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: T.txtM, fontSize: '13px' }}>Transfer Type</span>

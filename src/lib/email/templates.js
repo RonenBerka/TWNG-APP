@@ -32,7 +32,7 @@ export const welcomeSequence = {
           <!-- Header with logo -->
           <tr>
             <td style="padding:40px 40px 32px;text-align:center;">
-              <span style="font-size:28px;font-weight:700;color:#D97706;letter-spacing:2px;display:block;margin-bottom:12px;">TWNG</span>
+              <img src="https://shiny-muffin-21f968.netlify.app/images/twng-logo-email.svg" alt="TWNG" width="140" height="81" style="display:block;margin:0 auto 12px;">
               <p style="color:#A3A3A3;font-size:14px;margin:0;letter-spacing:1px;">EVERY GUITAR HAS A STORY</p>
             </td>
           </tr>
@@ -119,7 +119,7 @@ Every Guitar Has a Story · TWNG`;
           <!-- Header with logo -->
           <tr>
             <td style="padding:40px 40px 32px;text-align:center;">
-              <span style="font-size:28px;font-weight:700;color:#D97706;letter-spacing:2px;display:block;margin-bottom:8px;">TWNG</span>
+              <img src="https://shiny-muffin-21f968.netlify.app/images/twng-logo-email.svg" alt="TWNG" width="140" height="81" style="display:block;margin:0 auto;">
             </td>
           </tr>
 
@@ -205,7 +205,7 @@ Every Guitar Has a Story · TWNG`;
           <!-- Header with logo -->
           <tr>
             <td style="padding:40px 40px 32px;text-align:center;">
-              <span style="font-size:28px;font-weight:700;color:#D97706;letter-spacing:2px;display:block;margin-bottom:8px;">TWNG</span>
+              <img src="https://shiny-muffin-21f968.netlify.app/images/twng-logo-email.svg" alt="TWNG" width="140" height="81" style="display:block;margin:0 auto;">
             </td>
           </tr>
 
@@ -297,7 +297,7 @@ Every Guitar Has a Story · TWNG`;
           <!-- Header with logo -->
           <tr>
             <td style="padding:40px 40px 32px;text-align:center;">
-              <span style="font-size:28px;font-weight:700;color:#D97706;letter-spacing:2px;display:block;margin-bottom:8px;">TWNG</span>
+              <img src="https://shiny-muffin-21f968.netlify.app/images/twng-logo-email.svg" alt="TWNG" width="140" height="81" style="display:block;margin:0 auto;">
             </td>
           </tr>
 
@@ -395,7 +395,7 @@ export const claimSequence = {
           <!-- Header with logo -->
           <tr>
             <td style="padding:40px 40px 32px;text-align:center;">
-              <span style="font-size:28px;font-weight:700;color:#D97706;letter-spacing:2px;display:block;margin-bottom:8px;">TWNG</span>
+              <img src="https://shiny-muffin-21f968.netlify.app/images/twng-logo-email.svg" alt="TWNG" width="140" height="81" style="display:block;margin:0 auto;">
             </td>
           </tr>
 
@@ -481,7 +481,7 @@ Every Guitar Has a Story · TWNG`;
           <!-- Header with logo -->
           <tr>
             <td style="padding:40px 40px 32px;text-align:center;">
-              <span style="font-size:28px;font-weight:700;color:#D97706;letter-spacing:2px;display:block;margin-bottom:8px;">TWNG</span>
+              <img src="https://shiny-muffin-21f968.netlify.app/images/twng-logo-email.svg" alt="TWNG" width="140" height="81" style="display:block;margin:0 auto;">
             </td>
           </tr>
 
@@ -573,7 +573,7 @@ Every Guitar Has a Story · TWNG`;
           <!-- Header with logo -->
           <tr>
             <td style="padding:40px 40px 32px;text-align:center;">
-              <span style="font-size:28px;font-weight:700;color:#D97706;letter-spacing:2px;display:block;margin-bottom:8px;">TWNG</span>
+              <img src="https://shiny-muffin-21f968.netlify.app/images/twng-logo-email.svg" alt="TWNG" width="140" height="81" style="display:block;margin:0 auto;">
             </td>
           </tr>
 
@@ -659,7 +659,7 @@ Every Guitar Has a Story · TWNG`;
           <!-- Header with logo -->
           <tr>
             <td style="padding:40px 40px 32px;text-align:center;">
-              <span style="font-size:28px;font-weight:700;color:#D97706;letter-spacing:2px;display:block;margin-bottom:8px;">TWNG</span>
+              <img src="https://shiny-muffin-21f968.netlify.app/images/twng-logo-email.svg" alt="TWNG" width="140" height="81" style="display:block;margin:0 auto;">
             </td>
           </tr>
 
@@ -750,7 +750,7 @@ export const reengagementSequence = {
           <!-- Header with logo -->
           <tr>
             <td style="padding:40px 40px 32px;text-align:center;">
-              <span style="font-size:28px;font-weight:700;color:#D97706;letter-spacing:2px;display:block;margin-bottom:8px;">TWNG</span>
+              <img src="https://shiny-muffin-21f968.netlify.app/images/twng-logo-email.svg" alt="TWNG" width="140" height="81" style="display:block;margin:0 auto;">
             </td>
           </tr>
 
@@ -836,7 +836,7 @@ Every Guitar Has a Story · TWNG`;
           <!-- Header with logo -->
           <tr>
             <td style="padding:40px 40px 32px;text-align:center;">
-              <span style="font-size:28px;font-weight:700;color:#D97706;letter-spacing:2px;display:block;margin-bottom:8px;">TWNG</span>
+              <img src="https://shiny-muffin-21f968.netlify.app/images/twng-logo-email.svg" alt="TWNG" width="140" height="81" style="display:block;margin:0 auto;">
             </td>
           </tr>
 
@@ -922,7 +922,7 @@ Every Guitar Has a Story · TWNG`;
           <!-- Header with logo -->
           <tr>
             <td style="padding:40px 40px 32px;text-align:center;">
-              <span style="font-size:28px;font-weight:700;color:#D97706;letter-spacing:2px;display:block;margin-bottom:8px;">TWNG</span>
+              <img src="https://shiny-muffin-21f968.netlify.app/images/twng-logo-email.svg" alt="TWNG" width="140" height="81" style="display:block;margin:0 auto;">
             </td>
           </tr>
 
@@ -983,6 +983,12 @@ Every Guitar Has a Story · TWNG`;
 };
 
 // ============================================================================
+// AUTH & TRANSACTIONAL IMPORTS
+// ============================================================================
+
+import { authTemplates, transactionalTemplates, authEmailTemplates } from './auth-templates';
+
+// ============================================================================
 // TEMPLATE MAPPING FOR EMAIL SERVICE
 // ============================================================================
 
@@ -998,11 +1004,19 @@ export const emailTemplates = {
     addMoreGuitars: claimSequence.addPhotosStory,
     buildCollection: claimSequence.shareCollection,
     exploreFeatures: claimSequence.inviteCollectors,
+    claimDenied: transactionalTemplates.claimDenied,
+    claimPendingReview: transactionalTemplates.claimPendingReview,
   },
   reengagement: {
     comeBack: reengagementSequence.missYou,
     newFeatures: reengagementSequence.newInBrand,
     exclusiveOffer: reengagementSequence.featuredSpotlight,
+  },
+  auth: {
+    passwordReset: authTemplates.passwordReset,
+    magicLink: authTemplates.magicLink,
+    confirmSignup: authTemplates.confirmSignup,
+    changeEmail: authTemplates.changeEmail,
   },
 };
 
@@ -1015,3 +1029,6 @@ export const ALL_SEQUENCES = {
   claim: claimSequence,
   reengagement: reengagementSequence,
 };
+
+// Re-export auth templates for direct use
+export { authTemplates, transactionalTemplates, authEmailTemplates };

@@ -14,16 +14,16 @@ import {
   Database,
 } from "lucide-react";
 import { T } from "../theme/tokens";
-import { useGuitars } from "../hooks/useGuitars";
+import { getInstruments } from "../lib/supabase/instruments";
 
-/* ─── brands pulled from the actual data ────────────────────────── */
-const BRANDS = [
+/* ─── Makes (manufacturers) pulled from the actual data ────────────────────────── */
+const MAKES = [
   "Fender", "Gibson", "Gretsch", "Heritage", "Martin",
   "Nash", "PRS", "Rickenbacker", "Suhr", "Taylor",
   "Brian May", "Cordoba", "Epiphone", "Ibanez", "Yamaha",
 ];
 
-const BODY_TYPES = ["Solid Body", "Semi-Hollow", "Hollow", "Classical", "Acoustic", "Bass"];
+const INSTRUMENT_TYPES = ["Solid Body", "Semi-Hollow", "Hollow", "Classical", "Acoustic", "Bass"];
 const CONDITIONS = ["All", "Mint", "Excellent", "Very Good", "Good", "Relic'd", "Artisan Aged"];
 
 /* ─── Inline-styled FilterSection ────────────────────────────────── */
@@ -156,15 +156,15 @@ function YearRangeSlider({ min, max, onChange }) {
   );
 }
 
-/* ─── Guitar Card (matches original design) ──────────────────────── */
-function ExploreGuitarCard({ guitar, view }) {
+/* ─── Instrument Card (matches original design) ──────────────────────── */
+function ExploreInstrumentCard({ instrument, view }) {
   const [loved, setLoved] = useState(false);
   const [hovered, setHovered] = useState(false);
 
   if (view === "list") {
     return (
       <Link
-        to={`/guitar/${guitar.id}`}
+        to={`/instrument/${instrument.id}`}
         style={{ textDecoration: "none", display: "block" }}
       >
         <div
@@ -178,8 +178,8 @@ function ExploreGuitarCard({ guitar, view }) {
           }}
         >
           <img
-            src={guitar.image}
-            alt={guitar.model}
+            src={instrument.image}
+            alt={instrument.model}
             style={{
               width: "100px", height: "100px", objectFit: "cover",
               borderRadius: "8px", backgroundColor: T.bgElev,
@@ -192,9 +192,9 @@ function ExploreGuitarCard({ guitar, view }) {
                 fontFamily: "'JetBrains Mono', monospace",
                 border: `1px solid ${T.warm}`, color: T.warm,
               }}>
-                {guitar.brand} · {guitar.year}
+                {instrument.make} · {instrument.year}
               </span>
-              {guitar.verified && (
+              {instrument.verified && (
                 <span style={{
                   fontSize: "11px", color: "#22c55e",
                   fontFamily: "'JetBrains Mono', monospace",
@@ -204,18 +204,18 @@ function ExploreGuitarCard({ guitar, view }) {
             <h4 style={{
               fontSize: "16px", fontWeight: 600, color: T.txt,
               fontFamily: "'Playfair Display', serif", margin: "4px 0",
-            }}>{guitar.model}</h4>
+            }}>{instrument.model}</h4>
             <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "8px" }}>
               <span style={{
                 padding: "3px 10px", borderRadius: "6px", fontSize: "11px",
                 backgroundColor: T.bgElev, color: T.txt2, border: `1px solid ${T.border}`,
                 fontFamily: "'JetBrains Mono', monospace",
-              }}>{guitar.bodyType}</span>
+              }}>{instrument.instrument_type}</span>
               <span style={{
                 padding: "3px 10px", borderRadius: "6px", fontSize: "11px",
                 backgroundColor: T.bgElev, color: T.txt2, border: `1px solid ${T.border}`,
                 fontFamily: "'JetBrains Mono', monospace",
-              }}>{guitar.condition}</span>
+              }}>{instrument.condition}</span>
             </div>
           </div>
           <button
@@ -255,8 +255,8 @@ function ExploreGuitarCard({ guitar, view }) {
         {/* Image area */}
         <div style={{ position: "relative", aspectRatio: "4/5", overflow: "hidden", backgroundColor: T.bgElev }}>
           <img
-            src={guitar.image}
-            alt={guitar.model}
+            src={instrument.image}
+            alt={instrument.model}
             style={{
               width: "100%", height: "100%", objectFit: "cover",
               transition: "transform 0.4s ease",
@@ -264,7 +264,7 @@ function ExploreGuitarCard({ guitar, view }) {
             }}
           />
 
-          {/* Brand · Year badge */}
+          {/* Make · Year badge */}
           <div style={{
             position: "absolute", top: "14px", left: "14px",
             padding: "5px 12px", borderRadius: "8px", fontSize: "12px",
@@ -272,7 +272,7 @@ function ExploreGuitarCard({ guitar, view }) {
             border: "1px solid rgba(255,255,255,0.3)", color: "#FAFAF9",
             backgroundColor: "rgba(12,10,9,0.6)", backdropFilter: "blur(8px)",
           }}>
-            {guitar.brand} · {guitar.year}
+            {instrument.make} · {instrument.year}
           </div>
 
           {/* Heart button */}
@@ -295,7 +295,7 @@ function ExploreGuitarCard({ guitar, view }) {
           </button>
 
           {/* Verified badge */}
-          {guitar.verified && (
+          {instrument.verified && (
             <div style={{
               position: "absolute", bottom: "14px", right: "14px",
               padding: "4px 10px", borderRadius: "6px", fontSize: "11px",
@@ -313,18 +313,18 @@ function ExploreGuitarCard({ guitar, view }) {
           <h4 style={{
             fontSize: "16px", fontWeight: 600, color: T.txt,
             fontFamily: "'Playfair Display', serif", marginBottom: "10px",
-          }}>{guitar.model}</h4>
+          }}>{instrument.model}</h4>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
             <span style={{
               padding: "4px 10px", borderRadius: "6px", fontSize: "11px",
               backgroundColor: T.bgElev, color: T.txt2, border: `1px solid ${T.border}`,
               fontFamily: "'JetBrains Mono', monospace",
-            }}>{guitar.bodyType}</span>
+            }}>{instrument.instrument_type}</span>
             <span style={{
               padding: "4px 10px", borderRadius: "6px", fontSize: "11px",
               backgroundColor: T.bgElev, color: T.txt2, border: `1px solid ${T.border}`,
               fontFamily: "'JetBrains Mono', monospace",
-            }}>{guitar.condition}</span>
+            }}>{instrument.condition}</span>
           </div>
         </div>
       </div>
@@ -342,11 +342,12 @@ export default function Explore() {
   const [showFilters, setShowFilters] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selectedBrands, setSelectedBrands] = useState(() => {
-    const brandParam = new URLSearchParams(window.location.search).get("brand");
-    return brandParam ? [decodeURIComponent(brandParam)] : [];
+  // Updated: brand → make (new schema)
+  const [selectedMakes, setSelectedMakes] = useState(() => {
+    const makeParam = new URLSearchParams(window.location.search).get("make");
+    return makeParam ? [decodeURIComponent(makeParam)] : [];
   });
-  const [selectedBodyTypes, setSelectedBodyTypes] = useState([]);
+  const [selectedInstrumentTypes, setSelectedInstrumentTypes] = useState([]);
   const [selectedCondition, setSelectedCondition] = useState("All");
   const [yearMin, setYearMin] = useState(1900);
   const [yearMax, setYearMax] = useState(2026);
@@ -365,28 +366,51 @@ export default function Explore() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Fetch guitars from Supabase (or mock data)
-  const { guitars: allGuitars, total, loading, error, usingMockData } = useGuitars({
-    search: debouncedSearch || undefined,
-    sortOrder: sort === "oldest" ? "asc" : "desc",
-    yearMin: yearMin > 1900 ? yearMin : undefined,
-    yearMax: yearMax < 2026 ? yearMax : undefined,
-  });
+  // Fetch instruments from Supabase (updated from guitars)
+  const [allInstruments, setAllInstruments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [total, setTotal] = useState(0);
+  const [usingMockData, setUsingMockData] = useState(false);
 
-  // Client-side filter for brand, body type, condition
-  // (these filters are applied client-side since the hook already fetched)
+  useEffect(() => {
+    const fetchInstruments = async () => {
+      setLoading(true);
+      try {
+        // getInstruments from instruments service
+        const data = await getInstruments({
+          search: debouncedSearch || undefined,
+          sortOrder: sort === "oldest" ? "asc" : "desc",
+          yearMin: yearMin > 1900 ? yearMin : undefined,
+          yearMax: yearMax < 2026 ? yearMax : undefined,
+        });
+        setAllInstruments(data?.data || []);
+        setTotal(data?.count || 0);
+        setUsingMockData(false);
+      } catch (err) {
+        console.error("Failed to fetch instruments:", err);
+        setError(err.message);
+        setUsingMockData(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInstruments();
+  }, [debouncedSearch, sort, yearMin, yearMax]);
+
+  // Client-side filter for make, instrument_type, condition
   const filtered = useMemo(() => {
-    return allGuitars.filter(g => {
-      if (selectedBrands.length > 0 && !selectedBrands.includes(g.brand)) return false;
-      if (selectedBodyTypes.length > 0 && !selectedBodyTypes.includes(g.bodyType)) return false;
-      if (selectedCondition !== "All" && g.condition !== selectedCondition) return false;
+    return allInstruments.filter(i => {
+      if (selectedMakes.length > 0 && !selectedMakes.includes(i.make)) return false;
+      if (selectedInstrumentTypes.length > 0 && !selectedInstrumentTypes.includes(i.instrument_type)) return false;
+      if (selectedCondition !== "All" && i.condition !== selectedCondition) return false;
       return true;
     });
-  }, [allGuitars, selectedBrands, selectedBodyTypes, selectedCondition]);
+  }, [allInstruments, selectedMakes, selectedInstrumentTypes, selectedCondition]);
 
   const resetFilters = () => {
-    setSelectedBrands([]);
-    setSelectedBodyTypes([]);
+    setSelectedMakes([]);
+    setSelectedInstrumentTypes([]);
     setSelectedCondition("All");
     setSearchQuery("");
     setDebouncedSearch("");
@@ -394,14 +418,14 @@ export default function Explore() {
     setYearMax(2026);
   };
 
-  const toggleBrand = (brand) => {
-    setSelectedBrands(prev =>
-      prev.includes(brand) ? prev.filter(b => b !== brand) : [...prev, brand]
+  const toggleMake = (make) => {
+    setSelectedMakes(prev =>
+      prev.includes(make) ? prev.filter(b => b !== make) : [...prev, make]
     );
   };
 
-  const toggleBodyType = (type) => {
-    setSelectedBodyTypes(prev =>
+  const toggleInstrumentType = (type) => {
+    setSelectedInstrumentTypes(prev =>
       prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
     );
   };
@@ -427,7 +451,7 @@ export default function Explore() {
             <Search size={18} color={T.txtM} />
             <input
               type="text"
-              placeholder="Search guitars by brand, model, year..."
+              placeholder="Search instruments by make, model, year..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
@@ -492,15 +516,15 @@ export default function Explore() {
               >Reset</button>
             </div>
 
-            {/* Brand */}
-            <FilterSection title="Brand">
+            {/* Make */}
+            <FilterSection title="Make">
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {BRANDS.map(brand => (
+                {MAKES.map(make => (
                   <CheckboxRow
-                    key={brand}
-                    label={brand}
-                    checked={selectedBrands.includes(brand)}
-                    onChange={() => toggleBrand(brand)}
+                    key={make}
+                    label={make}
+                    checked={selectedMakes.includes(make)}
+                    onChange={() => toggleMake(make)}
                   />
                 ))}
               </div>
@@ -511,19 +535,19 @@ export default function Explore() {
               <YearRangeSlider min={yearMin} max={yearMax} onChange={(lo, hi) => { setYearMin(lo); setYearMax(hi); }} />
             </FilterSection>
 
-            {/* Body Type */}
-            <FilterSection title="Body Type">
+            {/* Instrument Type */}
+            <FilterSection title="Instrument Type">
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                {BODY_TYPES.map(type => (
+                {INSTRUMENT_TYPES.map(type => (
                   <button
                     key={type}
-                    onClick={() => toggleBodyType(type)}
+                    onClick={() => toggleInstrumentType(type)}
                     style={{
                       padding: "5px 12px", borderRadius: "8px", fontSize: "12px",
                       fontFamily: "'JetBrains Mono', monospace",
-                      backgroundColor: selectedBodyTypes.includes(type) ? T.warm : T.bgElev,
-                      color: selectedBodyTypes.includes(type) ? T.bgDeep : T.txt2,
-                      border: `1px solid ${selectedBodyTypes.includes(type) ? T.warm : T.border}`,
+                      backgroundColor: selectedInstrumentTypes.includes(type) ? T.warm : T.bgElev,
+                      color: selectedInstrumentTypes.includes(type) ? T.bgDeep : T.txt2,
+                      border: `1px solid ${selectedInstrumentTypes.includes(type) ? T.warm : T.border}`,
                       cursor: "pointer", transition: "all 0.15s",
                     }}
                   >{type}</button>
@@ -587,7 +611,7 @@ export default function Explore() {
             marginBottom: "24px", flexWrap: "wrap", gap: "12px",
           }}>
             <p style={{ fontSize: "14px", color: T.txt2 }}>
-              {loading ? "Loading..." : `${filtered.length} guitars found`}
+              {loading ? "Loading..." : `${filtered.length} instruments found`}
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <select
@@ -644,7 +668,7 @@ export default function Explore() {
           ) : filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "80px 20px" }}>
               <p style={{ fontSize: "20px", fontWeight: 600, color: T.txt, marginBottom: "8px" }}>
-                No guitars match your filters
+                No instruments match your filters
               </p>
               <p style={{ color: T.txt2, marginBottom: "24px" }}>
                 Try removing some filters or search for something else
@@ -667,24 +691,24 @@ export default function Explore() {
                 : "repeat(auto-fill, minmax(clamp(200px, 40vw, 300px), 1fr))",
               gap: "20px",
             }}>
-              {filtered.map((guitar, idx) => (
+              {filtered.map((instrument, idx) => (
                 <div
-                  key={guitar.id}
+                  key={instrument.id}
                   style={{ animation: `fadeInUp 0.4s ease-out ${idx * 0.04}s both` }}
                 >
-                  <ExploreGuitarCard guitar={guitar} view="grid" />
+                  <ExploreInstrumentCard instrument={instrument} view="grid" />
                 </div>
               ))}
             </div>
           ) : (
             /* ── List View ─────────────────────────────────────── */
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {filtered.map((guitar, idx) => (
+              {filtered.map((instrument, idx) => (
                 <div
-                  key={guitar.id}
+                  key={instrument.id}
                   style={{ animation: `fadeInUp 0.4s ease-out ${idx * 0.04}s both` }}
                 >
-                  <ExploreGuitarCard guitar={guitar} view="list" />
+                  <ExploreInstrumentCard instrument={instrument} view="list" />
                 </div>
               ))}
             </div>
@@ -703,7 +727,7 @@ export default function Explore() {
               </button>
               <p style={{ fontSize: "12px", color: T.txtM, marginTop: "12px",
                 fontFamily: "'JetBrains Mono', monospace" }}>
-                Showing 1–{filtered.length} of {total.toLocaleString()} results
+                Showing 1–{filtered.length} of {total > 0 ? total.toLocaleString() : filtered.length} results
               </p>
             </div>
           )}
@@ -741,31 +765,31 @@ export default function Explore() {
               </button>
             </div>
 
-            <FilterSection title="Brand">
+            <FilterSection title="Make">
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {BRANDS.map(brand => (
+                {MAKES.map(make => (
                   <CheckboxRow
-                    key={brand}
-                    label={brand}
-                    checked={selectedBrands.includes(brand)}
-                    onChange={() => toggleBrand(brand)}
+                    key={make}
+                    label={make}
+                    checked={selectedMakes.includes(make)}
+                    onChange={() => toggleMake(make)}
                   />
                 ))}
               </div>
             </FilterSection>
 
-            <FilterSection title="Body Type">
+            <FilterSection title="Instrument Type">
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                {BODY_TYPES.map(type => (
+                {INSTRUMENT_TYPES.map(type => (
                   <button
                     key={type}
-                    onClick={() => toggleBodyType(type)}
+                    onClick={() => toggleInstrumentType(type)}
                     style={{
                       padding: "5px 12px", borderRadius: "8px", fontSize: "12px",
                       fontFamily: "'JetBrains Mono', monospace",
-                      backgroundColor: selectedBodyTypes.includes(type) ? T.warm : T.bgElev,
-                      color: selectedBodyTypes.includes(type) ? T.bgDeep : T.txt2,
-                      border: `1px solid ${selectedBodyTypes.includes(type) ? T.warm : T.border}`,
+                      backgroundColor: selectedInstrumentTypes.includes(type) ? T.warm : T.bgElev,
+                      color: selectedInstrumentTypes.includes(type) ? T.bgDeep : T.txt2,
+                      border: `1px solid ${selectedInstrumentTypes.includes(type) ? T.warm : T.border}`,
                       cursor: "pointer",
                     }}
                   >{type}</button>

@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useRole } from '../hooks/useRole';
 import { T } from '../theme/tokens';
 import { ShieldX, Loader2 } from 'lucide-react';
 
@@ -9,9 +10,12 @@ import { ShieldX, Loader2 } from 'lucide-react';
  * - Not authenticated → redirect to /auth
  * - Not staff → "Access Denied" page
  * - Staff → render children
+ *
+ * Uses the new user_roles table structure to check permissions.
  */
 export default function AdminRoute({ children }) {
-  const { isAuthenticated, isStaff, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+  const { isStaff } = useRole();
 
   if (loading) {
     return (

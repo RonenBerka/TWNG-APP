@@ -1,165 +1,382 @@
 /**
- * Homepage data service — fetches live data for all homepage sections.
+ * Homepage service layer — fetches live data for all homepage sections.
+ * Updated for Lovable schema migration:
+ * - homepage_blocks table (each block is a row, not JSON config)
+ * - instruments table (formerly guitars)
+ * - featured_content table for associating content with blocks
  * Falls back to null/empty so the homepage can use its local defaults.
  */
 
 import { supabase } from './client';
 
-// The same GUITAR_SELECT used in guitars.js — includes owner + OCC images
-const HOMEPAGE_GUITAR_SELECT = `
-  id, brand, model, year, nickname, story, tags, state,
-  owner:users!owner_id (id, username, display_name, avatar_url),
-  occ:owner_created_content (id, content_type, content_data, visible_publicly, position)
-`;
+// ─────────────────────────────────────────────────────
+// HOMEPAGE BLOCKS
+// ─────────────────────────────────────────────────────
 
-// ─── Featured Guitars ─────────────────────────────
-// Fetches guitars whose IDs are in the admin-configured list,
-// OR falls back to verified guitars ordered by created_at.
-export async function getFeaturedGuitars(configuredIds = null) {
+/**
+ * Get all active homepage blocks, ordered by display_order
+ */
+export async function getHomepageBlocks() {
   try {
-    if (configuredIds && configuredIds.length > 0) {
-      // Admin has hand-picked specific guitars
-      const { data, error } = await supabase
-        .from('guitars')
-        .select(HOMEPAGE_GUITAR_SELECT)
-        .in('id', configuredIds)
-        .eq('state', 'published')
-        .is('deleted_at', null);
-      if (error) throw error;
-      // Sort by the order the admin specified
-      const idOrder = new Map(configuredIds.map((id, i) => [id, i]));
-      return (data || []).sort((a, b) => (idOrder.get(a.id) ?? 99) - (idOrder.get(b.id) ?? 99));
-    }
-
-    // Default: top 8 published guitars, prefer verified
     const { data, error } = await supabase
-      .from('guitars')
-      .select(HOMEPAGE_GUITAR_SELECT)
-      .eq('state', 'published')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false })
-      .limit(8);
+      .from('homepage_blocks')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
     if (error) throw error;
-    // Put verified first
-    return (data || []).sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0));
+    return data || [];
   } catch (err) {
-    console.error('getFeaturedGuitars error:', err);
-    return null; // caller will use fallback data
+    console.error('getHomepageBlocks error:', err);
+    return [];
   }
 }
 
-// ─── Recently Added ───────────────────────────────
-export async function getRecentlyAdded(limit = 8) {
+/**
+ * Get a specific homepage block by ID
+ */
+export async function getHomepageBlock(blockId) {
   try {
     const { data, error } = await supabase
-      .from('guitars')
-      .select('id, brand, model, year, owner:users!owner_id (id, username, display_name), occ:owner_created_content (id, content_type, content_data, visible_publicly, position)')
-      .eq('state', 'published')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    if (error) throw error;
+      .from('homepage_blocks')
+      .select('*')
+      .eq('id', blockId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
     return data || null;
   } catch (err) {
-    console.error('getRecentlyAdded error:', err);
+    console.error('getHomepageBlock error:', err);
     return null;
   }
 }
 
-// ─── Brand Stats ──────────────────────────────────
-export async function getTopBrands(limit = 8) {
+/**
+ * Create a new homepage block
+ * @param {Object} block - Block data: { type, title, content, display_order, is_active, settings... }
+ * @returns {Object} Created block with id
+ */
+export async function createHomepageBlock(block) {
   try {
-    // Try RPC first
-    const { data, error } = await supabase.rpc('get_guitar_counts_by_brand');
-    if (!error && data) {
-      return data
-        .sort((a, b) => b.count - a.count)
-        .slice(0, limit)
-        .map(b => ({ name: b.brand, count: b.count }));
-    }
+    const { data, error } = await supabase
+      .from('homepage_blocks')
+      .insert({
+        ...block,
+        is_active: block.is_active !== false,
+        display_order: block.display_order ?? 0,
+      })
+      .select()
+      .single();
 
-    // Fallback: client-side count
-    const { data: guitars, error: err2 } = await supabase
-      .from('guitars')
-      .select('brand')
-      .eq('state', 'published')
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('createHomepageBlock error:', err);
+    return null;
+  }
+}
+
+/**
+ * Update a homepage block
+ */
+export async function updateHomepageBlock(blockId, updates) {
+  try {
+    const { data, error } = await supabase
+      .from('homepage_blocks')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', blockId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('updateHomepageBlock error:', err);
+    return null;
+  }
+}
+
+/**
+ * Delete a homepage block
+ */
+export async function deleteHomepageBlock(blockId) {
+  try {
+    const { error } = await supabase
+      .from('homepage_blocks')
+      .delete()
+      .eq('id', blockId);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('deleteHomepageBlock error:', err);
+    return false;
+  }
+}
+
+/**
+ * Reorder homepage blocks
+ * @param {Array} blockOrders - [{ id, display_order }, ...]
+ */
+export async function reorderHomepageBlocks(blockOrders) {
+  try {
+    const updates = blockOrders.map(({ id, display_order }) => ({
+      id,
+      display_order,
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { error } = await supabase
+      .from('homepage_blocks')
+      .upsert(updates, { onConflict: 'id' });
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('reorderHomepageBlocks error:', err);
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────────────
+// FEATURED CONTENT
+// ─────────────────────────────────────────────────────
+
+/**
+ * Get featured content for a homepage block
+ */
+export async function getFeaturedContent(blockId) {
+  try {
+    const { data, error } = await supabase
+      .from('featured_content')
+      .select('*')
+      .eq('homepage_block_id', blockId)
+      .order('display_order', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('getFeaturedContent error:', err);
+    return [];
+  }
+}
+
+/**
+ * Add featured content to a homepage block
+ * @param {Object} content - { homepage_block_id, content_type, content_id, custom_title, etc. }
+ */
+export async function addFeaturedContent(content) {
+  try {
+    const { data, error } = await supabase
+      .from('featured_content')
+      .insert(content)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('addFeaturedContent error:', err);
+    return null;
+  }
+}
+
+/**
+ * Update featured content
+ */
+export async function updateFeaturedContent(contentId, updates) {
+  try {
+    const { data, error } = await supabase
+      .from('featured_content')
+      .update(updates)
+      .eq('id', contentId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('updateFeaturedContent error:', err);
+    return null;
+  }
+}
+
+/**
+ * Remove featured content
+ */
+export async function removeFeaturedContent(contentId) {
+  try {
+    const { error } = await supabase
+      .from('featured_content')
+      .delete()
+      .eq('id', contentId);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('removeFeaturedContent error:', err);
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────────────
+// FEATURED INSTRUMENTS
+// ─────────────────────────────────────────────────────
+
+/**
+ * Get featured instruments for homepage
+ */
+export async function getFeaturedInstruments(limit = 8) {
+  try {
+    const { data, error } = await supabase
+      .from('instruments')
+      .select('id, make, model, year, main_image_url, current_owner:users!current_owner_id (id, username, avatar_url)')
+      .eq('is_featured', true)
+      .eq('moderation_status', 'approved')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('getFeaturedInstruments error:', err);
+    return [];
+  }
+}
+
+/**
+ * Get recently added instruments
+ */
+export async function getRecentlyAddedInstruments(limit = 8) {
+  try {
+    const { data, error } = await supabase
+      .from('instruments')
+      .select('id, make, model, year, main_image_url, current_owner:users!current_owner_id (id, username, avatar_url)')
+      .eq('moderation_status', 'approved')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('getRecentlyAddedInstruments error:', err);
+    return [];
+  }
+}
+
+/**
+ * Get top instrument makes/brands
+ */
+export async function getTopInstrumentMakes(limit = 8) {
+  try {
+    // Fetch all published instruments and count by make
+    const { data: instruments, error } = await supabase
+      .from('instruments')
+      .select('make')
+      .eq('moderation_status', 'approved')
       .is('deleted_at', null);
-    if (err2) throw err2;
 
-    const counts = {};
-    (guitars || []).forEach(g => { counts[g.brand] = (counts[g.brand] || 0) + 1; });
-    return Object.entries(counts)
+    if (error) throw error;
+
+    // Count makes client-side
+    const makes = {};
+    (instruments || []).forEach(i => {
+      if (i.make) {
+        makes[i.make] = (makes[i.make] || 0) + 1;
+      }
+    });
+
+    return Object.entries(makes)
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit)
       .map(([name, count]) => ({ name, count }));
   } catch (err) {
-    console.error('getTopBrands error:', err);
-    return null;
+    console.error('getTopInstrumentMakes error:', err);
+    return [];
   }
 }
 
-// ─── Published Articles ──────────────────────────
+// ─────────────────────────────────────────────────────
+// FEATURED ARTICLES
+// ─────────────────────────────────────────────────────
+
+/**
+ * Get published articles for homepage
+ */
 export async function getHomepageArticles(limit = 3) {
   try {
     const { data, error } = await supabase
       .from('articles')
-      .select('id, title, excerpt, author, read_time, category, cover_image_url, published_at')
+      .select('id, title, excerpt, cover_image_url, published_at, author:users!author_id (id, username, avatar_url)')
       .eq('status', 'published')
       .order('published_at', { ascending: false })
       .limit(limit);
+
     if (error) throw error;
-    return data || null;
+    return data || [];
   } catch (err) {
     console.error('getHomepageArticles error:', err);
-    return null;
+    return [];
   }
 }
 
-// ─── Testimonials ────────────────────────────────
-// Reads from system_config key 'homepage_testimonials'
-export async function getHomepageTestimonials() {
+/**
+ * Get featured articles
+ */
+export async function getFeaturedArticles(limit = 3) {
   try {
     const { data, error } = await supabase
-      .from('system_config')
-      .select('value')
-      .eq('key', 'homepage_testimonials')
-      .single();
+      .from('articles')
+      .select('id, title, excerpt, cover_image_url, published_at, author:users!author_id (id, username, avatar_url)')
+      .eq('status', 'published')
+      .eq('is_featured', true)
+      .order('published_at', { ascending: false })
+      .limit(limit);
+
     if (error && error.code !== 'PGRST116') throw error;
-    return data?.value?.testimonials || null;
+    return data || [];
   } catch (err) {
-    console.error('getHomepageTestimonials error:', err);
-    return null;
+    console.error('getFeaturedArticles error:', err);
+    return [];
   }
 }
 
-// ─── Stats Overrides ─────────────────────────────
-// Reads admin-configured stat overrides or computes live counts
+// ─────────────────────────────────────────────────────
+// HOMEPAGE STATS
+// ─────────────────────────────────────────────────────
+
+/**
+ * Get homepage statistics (live counts)
+ */
 export async function getHomepageStats() {
   try {
-    // First check for admin overrides
-    const { data: configData, error: configErr } = await supabase
-      .from('system_config')
-      .select('value')
-      .eq('key', 'homepage_stats')
-      .single();
-
-    if (!configErr && configData?.value?.stats) {
-      return configData.value.stats; // admin has set custom values
-    }
-
-    // Otherwise compute from live data
-    const [guitarsRes, usersRes, brandsRes] = await Promise.all([
-      supabase.from('guitars').select('id', { count: 'exact', head: true }).eq('state', 'published').is('deleted_at', null),
-      supabase.from('users').select('id', { count: 'exact', head: true }),
-      supabase.from('guitars').select('brand').eq('state', 'published').is('deleted_at', null),
+    const [instrumentsRes, usersRes, brandsRes] = await Promise.all([
+      supabase
+        .from('instruments')
+        .select('id', { count: 'exact', head: true })
+        .eq('moderation_status', 'approved')
+        .is('deleted_at', null),
+      supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true }),
+      supabase
+        .from('instruments')
+        .select('make')
+        .eq('moderation_status', 'approved')
+        .is('deleted_at', null),
     ]);
 
-    const uniqueBrands = new Set((brandsRes.data || []).map(g => g.brand)).size;
+    const uniqueBrands = new Set((brandsRes.data || []).map(i => i.make).filter(Boolean)).size;
 
     return {
-      guitars: guitarsRes.count ?? 0,
+      instruments: instrumentsRes.count ?? 0,
       collectors: usersRes.count ?? 0,
-      brands: uniqueBrands,
+      makes: uniqueBrands,
     };
   } catch (err) {
     console.error('getHomepageStats error:', err);
@@ -167,70 +384,66 @@ export async function getHomepageStats() {
   }
 }
 
-// ─── Homepage Section Content Config ─────────────
-// Reads per-section content settings from system_config
-export async function getHomepageSectionConfig() {
+// ─────────────────────────────────────────────────────
+// FEATURED COLLECTIONS
+// ─────────────────────────────────────────────────────
+
+/**
+ * Get public featured collections
+ */
+export async function getFeaturedCollections(limit = 6) {
   try {
     const { data, error } = await supabase
-      .from('system_config')
-      .select('value')
-      .eq('key', 'homepage_section_config')
-      .single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data?.value || null;
+      .from('collections')
+      .select('id, name, description, cover_image_url, user:users!user_id (id, username, avatar_url)')
+      .eq('is_public', true)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
   } catch (err) {
-    console.error('getHomepageSectionConfig error:', err);
-    return null;
+    console.error('getFeaturedCollections error:', err);
+    return [];
   }
 }
 
-// ─── Save Homepage Section Config ────────────────
-export async function saveHomepageSectionConfig(config, userId) {
-  const { data, error } = await supabase
-    .from('system_config')
-    .upsert({
-      key: 'homepage_section_config',
-      value: config,
-      description: 'Per-section content configuration for homepage',
-      updated_by: userId,
-      updated_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+// ─────────────────────────────────────────────────────
+// LEGACY STUBS FOR ADMIN.JSX COMPATIBILITY
+// ─────────────────────────────────────────────────────
+
+export async function getHomepageSectionConfig(sectionType) {
+  try {
+    const { data, error } = await supabase
+      .from('homepage_blocks')
+      .select('*')
+      .eq('type', sectionType)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.content || {};
+  } catch (err) {
+    console.error('getHomepageSectionConfig error:', err);
+    return {};
+  }
 }
 
-// ─── Save Homepage Testimonials ──────────────────
-export async function saveHomepageTestimonials(testimonials, userId) {
-  const { data, error } = await supabase
-    .from('system_config')
-    .upsert({
-      key: 'homepage_testimonials',
-      value: { testimonials },
-      description: 'Homepage testimonials content',
-      updated_by: userId,
-      updated_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+export async function saveHomepageSectionConfig(sectionType, config) {
+  try {
+    const { error } = await supabase
+      .from('homepage_blocks')
+      .upsert({ type: sectionType, content: config, updated_at: new Date().toISOString() }, { onConflict: 'type' });
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('saveHomepageSectionConfig error:', err);
+    return false;
+  }
 }
 
-// ─── Save Homepage Stats Overrides ───────────────
-export async function saveHomepageStats(stats, userId) {
-  const { data, error } = await supabase
-    .from('system_config')
-    .upsert({
-      key: 'homepage_stats',
-      value: { stats },
-      description: 'Homepage stats bar overrides',
-      updated_by: userId,
-      updated_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+export async function saveHomepageTestimonials(testimonials) {
+  return saveHomepageSectionConfig('testimonials', { testimonials });
+}
+
+export async function saveHomepageStats(stats) {
+  return saveHomepageSectionConfig('stats', { stats });
 }

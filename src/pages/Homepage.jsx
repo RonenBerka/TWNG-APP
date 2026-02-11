@@ -20,59 +20,61 @@ import {
   Twitter,
   Youtube,
   Sparkles,
+  LayoutGrid,
+  List,
+  ChevronDown,
 } from "lucide-react";
 import { IMG } from '../utils/placeholders';
 import { T } from '../theme/tokens';
 import { useTheme } from '../context/ThemeContext';
-import { getHomepageBlocks } from '../lib/supabase/admin';
 import {
-  getFeaturedGuitars,
-  getRecentlyAdded,
-  getTopBrands,
+  getHomepageBlocks,
+  getFeaturedInstruments,
+  getRecentlyAddedInstruments,
   getHomepageArticles,
-  getHomepageTestimonials,
   getHomepageStats,
-  getHomepageSectionConfig,
-} from '../lib/supabase/homepage';
+} from '../lib/supabase';
 
 // ============================================================
-// Image resolver — picks the best available image for a guitar
+// Image resolver — picks the best available image for an instrument
 // ============================================================
-function getGuitarImage(guitar) {
+function getInstrumentImage(instrument) {
   // 1. OCC image uploaded by owner
-  const occ = guitar?.occ?.find(o => o.content_type === 'image' && o.visible_publicly);
+  const occ = instrument?.occ?.find(o => o.content_type === 'image' && o.visible_publicly);
   if (occ?.content_data?.url) return occ.content_data.url;
-  // 2. Local placeholder by brand
-  const brandKey = guitar?.brand?.toLowerCase()?.replace(/\s+/g, '_');
-  const brandMap = {
+  // 2. Main image URL from instrument record
+  if (instrument?.main_image_url) return instrument.main_image_url;
+  // 3. Local placeholder by make
+  const makeKey = instrument?.make?.toLowerCase()?.replace(/\s+/g, '_');
+  const makeMap = {
     heritage: IMG.heritage_lp, nash: IMG.nash_sunburst, fender: IMG.tele_relic,
     suhr: IMG.suhr_green, 'brian may': IMG.brian_may, gibson: IMG.heritage_lp,
     yamaha: IMG.yamaha_classical, cordoba: IMG.classical, gretsch: IMG.gretsch_white,
     rickenbacker: IMG.heritage_semi, prs: IMG.suhr_green, martin: IMG.classical,
   };
-  if (brandMap[brandKey]) return brandMap[brandKey];
-  // 3. Fallback
+  if (makeMap[makeKey]) return makeMap[makeKey];
+  // 4. Fallback
   return IMG.hero_tele;
 }
 
 // ============================================================
-// Normalize Supabase guitar data → shape GuitarCard expects
+// Normalize Supabase instrument data → shape InstrumentCard expects
 // ============================================================
-function normalizeGuitar(g) {
+function normalizeInstrument(g) {
   if (!g) return null;
   return {
     id: g.id,
-    brand: g.brand || '',
+    make: g.make || '',
     model: g.model || '',
     year: g.year || 0,
     nickname: g.nickname || '',
     story: g.story || g.description || '',
     tags: Array.isArray(g.tags) ? g.tags : [],
-    owner: typeof g.owner === 'string' ? g.owner
-      : g.owner?.username ? `@${g.owner.username}`
-      : g.owner?.display_name || 'Unknown',
-    image: typeof g.image === 'string' ? g.image : getGuitarImage(g),
-    verified: g.state === 'verified' || g.verified === true,
+    owner: typeof g.current_owner === 'string' ? g.current_owner
+      : g.current_owner?.username ? `@${g.current_owner.username}`
+      : g.current_owner?.display_name || 'Unknown',
+    image: typeof g.image === 'string' ? g.image : getInstrumentImage(g),
+    verified: g.moderation_status === 'verified' || g.verified === true,
   };
 }
 
@@ -82,7 +84,7 @@ function normalizeGuitar(g) {
 const FALLBACK_FEATURED = [
   {
     id: 1,
-    brand: "Heritage",
+    make: "Heritage",
     model: "H-150 Standard",
     year: 2022,
     nickname: '"Honey Burst"',
@@ -95,7 +97,7 @@ const FALLBACK_FEATURED = [
   },
   {
     id: 2,
-    brand: "Nash",
+    make: "Nash",
     model: "S-57 Heavy Relic",
     year: 2021,
     nickname: '"Road Warrior"',
@@ -108,7 +110,7 @@ const FALLBACK_FEATURED = [
   },
   {
     id: 3,
-    brand: "Fender",
+    make: "Fender",
     model: "Telecaster Heavy Relic",
     year: 2019,
     nickname: '"Butterscotch Brawler"',
@@ -121,7 +123,7 @@ const FALLBACK_FEATURED = [
   },
   {
     id: 4,
-    brand: "Heritage",
+    make: "Heritage",
     model: "H-535 Semi-Hollow",
     year: 2023,
     nickname: '"Cherry Bomb"',
@@ -134,7 +136,7 @@ const FALLBACK_FEATURED = [
   },
   {
     id: 5,
-    brand: "Suhr",
+    make: "Suhr",
     model: "Classic S Antique",
     year: 2022,
     nickname: '"Surf\'s Up"',
@@ -147,12 +149,12 @@ const FALLBACK_FEATURED = [
   },
   {
     id: 6,
-    brand: "Brian May",
+    make: "Brian May",
     model: "BMG Special",
     year: 2020,
     nickname: '"Red Special"',
     story:
-      "Based on the guitar Brian May built with his father. Three Burns Tri-Sonic pickups with out-of-phase switching.",
+      "Based on the instrument Brian May built with his father. Three Burns Tri-Sonic pickups with out-of-phase switching.",
     tags: ["Signature", "Tri-Sonic", "Unique"],
     owner: "@queen_tone",
     image: IMG.brian_may,
@@ -160,7 +162,7 @@ const FALLBACK_FEATURED = [
   },
   {
     id: 7,
-    brand: "Nash",
+    make: "Nash",
     model: "S-63 Daphne Blue",
     year: 2023,
     nickname: '"California Dream"',
@@ -173,12 +175,12 @@ const FALLBACK_FEATURED = [
   },
   {
     id: 8,
-    brand: "Fender",
+    make: "Fender",
     model: "Squier Mini Strat",
     year: 2024,
     nickname: '"First Love"',
     story:
-      "Every collection starts somewhere. This Torino Red Mini Strat was the first guitar for a collector who now owns 47.",
+      "Every collection starts somewhere. This Torino Red Mini Strat was the first instrument for a collector who now owns 47.",
     tags: ["Beginner", "Short Scale", "Red"],
     owner: "@day_one",
     image: IMG.red_strat,
@@ -189,7 +191,7 @@ const FALLBACK_FEATURED = [
 const FALLBACK_RECENT = [
   {
     id: 9,
-    brand: "Yamaha",
+    make: "Yamaha",
     model: "C40",
     year: 2023,
     owner: "@nylon_strings",
@@ -197,7 +199,7 @@ const FALLBACK_RECENT = [
   },
   {
     id: 10,
-    brand: "Cordoba",
+    make: "Cordoba",
     model: "C5 Cedar",
     year: 2022,
     owner: "@classical_daily",
@@ -205,7 +207,7 @@ const FALLBACK_RECENT = [
   },
   {
     id: 11,
-    brand: "Heritage",
+    make: "Heritage",
     model: "H-150 Artisan",
     year: 2024,
     owner: "@vintage_reborn",
@@ -213,7 +215,7 @@ const FALLBACK_RECENT = [
   },
   {
     id: 12,
-    brand: "Suhr",
+    make: "Suhr",
     model: "Classic S",
     year: 2022,
     owner: "@modernplayer",
@@ -221,7 +223,7 @@ const FALLBACK_RECENT = [
   },
   {
     id: 13,
-    brand: "Nash",
+    make: "Nash",
     model: "T-52 Relic",
     year: 2021,
     owner: "@tele_faithful",
@@ -229,7 +231,7 @@ const FALLBACK_RECENT = [
   },
   {
     id: 14,
-    brand: "Heritage",
+    make: "Heritage",
     model: "H-535",
     year: 2023,
     owner: "@jazzcat",
@@ -237,7 +239,7 @@ const FALLBACK_RECENT = [
   },
   {
     id: 15,
-    brand: "Nash",
+    make: "Nash",
     model: "S-57",
     year: 2020,
     owner: "@blues_daily",
@@ -245,7 +247,7 @@ const FALLBACK_RECENT = [
   },
   {
     id: 16,
-    brand: "Brian May",
+    make: "Brian May",
     model: "Special",
     year: 2021,
     owner: "@queen_fan",
@@ -280,7 +282,7 @@ const FALLBACK_ARTICLES = [
     type: "Deep Dive",
     title: "The Golden Era: Pre-War Martins",
     excerpt:
-      "Why guitars built between 1930-1944 represent the pinnacle of acoustic construction and command extraordinary prices.",
+      "Why instruments built between 1930-1944 represent the pinnacle of acoustic construction and command extraordinary prices.",
     author: "David Rawlings",
     readTime: "18 min",
     image: IMG.artist2,
@@ -288,7 +290,7 @@ const FALLBACK_ARTICLES = [
   {
     id: 3,
     type: "Interview",
-    title: "Stage Guitars: Instruments That Tour",
+    title: "Stage Instruments: Instruments That Tour",
     excerpt:
       "From arena stages to smoky clubs — how professional musicians choose, maintain, and bond with their touring instruments.",
     author: "TWNG Editorial",
@@ -298,16 +300,16 @@ const FALLBACK_ARTICLES = [
 ];
 
 const FALLBACK_TESTIMONIAL = {
-  quote: "I've been collecting for thirty years and never had a proper way to document everything. TWNG finally gives my guitars the archive they deserve.",
+  quote: "I've been collecting for thirty years and never had a proper way to document everything. TWNG finally gives my instruments the archive they deserve.",
   author: "Sarah Mitchell",
-  role: "Collector · 47 guitars documented",
-  image: null, // uses IMG.artist4 in component
+  role: "Collector · 47 instruments documented",
+  image: null,
 };
 
 const FALLBACK_STATS = [
-  { value: "12,400+", label: "Guitars Documented" },
+  { value: "12,400+", label: "Instruments Documented" },
   { value: "3,200+", label: "Collectors & Musicians" },
-  { value: "180+", label: "Brands Catalogued" },
+  { value: "180+", label: "Makes Catalogued" },
   { value: "45", label: "Verified Luthiers" },
 ];
 
@@ -411,13 +413,11 @@ function SectionHeader({ eyebrow, title, description, align = "center" }) {
   );
 }
 
-
 // ============================================================
 // Hero Section
 // ============================================================
-function HeroSection({ badgeText, miniGuitars, heroConfig, stats }) {
+function HeroSection({ badgeText, miniInstruments, heroConfig, stats }) {
   const hc = heroConfig || {};
-  // Build dynamic badge from real stats
   const collectorsCount = stats?.find(s => s.label?.includes('Collector'))?.value;
   const dynamicBadge = collectorsCount ? `Now in Beta · Join ${collectorsCount} Collectors` : null;
   return (
@@ -429,7 +429,7 @@ function HeroSection({ badgeText, miniGuitars, heroConfig, stats }) {
         backgroundColor: T.bgDeep
       }}
     >
-      {/* Background image — positioned right so guitar is visible */}
+      {/* Background image — positioned right so instrument is visible */}
       <div style={{
         position: "absolute",
         top: "0",
@@ -525,7 +525,7 @@ function HeroSection({ badgeText, miniGuitars, heroConfig, stats }) {
                 color: T.txt,
               }}
             >
-              {hc.heading1 || "Every Guitar "}{" "}
+              {hc.heading1 || "Every Instrument "}{" "}
               <span
                 style={{
                   background: `linear-gradient(135deg, ${T.warm}, ${T.amber})`,
@@ -550,7 +550,7 @@ function HeroSection({ badgeText, miniGuitars, heroConfig, stats }) {
             </p>
 
             <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-              <Link to="/guitar/new" style={{ textDecoration: "none" }}>
+              <Link to="/instrument/new" style={{ textDecoration: "none" }}>
               <button
                 style={{
                   paddingLeft: "32px",
@@ -596,12 +596,12 @@ function HeroSection({ badgeText, miniGuitars, heroConfig, stats }) {
                   cursor: "pointer"
                 }}
               >
-                {hc.secondaryBtn || "Explore Guitars"} <ChevronRight size={16} />
+                {hc.secondaryBtn || "Explore Instruments"} <ChevronRight size={16} />
               </button>
               </Link>
             </div>
 
-            {/* Mini guitar strip */}
+            {/* Mini instrument strip */}
             <div style={{ marginTop: "56px" }}>
               <p
                 style={{
@@ -617,7 +617,7 @@ function HeroSection({ badgeText, miniGuitars, heroConfig, stats }) {
                 Recently documented
               </p>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                {(miniGuitars || [
+                {(miniInstruments || [
                   IMG.heritage_lp,
                   IMG.nash_sunburst,
                   IMG.tele_relic,
@@ -670,7 +670,7 @@ function HeroSection({ badgeText, miniGuitars, heroConfig, stats }) {
           </div>
         </div>
 
-        {/* Desktop spacer — keeps text on left half */}
+        {/* Desktop spacer */}
         <div className="hero-spacer" style={{
           flexShrink: "0",
           width: "40%"
@@ -743,15 +743,14 @@ function HeroSection({ badgeText, miniGuitars, heroConfig, stats }) {
 // Stats Bar
 // ============================================================
 function StatsBar({ altBg, stats: liveStats }) {
-  // Icon map for stats (keyed by label keyword)
-  const iconMap = { guitar: <Guitar size={20} />, collector: <Users size={20} />, brand: <Building2 size={20} />, luthier: <Shield size={20} /> };
+  const iconMap = { instrument: <Guitar size={20} />, collector: <Users size={20} />, make: <Building2 size={20} />, luthier: <Shield size={20} /> };
   const getIcon = (label) => {
     const l = (label || '').toLowerCase();
-    if (l.includes('guitar')) return iconMap.guitar;
+    if (l.includes('instrument')) return iconMap.instrument;
     if (l.includes('collector') || l.includes('user') || l.includes('musician')) return iconMap.collector;
-    if (l.includes('brand')) return iconMap.brand;
+    if (l.includes('make')) return iconMap.make;
     if (l.includes('luthier')) return iconMap.luthier;
-    return iconMap.guitar;
+    return iconMap.instrument;
   };
   const stats = (liveStats || FALLBACK_STATS).map(s => ({ ...s, icon: s.icon || getIcon(s.label) }));
 
@@ -763,19 +762,20 @@ function StatsBar({ altBg, stats: liveStats }) {
         backgroundColor: T.bgCard,
       }}
     >
-      <div style={{
+      <div className="stats-grid" style={{
         maxWidth: "80rem",
         marginLeft: "auto",
         marginRight: "auto",
         paddingLeft: "24px",
         paddingRight: "24px",
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+        gridTemplateColumns: "repeat(4, 1fr)",
         gap: "0",
       }}>
         {stats.map((s, i) => (
           <div
             key={i}
+            className="stat-item"
             style={{
               paddingTop: "32px",
               paddingBottom: "32px",
@@ -783,7 +783,7 @@ function StatsBar({ altBg, stats: liveStats }) {
               borderRight: i < stats.length - 1 ? `1px solid ${T.border}` : "none",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px", color: T.warm }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "8px", color: T.warm }}>
               {s.icon}
             </div>
             <div
@@ -799,8 +799,8 @@ function StatsBar({ altBg, stats: liveStats }) {
             </div>
             <div
               style={{
-                fontSize: "12px",
-                color: "#4B5563",
+                fontSize: "11px",
+                color: T.txtM,
                 fontFamily: "'JetBrains Mono', monospace"
               }}
             >
@@ -809,21 +809,36 @@ function StatsBar({ altBg, stats: liveStats }) {
           </div>
         ))}
       </div>
+      <style>{`
+        @media (max-width: 768px) {
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0 !important;
+          }
+          .stats-grid .stat-item {
+            padding-top: 20px !important;
+            padding-bottom: 20px !important;
+          }
+          .stats-grid .stat-item:nth-child(2) { border-right: none !important; }
+          .stats-grid .stat-item:nth-child(3),
+          .stats-grid .stat-item:nth-child(4) { border-top: 1px solid ${T.border}; }
+        }
+      `}</style>
     </section>
   );
 }
 
 // ============================================================
-// Guitar Card
+// Instrument Card
 // ============================================================
-function GuitarCard({ guitar, compact = false }) {
+function InstrumentCard({ instrument, compact = false }) {
   const { isDark } = useTheme();
   const [hov, setHov] = useState(false);
   const [loved, setLoved] = useState(false);
 
   if (compact) {
     return (
-      <Link to={`/guitar/${guitar.id}`} style={{ textDecoration: "none" }}>
+      <Link to={`/instrument/${instrument.id}`} style={{ textDecoration: "none" }}>
       <div
         style={{
           minWidth: "220px",
@@ -848,8 +863,8 @@ function GuitarCard({ guitar, compact = false }) {
           }}
         >
           <img
-            src={guitar.image}
-            alt={guitar.model}
+            src={instrument.image}
+            alt={instrument.model}
             style={{
               width: "100%",
               height: "100%",
@@ -868,7 +883,7 @@ function GuitarCard({ guitar, compact = false }) {
               color: T.txtM,
             }}
           >
-            {guitar.brand} · {guitar.year}
+            {instrument.make} · {instrument.year}
           </p>
           <p
             style={{
@@ -879,10 +894,10 @@ function GuitarCard({ guitar, compact = false }) {
               color: T.txt,
             }}
           >
-            {guitar.model}
+            {instrument.model}
           </p>
           <p style={{ fontSize: "12px", color: T.txtM }}>
-            {guitar.owner}
+            {instrument.owner}
           </p>
         </div>
       </div>
@@ -891,7 +906,7 @@ function GuitarCard({ guitar, compact = false }) {
   }
 
   return (
-    <Link to={`/guitar/${guitar.id}`} style={{ textDecoration: "none" }}>
+    <Link to={`/instrument/${instrument.id}`} style={{ textDecoration: "none" }}>
     <div
       style={{
         borderRadius: "8px",
@@ -916,8 +931,8 @@ function GuitarCard({ guitar, compact = false }) {
         }}
       >
         <img
-          src={guitar.image}
-          alt={guitar.model}
+          src={instrument.image}
+          alt={instrument.model}
           style={{
             width: "100%",
             height: "100%",
@@ -941,7 +956,7 @@ function GuitarCard({ guitar, compact = false }) {
         )}
         <div style={{ position: "absolute", top: "12px", left: "12px" }}>
           <Badge>
-            {guitar.brand} · {guitar.year}
+            {instrument.make} · {instrument.year}
           </Badge>
         </div>
         <button
@@ -971,7 +986,7 @@ function GuitarCard({ guitar, compact = false }) {
         >
           <Heart size={14} fill={loved ? "currentColor" : "none"} />
         </button>
-        {guitar.verified && (
+        {instrument.verified && (
           <div style={{ position: "absolute", bottom: "12px", right: "12px" }}>
             <Badge variant="verified">
               <Shield size={10} /> Verified
@@ -990,9 +1005,9 @@ function GuitarCard({ guitar, compact = false }) {
             color: T.txt,
           }}
         >
-          {guitar.model}
+          {instrument.model}
         </h3>
-        {guitar.nickname && (
+        {instrument.nickname && (
           <p
             style={{
               fontStyle: "italic",
@@ -1001,7 +1016,7 @@ function GuitarCard({ guitar, compact = false }) {
               color: T.amber
             }}
           >
-            {guitar.nickname}
+            {instrument.nickname}
           </p>
         )}
         <p
@@ -1016,10 +1031,10 @@ function GuitarCard({ guitar, compact = false }) {
             color: T.txt2
           }}
         >
-          {guitar.story}
+          {instrument.story}
         </p>
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "12px" }}>
-          {guitar.tags.slice(0, 3).map((tag) => (
+          {instrument.tags.slice(0, 3).map((tag) => (
             <Badge key={tag} variant="outline">
               {tag}
             </Badge>
@@ -1041,7 +1056,7 @@ function GuitarCard({ guitar, compact = false }) {
               color: T.txtM,
             }}
           >
-            {guitar.owner}
+            {instrument.owner}
           </span>
           <span
             style={{
@@ -1063,28 +1078,172 @@ function GuitarCard({ guitar, compact = false }) {
 }
 
 // ============================================================
-// Featured Guitars Section
+// Featured Instruments Section
 // ============================================================
-function FeaturedGuitarsSection({ altBg, guitars: liveGuitars, sectionConfig }) {
-  const displayGuitars = liveGuitars || FALLBACK_FEATURED;
+function FeaturedInstrumentsSection({ altBg, instruments: liveInstruments, sectionConfig }) {
+  const displayInstruments = liveInstruments || FALLBACK_FEATURED;
+  const [viewMode, setViewMode] = useState('grid');
+  const [sortOrder, setSortOrder] = useState('newest');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+
+  const sortLabels = { newest: 'Newest', oldest: 'Oldest', make: 'Make A-Z' };
+
+  const sorted = [...displayInstruments].sort((a, b) => {
+    if (sortOrder === 'oldest') return (a.year || 0) - (b.year || 0);
+    if (sortOrder === 'make') return (a.make || '').localeCompare(b.make || '');
+    return (b.year || 0) - (a.year || 0);
+  });
+
   return (
     <section style={{ paddingTop: "96px", paddingBottom: "96px", paddingLeft: "24px", paddingRight: "24px" }}>
       <div style={{ maxWidth: "80rem", marginLeft: "auto", marginRight: "auto" }}>
         <SectionHeader
           eyebrow={sectionConfig?.eyebrow || "Featured Collection"}
           title={sectionConfig?.title || "Exceptional Instruments"}
-          description={sectionConfig?.description || "Curated guitars that represent the finest examples of craftsmanship, history, and tone."}
+          description={sectionConfig?.description || "Curated instruments that represent the finest examples of craftsmanship, history, and tone."}
         />
+
+        {/* Sort + View Toggle Bar */}
         <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: "20px",
-          marginBottom: "48px"
+          display: "flex", alignItems: "center", justifyContent: "flex-end",
+          gap: "8px", marginBottom: "20px",
         }}>
-          {displayGuitars.map((g) => (
-            <GuitarCard key={g.id} guitar={g} />
-          ))}
+          {/* Sort dropdown */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              style={{
+                display: "flex", alignItems: "center", gap: "8px",
+                padding: "8px 14px", borderRadius: "8px",
+                border: `1px solid ${T.border}`, backgroundColor: T.bgCard,
+                color: T.txt, fontSize: "13px", fontWeight: 500,
+                cursor: "pointer", transition: "all 0.2s",
+              }}
+            >
+              {sortLabels[sortOrder]} <ChevronDown size={14} style={{ color: T.txtM }} />
+            </button>
+            {showSortMenu && (
+              <div style={{
+                position: "absolute", top: "calc(100% + 4px)", right: 0, zIndex: 20,
+                minWidth: "140px", borderRadius: "8px", overflow: "hidden",
+                border: `1px solid ${T.border}`, backgroundColor: T.bgCard,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+              }}>
+                {Object.entries(sortLabels).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => { setSortOrder(key); setShowSortMenu(false); }}
+                    style={{
+                      display: "block", width: "100%", padding: "10px 14px",
+                      border: "none", backgroundColor: sortOrder === key ? T.bgElev : "transparent",
+                      color: sortOrder === key ? T.warm : T.txt, fontSize: "13px",
+                      textAlign: "left", cursor: "pointer", transition: "background 0.15s",
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* View toggle */}
+          <div style={{ display: "flex", gap: "0", borderRadius: "8px", overflow: "hidden", border: `1px solid ${T.border}` }}>
+            <button
+              onClick={() => setViewMode('grid')}
+              aria-label="Grid view"
+              style={{
+                padding: "8px 10px", border: "none", display: "flex",
+                alignItems: "center", justifyContent: "center", cursor: "pointer",
+                backgroundColor: viewMode === 'grid' ? T.warm : T.bgCard,
+                color: viewMode === 'grid' ? T.bgDeep : T.txtM,
+                transition: "all 0.2s",
+              }}
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              aria-label="List view"
+              style={{
+                padding: "8px 10px", border: "none", display: "flex",
+                alignItems: "center", justifyContent: "center", cursor: "pointer",
+                backgroundColor: viewMode === 'list' ? T.warm : T.bgCard,
+                color: viewMode === 'list' ? T.bgDeep : T.txtM,
+                transition: "all 0.2s",
+                borderLeft: `1px solid ${T.border}`,
+              }}
+            >
+              <List size={16} />
+            </button>
+          </div>
         </div>
+
+        {/* Instrument Cards */}
+        {viewMode === 'grid' ? (
+          <div className="featured-grid" style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gap: "20px",
+            marginBottom: "48px"
+          }}>
+            {sorted.map((g) => (
+              <InstrumentCard key={g.id} instrument={g} />
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "48px" }}>
+            {sorted.map((g) => (
+              <Link key={g.id} to={`/instrument/${g.id}`} style={{ textDecoration: "none" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: "16px",
+                  padding: "12px", borderRadius: "8px",
+                  border: `1px solid ${T.border}`, backgroundColor: T.bgCard,
+                  transition: "all 0.2s", cursor: "pointer",
+                }}>
+                  <div style={{
+                    width: "80px", height: "80px", borderRadius: "6px",
+                    overflow: "hidden", flexShrink: 0, backgroundColor: T.bgElev,
+                  }}>
+                    <img src={g.image} alt={g.model} style={{
+                      width: "100%", height: "100%", objectFit: "cover",
+                    }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{
+                      fontSize: "11px", fontFamily: "'JetBrains Mono', monospace",
+                      color: T.txtM, marginBottom: "4px",
+                    }}>
+                      {g.make} · {g.year}
+                    </p>
+                    <p style={{
+                      fontSize: "16px", fontWeight: 600,
+                      fontFamily: "'Playfair Display', serif",
+                      color: T.txt, marginBottom: "2px",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {g.model}
+                    </p>
+                    <p style={{ fontSize: "12px", color: T.txtM }}>
+                      {g.owner || 'Unknown owner'}
+                    </p>
+                  </div>
+                  <ChevronRight size={16} style={{ color: T.txtM, flexShrink: 0 }} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        <style>{`
+          @media (max-width: 768px) {
+            .featured-grid {
+              grid-template-columns: repeat(2, 1fr) !important;
+              gap: 12px !important;
+            }
+          }
+        `}</style>
+
         <div style={{ textAlign: "center" }}>
           <Link to="/explore" style={{ textDecoration: "none" }}>
           <button
@@ -1106,7 +1265,7 @@ function FeaturedGuitarsSection({ altBg, guitars: liveGuitars, sectionConfig }) 
               cursor: "pointer"
             }}
           >
-            View All Guitars <ArrowRight size={14} />
+            View All Instruments <ArrowRight size={14} />
           </button>
           </Link>
         </div>
@@ -1118,8 +1277,8 @@ function FeaturedGuitarsSection({ altBg, guitars: liveGuitars, sectionConfig }) 
 // ============================================================
 // Recently Added Section
 // ============================================================
-function RecentlyAddedSection({ altBg, guitars: liveGuitars, sectionConfig }) {
-  const displayGuitars = liveGuitars || FALLBACK_RECENT;
+function RecentlyAddedSection({ altBg, instruments: liveInstruments, sectionConfig }) {
+  const displayInstruments = liveInstruments || FALLBACK_RECENT;
   return (
     <section
       style={{
@@ -1135,13 +1294,13 @@ function RecentlyAddedSection({ altBg, guitars: liveGuitars, sectionConfig }) {
           align="left"
           eyebrow={sectionConfig?.eyebrow || "Just Added"}
           title={sectionConfig?.title || "Fresh Arrivals"}
-          description={sectionConfig?.description || "The latest guitars documented by the TWNG community."}
+          description={sectionConfig?.description || "The latest instruments documented by the TWNG community."}
         />
       </div>
       <div style={{ overflowX: "auto", marginLeft: "-24px", marginRight: "-24px", paddingLeft: "24px", paddingRight: "24px" }}>
         <div style={{ display: "flex", gap: "16px", paddingBottom: "16px" }}>
-          {displayGuitars.map((g) => (
-            <GuitarCard key={g.id} guitar={g} compact />
+          {displayInstruments.map((g) => (
+            <InstrumentCard key={g.id} instrument={g} compact />
           ))}
         </div>
       </div>
@@ -1150,10 +1309,10 @@ function RecentlyAddedSection({ altBg, guitars: liveGuitars, sectionConfig }) {
 }
 
 // ============================================================
-// Explore by Brand Section
+// Explore by Make Section
 // ============================================================
-function ExploreByBrandSection({ altBg, brands: liveBrands, sectionConfig }) {
-  const displayBrands = liveBrands || FALLBACK_BRANDS;
+function ExploreByMakeSection({ altBg, makes: liveMakes, sectionConfig }) {
+  const displayMakes = liveMakes || [];
   const [hov, setHov] = useState(null);
 
   return (
@@ -1161,18 +1320,19 @@ function ExploreByBrandSection({ altBg, brands: liveBrands, sectionConfig }) {
       <div style={{ maxWidth: "80rem", marginLeft: "auto", marginRight: "auto" }}>
         <SectionHeader
           eyebrow={sectionConfig?.eyebrow || "Browse"}
-          title={sectionConfig?.title || "Explore by Brand"}
-          description={sectionConfig?.description || "Dive into collections organized by the world's most iconic guitar makers."}
+          title={sectionConfig?.title || "Explore by Make"}
+          description={sectionConfig?.description || "Dive into collections organized by the world's most iconic instrument makers."}
         />
-        <div style={{
+        <div className="makes-grid" style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
           gap: "12px"
         }}>
-          {displayBrands.map((b) => (
+          {displayMakes.map((b) => (
             <Link
               key={b.name}
-              to={`/explore?brand=${encodeURIComponent(b.name)}`}
+              to={`/explore?make=${encodeURIComponent(b.name)}`}
+              className="make-card"
               style={{
                 padding: "20px",
                 borderRadius: "8px",
@@ -1190,6 +1350,7 @@ function ExploreByBrandSection({ altBg, brands: liveBrands, sectionConfig }) {
             >
               <div>
                 <h3
+                  className="make-name"
                   style={{
                     fontWeight: "600",
                     marginBottom: "4px",
@@ -1201,17 +1362,19 @@ function ExploreByBrandSection({ altBg, brands: liveBrands, sectionConfig }) {
                   {b.name}
                 </h3>
                 <p
+                  className="make-count"
                   style={{
                     fontSize: "12px",
                     fontFamily: "'JetBrains Mono', monospace",
                     color: T.txtM,
                   }}
                 >
-                  {b.est ? `Est. ${b.est} · ` : ''}{(b.count || 0).toLocaleString()} guitars
+                  {b.est ? `Est. ${b.est} · ` : ''}{(b.count || 0).toLocaleString()} instruments
                 </p>
               </div>
               <ChevronRight
                 size={18}
+                className="make-chevron"
                 style={{
                   color: hov === b.name ? T.warm : T.txtM,
                   transition: "all 0.2s",
@@ -1221,6 +1384,23 @@ function ExploreByBrandSection({ altBg, brands: liveBrands, sectionConfig }) {
             </Link>
           ))}
         </div>
+        <style>{`
+          @media (max-width: 768px) {
+            .makes-grid {
+              grid-template-columns: repeat(2, 1fr) !important;
+              gap: 8px !important;
+            }
+            .makes-grid .make-card {
+              padding: 12px !important;
+              flex-direction: column !important;
+              align-items: flex-start !important;
+              gap: 2px;
+            }
+            .makes-grid .make-name { font-size: 15px !important; }
+            .makes-grid .make-count { font-size: 10px !important; }
+            .makes-grid .make-chevron { display: none; }
+          }
+        `}</style>
       </div>
     </section>
   );
@@ -1232,7 +1412,6 @@ function ExploreByBrandSection({ altBg, brands: liveBrands, sectionConfig }) {
 function ArticlesSection({ altBg, articles: liveArticles, sectionConfig }) {
   const displayArticles = (liveArticles || FALLBACK_ARTICLES).map(a => ({
     ...a,
-    // Normalize field names from Supabase (read_time → readTime, cover_image_url → image, category → type)
     readTime: a.readTime || a.read_time || '5 min',
     image: a.image || a.cover_image_url || IMG.artist1,
     type: a.type || a.category || 'Article',
@@ -1259,7 +1438,7 @@ function ArticlesSection({ altBg, articles: liveArticles, sectionConfig }) {
         <SectionHeader
           eyebrow={sectionConfig?.eyebrow || "Read"}
           title={sectionConfig?.title || "Stories & Guides"}
-          description={sectionConfig?.description || "Deep dives into guitar history, collecting wisdom, and conversations with master builders."}
+          description={sectionConfig?.description || "Deep dives into instrument history, collecting wisdom, and conversations with master builders."}
         />
         <div style={{
           display: "grid",
@@ -1506,10 +1685,10 @@ function CTASection({ ctaContent }) {
             ?
           </h2>
           <p style={{ fontSize: "16px", lineHeight: "1.625", maxWidth: "28rem", marginLeft: "auto", marginRight: "auto", marginBottom: "32px", color: "rgba(255,255,255,0.7)" }}>
-            {cta.subtitle || "Join thousands of collectors preserving guitar history. Free to start, powerful enough for serious archives."}
+            {cta.subtitle || "Join thousands of collectors preserving instrument history. Free to start, powerful enough for serious archives."}
           </p>
           <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-            <Link to="/guitar/new" style={{ textDecoration: "none" }}>
+            <Link to="/instrument/new" style={{ textDecoration: "none" }}>
             <button
               style={{
                 paddingLeft: "32px",
@@ -1530,7 +1709,7 @@ function CTASection({ ctaContent }) {
               {cta.primaryBtn || "Create Free Account"}
             </button>
             </Link>
-            <Link to="/guitar/new" style={{ textDecoration: "none" }}>
+            <Link to="/instrument/new" style={{ textDecoration: "none" }}>
             <button
               style={{
                 paddingLeft: "32px",
@@ -1569,7 +1748,7 @@ function Footer() {
     {
       title: "Platform",
       links: [
-        "Explore Guitars",
+        "Explore Instruments",
         "Collections",
         "Magic Add",
         "Luthier Directory",
@@ -1582,7 +1761,7 @@ function Footer() {
         "Articles",
         "Guides",
         "Interviews",
-        "Brand Histories",
+        "Make Histories",
         "Newsletter",
       ],
     },
@@ -1621,7 +1800,7 @@ function Footer() {
               }}
             />
             <p style={{ fontSize: "14px", lineHeight: "1.625", maxWidth: "20rem", color: T.txt2 }}>
-              The guitar documentation platform for collectors, musicians, and
+              The instrument documentation platform for collectors, musicians, and
               luthiers.
             </p>
             <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
@@ -1664,17 +1843,16 @@ function Footer() {
               </h4>
               <ul style={{ listStyle: "none", padding: "0" }}>
                 {col.links.map((link) => {
-                  // Map footer link text to routes
                   const linkMap = {
-                    "Explore Guitars": "/explore",
+                    "Explore Instruments": "/explore",
                     "Collections": "/collection",
-                    "Magic Add": "/guitar/new",
+                    "Magic Add": "/instrument/new",
                     "Luthier Directory": "/luthiers",
                     "Community Forum": "/community",
                     "Articles": "/articles",
                     "Guides": "/articles",
                     "Interviews": "/articles",
-                    "Brand Histories": "/articles",
+                    "Make Histories": "/articles",
                     "About TWNG": "/about",
                     "Careers": "/about",
                     "Press": "/about",
@@ -1742,7 +1920,7 @@ function Footer() {
             © 2026 TWNG. All rights reserved.
           </p>
           <p style={{ fontSize: "12px", color: T.txtM }}>
-            Made with ♥ for guitar lovers everywhere
+            Made with for instrument lovers everywhere
           </p>
         </div>
       </div>
@@ -1753,26 +1931,24 @@ function Footer() {
 // ============================================================
 // Main Component
 // ============================================================
-// Map block types from admin config to actual components
 const SECTION_MAP = {
   hero: HeroSection,
   stats: StatsBar,
-  featured: FeaturedGuitarsSection,
-  recently_added: RecentlyAddedSection,
-  explore_brands: ExploreByBrandSection,
+  featured_instruments: FeaturedInstrumentsSection,
+  recent_instruments: RecentlyAddedSection,
+  explore_makes: ExploreByMakeSection,
   articles: ArticlesSection,
+  featured_articles: ArticlesSection,
   testimonials: TestimonialSection,
   cta: CTASection,
 };
 
-// Default order if no config is found or on first load
 const DEFAULT_SECTIONS = [
-  'hero', 'stats', 'featured', 'recently_added',
-  'explore_brands', 'articles', 'testimonials', 'cta',
+  'hero', 'stats', 'featured_instruments', 'recent_instruments',
+  'explore_makes', 'articles', 'testimonials', 'cta',
 ];
 
-// Sections that should use bgCard instead of bgDeep for visual alternation
-const ALT_BG_SECTIONS = new Set(['stats', 'explore_brands', 'testimonials']);
+const ALT_BG_SECTIONS = new Set(['stats', 'explore_makes', 'testimonials']);
 
 export default function TWNGHomepage() {
   const [visibleSections, setVisibleSections] = useState(DEFAULT_SECTIONS);
@@ -1781,90 +1957,59 @@ export default function TWNGHomepage() {
 
   useEffect(() => {
     (async () => {
-      // 1. Load section visibility + content config from admin
       try {
-        const [blocks, sectionConfig] = await Promise.all([
-          getHomepageBlocks(),
-          getHomepageSectionConfig(),
-        ]);
+        const blocks = await getHomepageBlocks();
 
         if (blocks && blocks.length > 0) {
           const configMap = {};
-          blocks.forEach(b => { configMap[b.type] = b.status; });
+          blocks.forEach(b => { configMap[b.block_type] = b.is_active; });
           const active = DEFAULT_SECTIONS.filter(type => {
             const dbStatus = configMap[type];
-            if (!dbStatus) return true;
-            return dbStatus === 'active';
+            if (dbStatus === undefined) return true;
+            return dbStatus === true;
           });
           setVisibleSections(active);
-        }
-
-        // Store section config for props (badge text, CTA content, etc.)
-        if (sectionConfig) {
-          setSectionData(prev => ({ ...prev, _config: sectionConfig }));
         }
       } catch (err) {
         console.error('Failed to load homepage config:', err);
       }
 
-      // 2. Fetch all live data in parallel
       try {
         const [
           featuredRaw,
           recentRaw,
-          brandsRaw,
           articlesRaw,
-          testimonialRaw,
           statsRaw,
         ] = await Promise.all([
-          getFeaturedGuitars(),
-          getRecentlyAdded(),
-          getTopBrands(),
+          getFeaturedInstruments(),
+          getRecentlyAddedInstruments(),
           getHomepageArticles(),
-          getHomepageTestimonials(),
           getHomepageStats(),
         ]);
 
         const newData = {};
 
-        // Normalize guitar data for featured section
         if (featuredRaw && featuredRaw.length > 0) {
-          newData.featured = featuredRaw.map(normalizeGuitar).filter(Boolean);
+          newData.featured_instruments = featuredRaw.map(normalizeInstrument).filter(Boolean);
         }
 
-        // Normalize guitar data for recently added section
         if (recentRaw && recentRaw.length > 0) {
-          newData.recently_added = recentRaw.map(normalizeGuitar).filter(Boolean);
-          // Also extract images for hero mini strip
-          newData.miniGuitarImages = recentRaw.slice(0, 6).map(g => getGuitarImage(g));
+          newData.recent_instruments = recentRaw.map(normalizeInstrument).filter(Boolean);
+          newData.miniInstrumentImages = recentRaw.slice(0, 6).map(g => getInstrumentImage(g));
         }
 
-        // Brand stats
-        if (brandsRaw && brandsRaw.length > 0) {
-          newData.brands = brandsRaw;
-        }
-
-        // Articles
         if (articlesRaw && articlesRaw.length > 0) {
           newData.articles = articlesRaw;
         }
 
-        // Testimonials (single or first from array)
-        if (testimonialRaw) {
-          newData.testimonial = Array.isArray(testimonialRaw) ? testimonialRaw[0] : testimonialRaw;
-        }
-
-        // Stats
         if (statsRaw) {
-          // statsRaw could be { guitars, collectors, brands } or an array
           if (Array.isArray(statsRaw)) {
             newData.stats = statsRaw;
           } else {
-            // Convert object to display array
             newData.stats = [
-              { value: (statsRaw.guitars || 0).toLocaleString() + '+', label: 'Guitars Documented' },
+              { value: (statsRaw.instruments || 0).toLocaleString() + '+', label: 'Instruments Documented' },
               { value: (statsRaw.collectors || 0).toLocaleString() + '+', label: 'Collectors & Musicians' },
-              { value: (statsRaw.brands || 0).toLocaleString() + '+', label: 'Brands Catalogued' },
+              { value: (statsRaw.makes || 0).toLocaleString() + '+', label: 'Makes Catalogued' },
               { value: statsRaw.luthiers ? String(statsRaw.luthiers) : '45', label: 'Verified Luthiers' },
             ];
           }
@@ -1873,27 +2018,23 @@ export default function TWNGHomepage() {
         setSectionData(prev => ({ ...prev, ...newData }));
       } catch (err) {
         console.error('Failed to load homepage data:', err);
-        // Sections will use their fallback data
       }
     })();
   }, []);
 
-  // Build per-section props map
-  const config = sectionData._config || {};
   const dataMap = {
     hero: {
-      badgeText: config.hero?.badgeText,
-      miniGuitars: sectionData.miniGuitarImages,
-      heroConfig: config.hero,
+      miniInstruments: sectionData.miniInstrumentImages,
       stats: sectionData.stats,
     },
     stats: { stats: sectionData.stats },
-    featured: { guitars: sectionData.featured, sectionConfig: config.featured },
-    recently_added: { guitars: sectionData.recently_added, sectionConfig: config.recently_added },
-    explore_brands: { brands: sectionData.brands, sectionConfig: config.explore_brands },
-    articles: { articles: sectionData.articles, sectionConfig: config.articles },
-    testimonials: { testimonial: sectionData.testimonial },
-    cta: { ctaContent: config.cta },
+    featured_instruments: { instruments: sectionData.featured_instruments },
+    recent_instruments: { instruments: sectionData.recent_instruments },
+    explore_makes: { makes: sectionData.makes },
+    articles: { articles: sectionData.articles },
+    featured_articles: { articles: sectionData.articles },
+    testimonials: {},
+    cta: {},
   };
 
   return (
@@ -1915,6 +2056,7 @@ export default function TWNGHomepage() {
           />
         );
       })}
+      <Footer />
     </div>
   );
 }

@@ -95,7 +95,7 @@ const ConversationItem = ({
       <div className="relative flex-shrink-0">
         <img
           src={otherUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${otherUser.username}&backgroundColor=random`}
-          alt={otherUser.display_name}
+          alt={otherUser.username}
           className="w-11 h-11 rounded-full object-cover"
           onError={(e) => {
             e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${otherUser.username}&backgroundColor=random`;
@@ -112,7 +112,7 @@ const ConversationItem = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline justify-between gap-2 mb-1">
           <h3 style={{ color: T.txt }} className="font-semibold text-sm">
-            {otherUser.display_name || otherUser.username}
+            {otherUser.username}
           </h3>
           <span style={{ color: T.txtM }} className="text-xs font-mono">
             {formatTime(new Date(conversation.last_message_at))}
@@ -161,7 +161,7 @@ const MessageBubble = ({ message, currentUserId }) => {
       {!isOwn && message.sender && (
         <img
           src={message.sender.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${message.sender.username}&backgroundColor=random`}
-          alt={message.sender.display_name}
+          alt={message.sender.username}
           className="w-8 h-8 rounded-full flex-shrink-0"
           onError={(e) => {
             e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${message.sender.username}&backgroundColor=random`;
@@ -184,7 +184,8 @@ const MessageBubble = ({ message, currentUserId }) => {
           </span>
           {isOwn && (
             <div className="flex items-center">
-              {message.read_at ? (
+              {/* Updated schema: is_read field (not read_at) */}
+              {message.is_read ? (
                 <CheckCheck
                   size={12}
                   style={{ color: T.amber }}
@@ -343,7 +344,8 @@ export default function TWNGMessaging() {
       setIsLoadingMessages(true);
       setError(null);
       try {
-        // Mark thread as read
+        // Updated: group by sender/recipient pairs (removed thread_id logic)
+        // Mark conversation as read
         await markThreadAsRead(selectedConversation.thread_id);
 
         // Fetch messages
@@ -356,9 +358,16 @@ export default function TWNGMessaging() {
         }
         messagesSubscriptionRef.current = subscribeToMessages(
           selectedConversation.thread_id,
-          (payload) => {
+          async (payload) => {
             if (payload.eventType === "INSERT") {
-              setMessages((prev) => [...prev, payload.new]);
+              const newMsg = payload.new;
+              // Attach sender info for display
+              if (selectedConversation?.other_user && newMsg.sender_id === selectedConversation.other_user.id) {
+                newMsg.sender = selectedConversation.other_user;
+              } else if (newMsg.sender_id === user?.id) {
+                newMsg.sender = { id: user.id, username: profile?.username, avatar_url: profile?.avatar_url };
+              }
+              setMessages((prev) => [...prev, newMsg]);
             }
           }
         );
@@ -410,8 +419,8 @@ export default function TWNGMessaging() {
   const filteredConversations = conversations.filter((conv) => {
     const otherUser = conv.other_user;
     if (!otherUser) return false;
-    const displayName = otherUser.display_name || otherUser.username || "";
-    return displayName.toLowerCase().includes(searchQuery.toLowerCase());
+    const username = otherUser.username || "";
+    return username.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const handleSendMessage = async () => {
@@ -439,13 +448,42 @@ export default function TWNGMessaging() {
     setIsCreatingNewConversation(true);
     setError(null);
     try {
-      // For now, just show a message - in a real app, you'd look up the user by username
-      // This would require a users search endpoint
-      console.log("Starting conversation with:", username);
+      // Look up user by username
+      const { supabase } = await import("../lib/supabase/client");
+      const { data: foundUsers, error: searchErr } = await supabase
+        .from('users')
+        .select('id, username, avatar_url')
+        .ilike('username', `%${username}%`)
+        .limit(1);
+
+      if (searchErr) throw searchErr;
+      if (!foundUsers || foundUsers.length === 0) {
+        setError(`User "${username}" not found.`);
+        return;
+      }
+
+      const targetUser = foundUsers[0];
+
+      // Check if conversation already exists
+      const threadId = generateThreadId(user.id, targetUser.id);
+      const existing = conversations.find(c => c.thread_id === threadId);
+      if (existing) {
+        setSelectedConversation(existing);
+        setShowNewMessageModal(false);
+        return;
+      }
+
+      // Create a virtual conversation entry so user can start typing
+      const newConvo = {
+        thread_id: threadId,
+        other_user: targetUser,
+        last_message: '',
+        last_message_at: new Date().toISOString(),
+        unread_count: 0,
+      };
+      setConversations(prev => [newConvo, ...prev]);
+      setSelectedConversation(newConvo);
       setShowNewMessageModal(false);
-      // Reload conversations
-      const data = await getConversations();
-      setConversations(data);
     } catch (err) {
       console.error("Error creating new conversation:", err);
       setError("Failed to create conversation. Please try again.");
@@ -587,7 +625,7 @@ export default function TWNGMessaging() {
             <>
               <img
                 src={selectedConversation.other_user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedConversation.other_user.username}&backgroundColor=random`}
-                alt={selectedConversation.other_user.display_name}
+                alt={selectedConversation.other_user.username}
                 className="w-10 h-10 rounded-full"
                 onError={(e) => {
                   e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedConversation.other_user.username}&backgroundColor=random`;
@@ -595,7 +633,7 @@ export default function TWNGMessaging() {
               />
               <div className="flex-1">
                 <h2 className="font-bold text-sm">
-                  {selectedConversation.other_user.display_name || selectedConversation.other_user.username}
+                  {selectedConversation.other_user.username}
                 </h2>
                 <p style={{ color: T.txt2 }} className="text-xs">
                   Online
@@ -854,7 +892,7 @@ export default function TWNGMessaging() {
                   <div className="relative">
                     <img
                       src={selectedConversation.other_user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedConversation.other_user.username}&backgroundColor=random`}
-                      alt={selectedConversation.other_user.display_name}
+                      alt={selectedConversation.other_user.username}
                       className="w-12 h-12 rounded-full"
                       onError={(e) => {
                         e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedConversation.other_user.username}&backgroundColor=random`;
@@ -863,7 +901,7 @@ export default function TWNGMessaging() {
                   </div>
                   <div>
                     <h2 className="font-bold">
-                      {selectedConversation.other_user.display_name || selectedConversation.other_user.username}
+                      {selectedConversation.other_user.username}
                     </h2>
                     <p style={{ color: T.txt2 }} className="text-xs">
                       Online now

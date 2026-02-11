@@ -748,7 +748,7 @@ const timeAgo = (d) => {
   return formatDate(d);
 };
 
-const getInitials = (name, email) => {
+const getInitials = (name, username) => {
   if (name)
     return name
       .split(" ")
@@ -756,7 +756,7 @@ const getInitials = (name, email) => {
       .join("")
       .toUpperCase()
       .slice(0, 2);
-  if (email) return email.slice(0, 2).toUpperCase();
+  if (username) return username.slice(0, 2).toUpperCase();
   return "??";
 };
 
@@ -1913,8 +1913,8 @@ const UserManagementPage = () => {
     try {
       // Fetch user's guitars
       const { data: guitars } = await supabase
-        .from("instrument_entities")
-        .select("id, make, model, year, state, created_at")
+        .from("instruments")
+        .select("id, make, model, year, moderation_status, created_at")
         .eq("current_owner_id", user.id)
         .order("created_at", { ascending: false })
         .limit(10);
@@ -2029,12 +2029,11 @@ const UserManagementPage = () => {
                           style={{ backgroundColor: WARM, color: "#FFFFFF" }}
                           className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
                         >
-                          {getInitials(u.display_name, u.email)}
+                          {getInitials(u.username, u.username)}
                         </div>
-                        <span>{u.display_name || u.username || "Unknown"}</span>
+                        <span>{u.username || "Unknown"}</span>
                       </div>
                     </TD>
-                    <TD>{u.email}</TD>
                     <TD>
                       <RoleBadge
                         role={u.role}
@@ -2087,14 +2086,11 @@ const UserManagementPage = () => {
                               {/* User info grid */}
                               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px", marginBottom: "16px" }}>
                                 {[
-                                  ["Display Name", viewUserData.profile.display_name || u.display_name || "—"],
                                   ["Username", viewUserData.profile.username || u.username || "—"],
-                                  ["Email", u.email],
                                   ["Role", u.role],
-                                  ["Location", viewUserData.profile.location || "—"],
                                   ["Bio", viewUserData.profile.bio || "—"],
                                   ["Joined", formatDate(u.created_at)],
-                                  ["Last Sign In", formatDate(viewUserData.profile.last_sign_in_at || u.last_sign_in_at)],
+                                  ["Last Active", formatDate(viewUserData.profile.last_active_at || u.last_active_at)],
                                   ["User ID", u.id],
                                 ].map(([label, value]) => (
                                   <div key={label}>
@@ -2547,7 +2543,7 @@ const InstrumentManagementPage = () => {
     setSaving(true);
     try {
       const { error: err } = await supabase
-        .from("instrument_entities")
+        .from("instruments")
         .update({
           make: editForm.make,
           model: editForm.model,
@@ -2555,7 +2551,7 @@ const InstrumentManagementPage = () => {
           serial_number: editForm.serial_number || null,
           body_style: editForm.body_style || null,
           finish: editForm.finish || null,
-          state: editForm.state,
+          moderation_status: editForm.state,
           updated_at: new Date().toISOString(),
         })
         .eq("id", guitarId);
@@ -2642,9 +2638,9 @@ const InstrumentManagementPage = () => {
                       </TD>
                       <TD mono>{g.serial_number || "—"}</TD>
                       <TD>{g.year || "—"}</TD>
-                      <TD>{g.owner?.display_name || g.owner?.email || "—"}</TD>
+                      <TD>{g.owner?.username || "—"}</TD>
                       <TD>
-                        <StatusBadge status={g.state} />
+                        <StatusBadge status={g.moderation_status} />
                       </TD>
                       <TD>{formatDate(g.created_at)}</TD>
                       <TD style={{ textAlign: "right" }}>
@@ -2721,7 +2717,7 @@ const InstrumentManagementPage = () => {
                                 ["Body Style", g.body_style || "—"],
                                 ["Finish", g.finish || "—"],
                                 ["State", g.state],
-                                ["Owner", g.owner?.display_name || g.owner?.email || "—"],
+                                ["Owner", g.owner?.username || "—"],
                                 ["Created", formatDate(g.created_at)],
                                 ["Updated", formatDate(g.updated_at)],
                                 ["Country of Origin", g.country_of_origin || "—"],
@@ -2936,9 +2932,8 @@ const TransferManagementPage = () => {
                       </span>
                     </TD>
                     <TD>
-                      {t.from_user?.display_name || t.from_user?.email || "?"} →{" "}
-                      {t.to_user?.display_name ||
-                        t.to_user?.email ||
+                      {t.from_user?.username || "?"} →{" "}
+                      {t.to_user?.username ||
                         "External"}
                     </TD>
                     <TD>
@@ -3155,7 +3150,7 @@ const ContentModerationPage = () => {
                           style={{ color: T.txt2 }}
                           className="px-6 py-3 text-sm"
                         >
-                          {a.author?.display_name || a.author?.email || "—"}
+                          {a.author?.username || "—"}
                         </td>
                         <td className="px-6 py-3">
                           <StatusBadge status={a.status} />
@@ -3231,8 +3226,7 @@ const ContentModerationPage = () => {
                           className="text-xs ml-2"
                         >
                           by{" "}
-                          {d.author?.display_name ||
-                            d.author?.email ||
+                          {d.author?.username ||
                             "Unknown"}
                         </span>
                       </div>
@@ -3353,7 +3347,7 @@ const LuthierManagementPage = () => {
                 {luthiers.map((l) => (
                   <TR key={l.user_id}>
                     <TD>{l.business_name || "—"}</TD>
-                    <TD>{l.user?.display_name || l.user?.email || "—"}</TD>
+                    <TD>{l.user?.username || "—"}</TD>
                     <TD>{l.specializations?.join(", ") || "—"}</TD>
                     <TD>
                       <StatusBadge
@@ -3538,7 +3532,7 @@ const PrivacyControlsPage = () => {
                       </span>
                     </td>
                     <td style={{ color: T.txt2 }} className="px-6 py-3 text-sm">
-                      {r.user?.display_name || r.user?.email || "—"}
+                      {r.user?.username || "—"}
                     </td>
                     <td className="px-6 py-3">
                       <StatusBadge status={r.status} />
@@ -4194,8 +4188,8 @@ const ClaimsManagementPage = () => {
                             }}
                           >
                             {getInitials(
-                              claim.claimer?.display_name,
-                              claim.claimer?.email,
+                              claim.claimer?.username,
+                              claim.claimer?.username,
                             )}
                           </div>
                           <span>{claim.claimer?.username || "Unknown"}</span>
@@ -4525,11 +4519,11 @@ const ChangeRequestsPage = () => {
                           }}
                         >
                           {getInitials(
-                            request.requester?.display_name,
+                            request.requester?.username,
                             request.requester?.username,
                           )}
                         </div>
-                        <span>{request.requester?.display_name || request.requester?.username || "Unknown"}</span>
+                        <span>{request.requester?.username || "Unknown"}</span>
                       </div>
                     </TD>
                     <TD style={{ fontSize: "12px" }}>
@@ -5005,7 +4999,7 @@ export default function TWNGAdmin() {
                   fontWeight: 700,
                 }}
               >
-                {getInitials(profile?.display_name, profile?.email)}
+                {getInitials(profile?.username, profile?.username)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
@@ -5018,7 +5012,7 @@ export default function TWNGAdmin() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {profile?.display_name || "Admin"}
+                  {profile?.username || "Admin"}
                 </div>
                 <div style={{ fontSize: "10px", color: T.txtM }}>
                   {displayRole}

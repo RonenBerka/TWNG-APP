@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase/client';
 import { createGuitar } from '../lib/supabase/guitars';
 import { decodeSerial, SUPPORTED_BRANDS } from '../lib/serialDecoder';
+import { searchBrands, searchModels, getModelSpecs, mapCatalogToFormFields } from '../lib/supabase/guitarCatalog';
 
 const STEPS = [
   { num: 1, label: "Photos", icon: "📸", required: true },
@@ -235,6 +236,152 @@ function SelectInput({ value, onChange, options, placeholder }) {
   );
 }
 
+function AutocompleteInput({ value, onChange, onSelect, fetchSuggestions, placeholder, renderItem, debounceMs = 250, disabled = false, searchOnFocus = false }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(-1);
+  const [loading, setLoading] = useState(false);
+  const timerRef = useRef(null);
+  const containerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const doSearch = useCallback(async (query) => {
+    if (!fetchSuggestions) return;
+    setLoading(true);
+    try {
+      const results = await fetchSuggestions(query);
+      setSuggestions(results || []);
+      setShowDropdown((results || []).length > 0);
+      setHighlightIdx(-1);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchSuggestions]);
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    onChange(val);
+    clearTimeout(timerRef.current);
+    if (val.length >= 1) {
+      timerRef.current = setTimeout(() => doSearch(val), debounceMs);
+    } else {
+      setSuggestions([]);
+      setShowDropdown(false);
+    }
+  };
+
+  const handleSelect = (item) => {
+    setShowDropdown(false);
+    setHighlightIdx(-1);
+    onSelect && onSelect(item);
+  };
+
+  const handleKeyDown = (e) => {
+    if (!showDropdown || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightIdx(i => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIdx(i => Math.max(i - 1, 0));
+    } else if (e.key === "Enter" && highlightIdx >= 0) {
+      e.preventDefault();
+      handleSelect(suggestions[highlightIdx]);
+    } else if (e.key === "Escape") {
+      setShowDropdown(false);
+    }
+  };
+
+  const handleFocus = () => {
+    if (searchOnFocus && (!value || value.length === 0)) {
+      doSearch('');
+    } else if (value && value.length >= 1 && suggestions.length > 0) {
+      setShowDropdown(true);
+    } else if (value && value.length >= 1) {
+      doSearch(value);
+    }
+  };
+
+  return (
+    <div ref={containerRef} style={{ position: "relative" }}>
+      <div style={{ position: "relative" }}>
+        <input
+          ref={inputRef}
+          value={value}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          placeholder={placeholder}
+          disabled={disabled}
+          style={{
+            width: "100%", padding: "10px 14px", paddingRight: loading ? "36px" : "14px",
+            borderRadius: "10px", background: T.bgCard,
+            border: `1px solid ${showDropdown ? T.borderAcc : T.border}`,
+            color: T.txt, fontSize: "14px", outline: "none", transition: "border-color 0.2s"
+          }}
+          onBlur={(e) => {
+            // Delay to allow click on dropdown item
+            setTimeout(() => {
+              if (containerRef.current && !containerRef.current.contains(document.activeElement)) {
+                setShowDropdown(false);
+              }
+            }, 200);
+          }}
+        />
+        {loading && (
+          <div style={{
+            position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)",
+            width: "16px", height: "16px", borderRadius: "50%",
+            border: `2px solid ${T.border}`, borderTopColor: T.warm,
+            animation: "spin 0.8s linear infinite"
+          }} />
+        )}
+      </div>
+      {showDropdown && suggestions.length > 0 && (
+        <div style={{
+          position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50,
+          marginTop: "4px", background: T.bgElev, border: `1px solid ${T.borderAcc}`,
+          borderRadius: "10px", boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+          maxHeight: "240px", overflowY: "auto"
+        }}>
+          {suggestions.map((item, idx) => (
+            <div
+              key={idx}
+              onMouseDown={(e) => { e.preventDefault(); handleSelect(item); }}
+              onMouseEnter={() => setHighlightIdx(idx)}
+              style={{
+                padding: "10px 14px", cursor: "pointer",
+                background: idx === highlightIdx ? T.warm + "15" : "transparent",
+                borderBottom: idx < suggestions.length - 1 ? `1px solid ${T.border}20` : "none",
+                transition: "background 0.15s"
+              }}
+            >
+              {renderItem ? renderItem(item, idx === highlightIdx) : (
+                <span style={{ color: T.txt, fontSize: "14px" }}>
+                  {typeof item === "string" ? item : item.label || item.model || JSON.stringify(item)}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TextArea({ value, onChange, placeholder, rows = 4 }) {
   return (
     <textarea
@@ -453,9 +600,78 @@ function StepPhotos({ photos, setPhotos }) {
   );
 }
 
-function StepBasicInfo({ data, setData, onSerialResult }) {
+function StepBasicInfo({ data, setData, onSerialResult, onAutoFill }) {
   const [serialResult, setSerialResult] = useState(null);
   const [decoding, setDecoding] = useState(false);
+  const [autoFillInfo, setAutoFillInfo] = useState(null); // Shows what was auto-filled
+
+  // Brand autocomplete: search catalog + fallback to BRANDS constant
+  const fetchBrandSuggestions = useCallback(async (query) => {
+    // Search catalog first
+    const catalogBrands = await searchBrands(query);
+
+    // Also filter local BRANDS list for anything not in catalog
+    const localMatches = BRANDS.filter(b =>
+      b.toLowerCase().startsWith(query.toLowerCase()) &&
+      !catalogBrands.some(cb => cb.toLowerCase() === b.toLowerCase())
+    );
+
+    // Merge: catalog brands first (they have full data), then local-only brands
+    const merged = [
+      ...catalogBrands.map(b => ({ name: b, hasCatalog: true })),
+      ...localMatches.slice(0, 10).map(b => ({ name: b, hasCatalog: false })),
+    ];
+    return merged.slice(0, 15);
+  }, []);
+
+  // Model autocomplete: search catalog for the selected brand
+  const fetchModelSuggestions = useCallback(async (query) => {
+    if (!data.brand) return [];
+    const models = await searchModels(data.brand, query);
+    return models;
+  }, [data.brand]);
+
+  // Handle brand selection from autocomplete
+  const handleBrandSelect = (item) => {
+    const brandName = typeof item === "string" ? item : item.name;
+    setData(prev => ({ ...prev, brand: brandName, model: "" }));
+    setAutoFillInfo(null);
+  };
+
+  // Handle model selection — fetch full specs and auto-fill
+  const handleModelSelect = async (item) => {
+    const modelName = typeof item === "string" ? item : item.model;
+    setData(prev => ({ ...prev, model: modelName }));
+
+    // Fetch full specs from catalog
+    const specs = await getModelSpecs(data.brand, modelName);
+    if (specs) {
+      const mapped = mapCatalogToFormFields(specs);
+
+      // Only fill fields that are currently empty
+      setData(prev => {
+        const updated = { ...prev, model: modelName };
+        const filled = [];
+
+        for (const [key, val] of Object.entries(mapped)) {
+          if (key.startsWith('_')) continue; // Skip internal fields
+          if (!prev[key] || prev[key] === "") {
+            updated[key] = val;
+            filled.push(key);
+          }
+        }
+
+        if (filled.length > 0) {
+          setAutoFillInfo({ fields: filled, specs: mapped });
+        }
+
+        return updated;
+      });
+
+      // Notify parent about auto-fill
+      onAutoFill && onAutoFill(specs);
+    }
+  };
 
   const handleDecodeSerial = async () => {
     if (!data.serialNumber) return;
@@ -467,12 +683,14 @@ function StepBasicInfo({ data, setData, onSerialResult }) {
 
       // Auto-fill year if successful and year is empty
       if (result.success && result.decoded?.year && !data.year) {
-        setData({ ...data, year: result.decoded.year.toString() });
+        const yr = result.decoded.year.toString();
+        setData(prev => ({ ...prev, year: yr }));
       }
 
       // Auto-fill brand if matches SUPPORTED_BRANDS and brand is empty
       if (result.success && result.decoded?.brand && !data.brand && SUPPORTED_BRANDS.includes(result.decoded.brand)) {
-        setData({ ...data, brand: result.decoded.brand });
+        const br = result.decoded.brand;
+        setData(prev => ({ ...prev, brand: br }));
       }
     } catch (err) {
       console.error('Decode error:', err);
@@ -482,6 +700,16 @@ function StepBasicInfo({ data, setData, onSerialResult }) {
     } finally {
       setDecoding(false);
     }
+  };
+
+  // Map field keys to readable labels
+  const fieldLabels = {
+    year: "Year", bodyType: "Body Type", bodyWood: "Body Wood", topWood: "Top Wood",
+    neckWood: "Neck Wood", fretboardWood: "Fretboard", neckProfile: "Neck Profile",
+    scaleLength: "Scale Length", frets: "Frets", pickupConfig: "Pickup Config",
+    pickups: "Pickups", bridgeType: "Bridge Type", bridgeModel: "Bridge", tuners: "Tuners",
+    nutMaterial: "Nut", hardwareFinish: "Hardware", country: "Country", finish: "Finish",
+    color: "Color"
   };
 
   return (
@@ -494,18 +722,106 @@ function StepBasicInfo({ data, setData, onSerialResult }) {
       </p>
 
       <FormField label="Brand" required>
-        <SelectInput
-          value={data.brand} onChange={e => setData({ ...data, brand: e.target.value })}
-          options={BRANDS} placeholder="Select a brand..."
+        <AutocompleteInput
+          value={data.brand}
+          onChange={(val) => setData(prev => ({ ...prev, brand: val }))}
+          onSelect={handleBrandSelect}
+          fetchSuggestions={fetchBrandSuggestions}
+          placeholder="Start typing a brand..."
+          renderItem={(item, highlighted) => (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ color: T.txt, fontSize: "14px", fontWeight: highlighted ? 600 : 400 }}>
+                {item.name}
+              </span>
+              {item.hasCatalog && (
+                <span style={{
+                  fontSize: "10px", color: T.warm, background: T.warm + "15",
+                  padding: "2px 8px", borderRadius: "9999px", fontWeight: 500,
+                  fontFamily: "'JetBrains Mono', monospace"
+                }}>
+                  Specs available
+                </span>
+              )}
+            </div>
+          )}
         />
       </FormField>
 
       <FormField label="Model" required hint="e.g., SG Standard, Stratocaster">
-        <TextInput
-          value={data.model} onChange={e => setData({ ...data, model: e.target.value })}
-          placeholder="Enter model name..."
+        <AutocompleteInput
+          value={data.model}
+          onChange={(val) => setData(prev => ({ ...prev, model: val }))}
+          onSelect={handleModelSelect}
+          fetchSuggestions={fetchModelSuggestions}
+          placeholder={data.brand ? `Search ${data.brand} models...` : "Select a brand first..."}
+          disabled={!data.brand}
+          searchOnFocus={true}
+          renderItem={(item, highlighted) => (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ color: T.txt, fontSize: "14px", fontWeight: highlighted ? 600 : 400 }}>
+                  {item.model}
+                </span>
+                {item.body_style && (
+                  <span style={{ fontSize: "11px", color: T.txtM }}>
+                    {item.body_style}
+                  </span>
+                )}
+              </div>
+              {item.year_range && (
+                <span style={{ fontSize: "11px", color: T.txt2, fontFamily: "'JetBrains Mono', monospace" }}>
+                  {item.year_range}
+                </span>
+              )}
+            </div>
+          )}
         />
       </FormField>
+
+      {/* Auto-fill notification */}
+      {autoFillInfo && (
+        <div style={{
+          marginBottom: "20px", padding: "12px 14px", borderRadius: "10px",
+          border: `1px solid ${T.warm}30`, background: T.warm + "08"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+            <Sparkles size={14} style={{ color: T.warm }} />
+            <span style={{ fontSize: "13px", fontWeight: 600, color: T.warm }}>
+              Specs auto-filled from catalog
+            </span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            {autoFillInfo.fields.filter(f => !f.startsWith('_')).map(f => (
+              <span key={f} style={{
+                fontSize: "11px", padding: "3px 8px", borderRadius: "6px",
+                background: T.bgCard, border: `1px solid ${T.border}`, color: T.txt2,
+                fontFamily: "'JetBrains Mono', monospace"
+              }}>
+                {fieldLabels[f] || f}
+              </span>
+            ))}
+          </div>
+          <button
+            onClick={() => {
+              // Undo auto-fill — clear the fields that were auto-filled
+              setData(prev => {
+                const reset = { ...prev };
+                autoFillInfo.fields.forEach(f => { if (!f.startsWith('_')) reset[f] = ""; });
+                return reset;
+              });
+              setAutoFillInfo(null);
+            }}
+            style={{
+              marginTop: "8px", padding: "4px 10px", borderRadius: "6px",
+              background: "transparent", border: `1px solid ${T.border}`,
+              color: T.txtM, fontSize: "11px", cursor: "pointer",
+              display: "inline-flex", alignItems: "center", gap: "4px"
+            }}
+          >
+            <RotateCcw size={10} /> Undo auto-fill
+          </button>
+        </div>
+      )}
 
       <FormField label="Year" hint="Approximate year of manufacture">
         <TextInput
@@ -655,31 +971,31 @@ function StepSpecs({ data, setData }) {
       <SpecGroup title="Body" icon="🎸">
         <FormField label="Body Type" hint="Shape of the guitar body">
           <SelectInput
-            value={data.bodyType} onChange={e => setData({ ...data, bodyType: e.target.value })}
+            value={data.bodyType} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, bodyType: v })); }}
             options={BODY_TYPES} placeholder="Select type..."
           />
         </FormField>
         <FormField label="Body Wood" hint="Primary wood used">
           <SelectInput
-            value={data.bodyWood} onChange={e => setData({ ...data, bodyWood: e.target.value })}
+            value={data.bodyWood} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, bodyWood: v })); }}
             options={WOODS} placeholder="Select wood..."
           />
         </FormField>
         <FormField label="Top Wood" hint="Top veneer (if applicable)">
           <SelectInput
-            value={data.topWood} onChange={e => setData({ ...data, topWood: e.target.value })}
+            value={data.topWood} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, topWood: v })); }}
             options={WOODS} placeholder="Select wood..."
           />
         </FormField>
         <FormField label="Finish">
           <SelectInput
-            value={data.finish} onChange={e => setData({ ...data, finish: e.target.value })}
+            value={data.finish} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, finish: v })); }}
             options={FINISHES} placeholder="Select finish..."
           />
         </FormField>
         <FormField label="Color">
           <TextInput
-            value={data.color} onChange={e => setData({ ...data, color: e.target.value })}
+            value={data.color} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, color: v })); }}
             placeholder="e.g., Honey Burst, Sunburst"
           />
         </FormField>
@@ -688,32 +1004,32 @@ function StepSpecs({ data, setData }) {
       <SpecGroup title="Neck" icon="🔗">
         <FormField label="Neck Wood">
           <SelectInput
-            value={data.neckWood} onChange={e => setData({ ...data, neckWood: e.target.value })}
+            value={data.neckWood} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, neckWood: v })); }}
             options={WOODS} placeholder="Select wood..."
           />
         </FormField>
         <FormField label="Fretboard Wood">
           <SelectInput
-            value={data.fretboardWood} onChange={e => setData({ ...data, fretboardWood: e.target.value })}
-            options={["Rosewood", "Ebony", "Maple", "Pau Ferro", "Pao Ferro", "Walnut", "Other"]}
+            value={data.fretboardWood} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, fretboardWood: v })); }}
+            options={["Rosewood", "Ebony", "Maple", "Pau Ferro", "Walnut", "Richlite", "Laurel", "Other"]}
             placeholder="Select wood..."
           />
         </FormField>
         <FormField label="Neck Profile">
           <TextInput
-            value={data.neckProfile} onChange={e => setData({ ...data, neckProfile: e.target.value })}
+            value={data.neckProfile} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, neckProfile: v })); }}
             placeholder="e.g., C-shape, D-shape"
           />
         </FormField>
         <FormField label="Scale Length">
           <TextInput
-            value={data.scaleLength} onChange={e => setData({ ...data, scaleLength: e.target.value })}
+            value={data.scaleLength} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, scaleLength: v })); }}
             placeholder="e.g., 24.75 or 25.5"
           />
         </FormField>
         <FormField label="Number of Frets">
           <TextInput
-            value={data.frets} onChange={e => setData({ ...data, frets: e.target.value })}
+            value={data.frets} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, frets: v })); }}
             placeholder="e.g., 22 or 24" type="number"
           />
         </FormField>
@@ -722,25 +1038,25 @@ function StepSpecs({ data, setData }) {
       <SpecGroup title="Electronics" icon="⚡">
         <FormField label="Pickup Configuration">
           <TextInput
-            value={data.pickupConfig} onChange={e => setData({ ...data, pickupConfig: e.target.value })}
+            value={data.pickupConfig} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, pickupConfig: v })); }}
             placeholder="e.g., HH, SSS, HSS"
           />
         </FormField>
         <FormField label="Pickups">
           <TextInput
-            value={data.pickups} onChange={e => setData({ ...data, pickups: e.target.value })}
+            value={data.pickups} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, pickups: v })); }}
             placeholder="e.g., Seymour Duncan SH-4 JB"
           />
         </FormField>
         <FormField label="Controls">
           <TextInput
-            value={data.controls} onChange={e => setData({ ...data, controls: e.target.value })}
+            value={data.controls} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, controls: v })); }}
             placeholder="e.g., 2 Volume, 1 Tone"
           />
         </FormField>
         <FormField label="Wiring Modifications">
           <TextArea
-            value={data.wiringMods} onChange={e => setData({ ...data, wiringMods: e.target.value })}
+            value={data.wiringMods} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, wiringMods: v })); }}
             placeholder="Describe any custom wiring..." rows={3}
           />
         </FormField>
@@ -749,31 +1065,31 @@ function StepSpecs({ data, setData }) {
       <SpecGroup title="Hardware" icon="🔧">
         <FormField label="Bridge Type">
           <SelectInput
-            value={data.bridgeType} onChange={e => setData({ ...data, bridgeType: e.target.value })}
+            value={data.bridgeType} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, bridgeType: v })); }}
             options={BRIDGE_TYPES} placeholder="Select bridge type..."
           />
         </FormField>
         <FormField label="Bridge Model">
           <TextInput
-            value={data.bridgeModel} onChange={e => setData({ ...data, bridgeModel: e.target.value })}
+            value={data.bridgeModel} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, bridgeModel: v })); }}
             placeholder="e.g., TonePros ABR-1"
           />
         </FormField>
         <FormField label="Tuners">
           <TextInput
-            value={data.tuners} onChange={e => setData({ ...data, tuners: e.target.value })}
+            value={data.tuners} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, tuners: v })); }}
             placeholder="e.g., Grover Roto-Matic"
           />
         </FormField>
         <FormField label="Nut Material">
           <SelectInput
-            value={data.nutMaterial} onChange={e => setData({ ...data, nutMaterial: e.target.value })}
+            value={data.nutMaterial} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, nutMaterial: v })); }}
             options={["Bone", "TUSQ", "Plastic", "Ivory", "Other"]} placeholder="Select material..."
           />
         </FormField>
         <FormField label="Hardware Finish">
           <SelectInput
-            value={data.hardwareFinish} onChange={e => setData({ ...data, hardwareFinish: e.target.value })}
+            value={data.hardwareFinish} onChange={e => { const v = e.target.value; setData(prev => ({ ...prev, hardwareFinish: v })); }}
             options={["Chrome", "Nickel", "Gold", "Black Nickel", "Brushed Nickel", "Other"]}
             placeholder="Select finish..."
           />
@@ -1407,7 +1723,7 @@ function AddGuitarManual({ initialData }) {
   const renderStep = () => {
     switch (currentStep) {
       case 1: return <StepPhotos photos={formData.photos} setPhotos={p => setFormData(prev => ({ ...prev, photos: p }))} />;
-      case 2: return <StepBasicInfo data={formData} setData={setFormData} onSerialResult={setSerialResult} />;
+      case 2: return <StepBasicInfo data={formData} setData={setFormData} onSerialResult={setSerialResult} onAutoFill={(catalogEntry) => console.log('[TWNG] Auto-filled from catalog:', catalogEntry?.brand, catalogEntry?.model)} />;
       case 3: return <StepSpecs data={formData} setData={setFormData} />;
       case 4: return <StepStory data={formData} setData={setFormData} />;
       case 5: return <StepTimeline data={formData} setData={setFormData} />;

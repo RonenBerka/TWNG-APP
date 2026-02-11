@@ -226,19 +226,18 @@ function OutreachModule() {
         const [claimsRes, usersRes, guitarsRes] = await Promise.all([
           supabase
             .from('ownership_claims')
-            .select('*, claimer:claimant_id(username, display_name), guitar:instrument_id(make, model, year)')
+            .select('*, claimer:claimant_id(username), guitar:instrument_id(make, model, year)')
             .order('created_at', { ascending: false })
             .limit(20),
           supabase
             .from('users')
-            .select('id, username, display_name, created_at')
-            .eq('status', 'active')
+            .select('id, username, created_at')
             .order('created_at', { ascending: true })
             .limit(50),
           supabase
             .from('instruments')
-            .select('id, make, model, year, serial_number, body_style, finish, state, created_at, owner:current_owner_id(username, display_name)')
-            .eq('state', 'published')
+            .select('id, make, model, year, serial_number, body_style, finish, moderation_status, created_at, owner:current_owner_id(username)')
+            .eq('moderation_status', 'approved')
             .order('created_at', { ascending: false })
             .limit(20),
         ]);
@@ -574,7 +573,7 @@ function OutreachModule() {
   if (activeScreen === 'queue') {
     const outreachItems = guitars.map(g => ({
       id: g.id,
-      name: g.owner?.display_name || g.owner?.username || 'Unknown',
+      name: g.owner?.username || 'Unknown',
       guitar: `${g.make} ${g.model}`,
       year: g.year,
       suggestedDm: `Hey! Love your ${g.make} ${g.model}${g.year ? ` (${g.year})` : ''}. We're building TWNG — a platform where guitar owners document their instruments. Would you like to claim yours?`,
@@ -678,7 +677,7 @@ function OutreachModule() {
               >
                 <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
                   <div style={{ fontWeight: 700, color: T.txt }}>
-                    {claim.claimer?.display_name || claim.claimer?.username || 'Unknown'}
+                    {claim.claimer?.username || 'Unknown'}
                   </div>
                   <MkBadge
                     text={claim.status}
@@ -776,9 +775,6 @@ function OutreachModule() {
                 <td style={{ padding: '12px 16px', color: T.txt, fontSize: '13px', fontWeight: 600 }}>
                   @{member.username}
                 </td>
-                <td style={{ padding: '12px 16px', color: T.txt2, fontSize: '13px' }}>
-                  {member.display_name || '—'}
-                </td>
                 <td style={{ padding: '12px 16px' }}>
                   <MkBadge text={i < 10 ? 'Diamond' : i < 25 ? 'Platinum' : 'Gold'} color={colors.warmAlways} />
                 </td>
@@ -829,7 +825,7 @@ function OutreachModule() {
                 Year: {g.year || '—'} • Serial: {g.serial_number || '—'}
               </div>
               <div style={{ fontSize: '12px', color: T.txtM, marginBottom: '12px' }}>
-                Owner: {g.owner?.display_name || g.owner?.username || 'Unknown'}
+                Owner: {g.owner?.username || 'Unknown'}
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
