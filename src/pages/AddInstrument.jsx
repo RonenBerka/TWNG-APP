@@ -189,7 +189,18 @@ export default function AddInstrument() {
         body: { photoBase64 },
       });
 
-      if (fnError) throw new Error(fnError.message || 'Analysis failed');
+      // Extract real error from function response
+      if (fnError) {
+        let msg = fnError.message || 'Analysis failed';
+        try {
+          // supabase-js wraps non-2xx in FunctionsHttpError — extract body
+          if (fnError.context) {
+            const body = await fnError.context.json();
+            if (body?.error) msg = body.error;
+          }
+        } catch { /* ignore parse errors */ }
+        throw new Error(msg);
+      }
       if (data?.error) throw new Error(data.error);
 
       setAnalysis(data);
