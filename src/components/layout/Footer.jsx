@@ -9,7 +9,7 @@ const footerColumns = [
     links: [
       { label: "Explore Guitars", path: "/explore" },
       { label: "Collections", path: "/collection" },
-      { label: "Magic Add", path: "/guitar/new" },
+      { label: "Magic Add", path: "/instrument/new" },
       { label: "Serial Decoder", path: "/decoder" },
       { label: "Luthier Directory", path: "/luthiers" },
       { label: "Community Forum", path: "/community" },
