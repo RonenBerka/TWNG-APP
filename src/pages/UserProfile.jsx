@@ -421,20 +421,6 @@ export default function TWNGProfile() {
           .eq("username", username)
           .single();
 
-        // If not found by username, try matching by email prefix
-        if ((profileError || !profileData) && username) {
-          const { data: fallbackData } = await supabase
-            .from("users")
-            .select("*")
-            .ilike("email", `${username}@%`)
-            .single();
-
-          if (fallbackData) {
-            profileData = fallbackData;
-            profileError = null;
-          }
-        }
-
         // If still not found, check if this is the current user's own profile
         if ((profileError || !profileData) && user?.id) {
           const { data: ownData } = await supabase

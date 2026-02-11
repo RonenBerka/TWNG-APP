@@ -149,14 +149,13 @@ export function AuthProvider({ children }) {
               console.warn('User not found in users table, upserting basic record...');
 
               const generatedUsername = (user.email?.split('@')[0] || 'user') + '_' + Date.now().toString(36);
+              // Only insert columns that exist in the actual DB schema:
+              // id, username, avatar_url, bio, is_verified, is_luthier
               const { data: newUser, error: upsertError } = await supabase
                 .from('users')
                 .upsert({
                   id: user.id,
-                  email: user.email,
-                  display_name: user.user_metadata?.display_name || user.email?.split('@')[0],
                   username: generatedUsername,
-                  role: 'user',
                 }, { onConflict: 'id' })
                 .select()
                 .single();
@@ -182,11 +181,14 @@ export function AuthProvider({ children }) {
           }
 
           if (data && !cancelled) {
-            // Build roles array from the single role column on users table
+            // Build roles array from the role column (if it exists) on users table
             const roles = data.role ? [data.role] : ['user'];
             const enrichedProfile = {
               ...data,
               roles,
+              // Supplement with auth session fields not in the users table
+              email: user.email,
+              display_name: data.display_name || user.user_metadata?.display_name || user.user_metadata?.full_name || user.email?.split('@')[0],
             };
 
             // If username is null, generate from email and update DB
