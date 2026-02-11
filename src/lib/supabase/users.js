@@ -5,7 +5,7 @@
  * Schema changes:
  * - guitars → instruments
  * - follows → user_follows (with followed_id → following_id)
- * - users.role → user_roles table (supports multiple roles)
+ * - users table has role VARCHAR(20) column directly
  * - Added: is_luthier, is_verified fields
  */
 
@@ -107,12 +107,13 @@ export async function searchUsers(query, limit = 20) {
  */
 export async function getUserRoles(userId) {
   const { data, error } = await supabase
-    .from('user_roles')
+    .from('users')
     .select('role')
-    .eq('user_id', userId);
+    .eq('id', userId)
+    .single();
 
   if (error) throw error;
-  return (data || []).map((r) => r.role);
+  return data?.role ? [data.role] : [];
 }
 
 /**
@@ -120,26 +121,23 @@ export async function getUserRoles(userId) {
  */
 export async function hasRole(userId, role) {
   const { data, error } = await supabase
-    .from('user_roles')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('role', role)
+    .from('users')
+    .select('role')
+    .eq('id', userId)
     .single();
 
-  if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
-  return !!data;
+  if (error) throw error;
+  return data?.role === role;
 }
 
 /**
- * Add a role to a user.
+ * Add a role to a user (sets the role on the users table).
  */
 export async function addRole(userId, role) {
   const { data, error } = await supabase
-    .from('user_roles')
-    .insert({
-      user_id: userId,
-      role,
-    })
+    .from('users')
+    .update({ role })
+    .eq('id', userId)
     .select()
     .single();
 
@@ -148,14 +146,13 @@ export async function addRole(userId, role) {
 }
 
 /**
- * Remove a role from a user.
+ * Remove a role from a user (sets role back to 'user').
  */
 export async function removeRole(userId, role) {
   const { error } = await supabase
-    .from('user_roles')
-    .delete()
-    .eq('user_id', userId)
-    .eq('role', role);
+    .from('users')
+    .update({ role: 'user' })
+    .eq('id', userId);
 
   if (error) throw error;
 }
@@ -176,10 +173,14 @@ export async function getAdminUsers({
 } = {}) {
   let query = supabase
     .from('users')
-    .select('*, user_roles(role)', { count: 'exact' });
+    .select('*', { count: 'exact' });
 
   if (search) {
     query = query.ilike('username', `%${search}%`);
+  }
+
+  if (role) {
+    query = query.eq('role', role);
   }
 
   if (status === 'verified') {
@@ -275,22 +276,17 @@ export async function deleteUserAccount(userId) {
 // ============================================================================
 
 /**
- * Update a user's role by replacing all roles with a new one.
+ * Update a user's role.
  */
 export async function updateUserRole(userId, newRole) {
   try {
-    const { error: deleteError } = await supabase
-      .from('user_roles')
-      .delete()
-      .eq('user_id', userId);
-    if (deleteError) throw deleteError;
+    const roleValue = newRole && newRole !== 'user' ? newRole : 'user';
+    const { error } = await supabase
+      .from('users')
+      .update({ role: roleValue })
+      .eq('id', userId);
 
-    if (newRole && newRole !== 'user') {
-      const { error: insertError } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userId, role: newRole });
-      if (insertError) throw insertError;
-    }
+    if (error) throw error;
     return { success: true };
   } catch (error) {
     console.error('Error updating user role:', error);

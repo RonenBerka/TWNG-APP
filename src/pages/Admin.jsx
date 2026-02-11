@@ -2440,9 +2440,9 @@ const InstrumentManagementPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await getAdminGuitars({ search, state: stateFilter });
-      setGuitars(res.guitars);
-      setTotal(res.total);
+      const res = await getAdminGuitars({ search, moderation_status: stateFilter });
+      setGuitars(res.instruments || res.guitars || []);
+      setTotal(res.total || 0);
     } catch (e) {
       setError(e.message);
     } finally {
