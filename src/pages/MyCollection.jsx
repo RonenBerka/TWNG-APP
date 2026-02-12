@@ -44,7 +44,7 @@ function CollectionCard({ instrument, view }) {
           }}
         >
           <img
-            src={instrument.image}
+            src={instrument.main_image_url}
             alt={instrument.model}
             style={{
               width: "80px", height: "80px", objectFit: "cover",
@@ -110,7 +110,7 @@ function CollectionCard({ instrument, view }) {
           backgroundColor: T.bgElev,
         }}>
           <img
-            src={instrument.image}
+            src={instrument.main_image_url}
             alt={instrument.model}
             style={{
               width: "100%", height: "100%", objectFit: "cover",
@@ -265,7 +265,7 @@ export default function MyCollection() {
             flexShrink: 0, backgroundColor: T.bgCard,
           }}>
             <img
-              src={collectionInstruments[0]?.image || ""}
+              src={collectionInstruments[0]?.main_image_url || ""}
               alt="Profile"
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
