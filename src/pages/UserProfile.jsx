@@ -90,7 +90,7 @@ function GuitarCard({ guitar, onLove }) {
     if (onLove) onLove(guitar.id, !loved);
   };
 
-  const guitarImage = guitar.image_urls?.[0] ||
+  const guitarImage = guitar.main_image_url ||
     "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=300&h=300&fit=crop";
   const guitarName = `${guitar.year} ${guitar.make} ${guitar.model}`.trim();
 
