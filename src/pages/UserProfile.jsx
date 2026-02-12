@@ -105,17 +105,19 @@ function GuitarCard({ guitar, onLove }) {
   const handleLove = async (e) => {
     if (e) { e.preventDefault(); e.stopPropagation(); }
     if (!user) return;
+    const wasLoved = loved;
+    setLoved(!wasLoved); // Instant visual feedback
+    setLikeCount((c) => wasLoved ? Math.max(0, c - 1) : c + 1);
+    if (onLove) onLove(guitar.id, !wasLoved);
     try {
-      if (loved) {
+      if (wasLoved) {
         await removeFavorite(user.id, guitar.id, 'instrument');
-        setLikeCount((c) => Math.max(0, c - 1));
       } else {
         await addFavorite(user.id, guitar.id, 'instrument');
-        setLikeCount((c) => c + 1);
       }
-      setLoved(!loved);
-      if (onLove) onLove(guitar.id, !loved);
     } catch (err) {
+      setLoved(wasLoved); // Revert on error
+      setLikeCount((c) => wasLoved ? c + 1 : Math.max(0, c - 1));
       console.error('Failed to toggle favorite:', err);
     }
   };

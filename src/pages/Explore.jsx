@@ -176,14 +176,16 @@ function ExploreInstrumentCard({ instrument, view }) {
     e.preventDefault();
     e.stopPropagation();
     if (!user) return;
+    const wasLoved = loved;
+    setLoved(!wasLoved); // Instant visual feedback
     try {
-      if (loved) {
+      if (wasLoved) {
         await removeFavorite(user.id, instrument.id, 'instrument');
       } else {
         await addFavorite(user.id, instrument.id, 'instrument');
       }
-      setLoved(!loved);
     } catch (err) {
+      setLoved(wasLoved); // Revert on error
       console.error('Failed to toggle favorite:', err);
     }
   };

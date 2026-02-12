@@ -9,6 +9,7 @@ import {
   Loader2,
   Lock,
   Globe,
+  Check,
 } from "lucide-react";
 import { T } from "../theme/tokens";
 import { useAuth } from "../context/AuthContext";
@@ -54,9 +55,9 @@ function InstrumentCard({ instrument }) {
             backgroundColor: T.bgElev,
           }}
         >
-          {instrument.image_url ? (
+          {instrument.main_image_url ? (
             <img
-              src={instrument.image_url}
+              src={instrument.main_image_url}
               alt={instrument.model}
               style={{
                 width: "100%",
@@ -160,6 +161,7 @@ export default function CollectionDetail() {
   const [error, setError] = useState(null);
   const [isFav, setIsFav] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [shared, setShared] = useState(false);
 
   const isOwner = collection && user && collection.user_id === user.id;
 
@@ -198,14 +200,16 @@ export default function CollectionDetail() {
       return;
     }
 
+    const wasFav = isFav;
+    setIsFav(!wasFav); // Instant visual feedback
     try {
-      if (isFav) {
+      if (wasFav) {
         await removeFavorite(user.id, id, "collection");
       } else {
         await addFavorite(user.id, id, "collection");
       }
-      setIsFav(!isFav);
     } catch (err) {
+      setIsFav(wasFav); // Revert on error
       console.error("Failed to toggle favorite:", err);
     }
   };
@@ -227,23 +231,24 @@ export default function CollectionDetail() {
     }
   };
 
-  const handleShare = async () => {
+  const handleShare = () => {
     const url = window.location.href;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: collection?.name,
-          text: collection?.description,
-          url,
-        });
-      } catch (err) {
-        console.error("Share failed:", err);
-      }
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(url);
-      alert("Collection link copied to clipboard!");
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+    if (isMobile && navigator.share) {
+      navigator.share({ title: collection?.name, url }).catch(() => {});
+      return;
     }
+    const ta = document.createElement("textarea");
+    ta.value = url;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    setShared(true);
+    setTimeout(() => setShared(false), 2000);
   };
 
   if (loading) {
@@ -322,6 +327,12 @@ export default function CollectionDetail() {
 
   const itemCount = collection.collection_items?.length || 0;
 
+  // Use collection cover or fall back to first instrument's image
+  const coverImage =
+    collection.cover_image_url ||
+    collection.collection_items?.[0]?.instruments?.main_image_url ||
+    null;
+
   return (
     <div style={{ backgroundColor: T.bgDeep, minHeight: "100vh" }}>
       {/* ── Header with back button ──────────────────────────────────── */}
@@ -380,9 +391,9 @@ export default function CollectionDetail() {
               aspectRatio: "4/5",
             }}
           >
-            {collection.cover_image_url ? (
+            {coverImage ? (
               <img
-                src={collection.cover_image_url}
+                src={coverImage}
                 alt={collection.name}
                 style={{
                   width: "100%",
@@ -409,33 +420,30 @@ export default function CollectionDetail() {
 
           {/* Collection Info */}
           <div>
-            {/* Visibility Badge */}
-            <div
+            {/* Visibility Label */}
+            <span
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: "6px",
-                padding: "6px 12px",
-                borderRadius: "8px",
-                backgroundColor: T.bgCard,
-                border: `1px solid ${T.border}`,
-                fontSize: "12px",
-                color: T.txt2,
-                marginBottom: "16px",
+                gap: "4px",
+                fontSize: "11px",
+                color: T.txtM,
+                marginBottom: "12px",
                 fontFamily: "'JetBrains Mono', monospace",
-                fontWeight: 600,
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
               }}
             >
               {collection.is_public ? (
                 <>
-                  <Globe size={12} /> Public
+                  <Globe size={11} /> Public collection
                 </>
               ) : (
                 <>
-                  <Lock size={12} /> Private
+                  <Lock size={11} /> Private collection
                 </>
               )}
-            </div>
+            </span>
 
             {/* Title */}
             <h1
@@ -551,16 +559,17 @@ export default function CollectionDetail() {
                   gap: "8px",
                   padding: "12px 20px",
                   borderRadius: "10px",
-                  backgroundColor: T.bgCard,
-                  border: `1px solid ${T.border}`,
-                  color: T.txt,
+                  backgroundColor: shared ? `${T.warm}20` : T.bgCard,
+                  border: `1px solid ${shared ? T.warm : T.border}`,
+                  color: shared ? T.warm : T.txt,
                   cursor: "pointer",
                   fontWeight: 600,
                   fontSize: "14px",
                   transition: "all 0.2s",
                 }}
               >
-                <Share2 size={16} /> Share
+                {shared ? <Check size={16} /> : <Share2 size={16} />}
+                {shared ? "Copied!" : "Share"}
               </button>
 
               {isOwner && (
