@@ -24,7 +24,7 @@ import {
   getFollowerCount,
   getFollowingCount,
 } from "../lib/supabase/follows";
-import { addFavorite, removeFavorite, isFavorited } from "../lib/supabase/userFavorites";
+import { addFavorite, removeFavorite, isFavorited, getFavoriteCount } from "../lib/supabase/userFavorites";
 
 // UTILITY: Format relative time
 function formatTime(date) {
@@ -86,9 +86,15 @@ function Badge({ children, variant = "default" }) {
 function GuitarCard({ guitar, onLove }) {
   const { user } = useAuth();
   const [loved, setLoved] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
 
   useEffect(() => {
+    if (guitar?.id) {
+      getFavoriteCount(guitar.id, 'instrument')
+        .then(setLikeCount)
+        .catch(() => {});
+    }
     if (user && guitar?.id) {
       isFavorited(user.id, guitar.id, 'instrument')
         .then(setLoved)
@@ -102,8 +108,10 @@ function GuitarCard({ guitar, onLove }) {
     try {
       if (loved) {
         await removeFavorite(user.id, guitar.id, 'instrument');
+        setLikeCount((c) => Math.max(0, c - 1));
       } else {
         await addFavorite(user.id, guitar.id, 'instrument');
+        setLikeCount((c) => c + 1);
       }
       setLoved(!loved);
       if (onLove) onLove(guitar.id, !loved);
@@ -117,120 +125,125 @@ function GuitarCard({ guitar, onLove }) {
   const guitarName = `${guitar.year} ${guitar.make} ${guitar.model}`.trim();
 
   return (
-    <div
-      style={{
-        backgroundColor: T.bgCard,
-        borderRadius: "12px",
-        overflow: "hidden",
-        border: `1px solid ${T.border}`,
-        transition: "all 0.3s ease",
-        cursor: "pointer",
-        transform: isHovering ? "translateY(-4px)" : "translateY(0)",
-      }}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
+    <Link
+      to={`/instrument/${guitar.id}`}
+      style={{ textDecoration: "none", color: "inherit" }}
     >
-      {/* Image Container */}
       <div
         style={{
-          position: "relative",
-          width: "100%",
-          paddingBottom: "100%",
+          backgroundColor: T.bgCard,
+          borderRadius: "12px",
           overflow: "hidden",
-          backgroundColor: T.bgElev,
+          border: `1px solid ${T.border}`,
+          transition: "all 0.3s ease",
+          cursor: "pointer",
+          transform: isHovering ? "translateY(-4px)" : "translateY(0)",
         }}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
       >
-        <img
-          src={guitarImage}
-          alt={guitarName}
+        {/* Image Container */}
+        <div
           style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
+            position: "relative",
             width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            opacity: isHovering ? 0.8 : 1,
-            transition: "opacity 0.3s ease",
+            paddingBottom: "100%",
+            overflow: "hidden",
+            backgroundColor: T.bgElev,
           }}
-        />
-        {/* Overlay */}
-        {isHovering && (
-          <div
+        >
+          <img
+            src={guitarImage}
+            alt={guitarName}
             style={{
               position: "absolute",
               top: 0,
               left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(0,0,0,0.4)",
-              display: "flex",
-              alignItems: "flex-end",
-              padding: "12px",
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              opacity: isHovering ? 0.8 : 1,
+              transition: "opacity 0.3s ease",
             }}
-          >
-            <button
-              onClick={handleLove}
+          />
+          {/* Overlay */}
+          {isHovering && (
+            <div
               style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "8px",
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "rgba(0,0,0,0.4)",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                alignItems: "flex-end",
+                padding: "12px",
               }}
             >
-              <Heart
-                size={20}
-                color={loved ? T.warm : T.txt}
-                fill={loved ? T.warm : "none"}
-              />
-            </button>
-          </div>
-        )}
-      </div>
+              <button
+                onClick={handleLove}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Heart
+                  size={20}
+                  color={loved ? T.warm : T.txt}
+                  fill={loved ? T.warm : "none"}
+                />
+              </button>
+            </div>
+          )}
+        </div>
 
-      {/* Content */}
-      <div style={{ padding: "12px" }}>
-        <h4
-          style={{
-            color: T.txt,
-            fontSize: "14px",
-            fontFamily: "DM Sans",
-            fontWeight: 600,
-            margin: "0 0 4px 0",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {guitarName}
-        </h4>
-        <p
-          style={{
-            color: T.txtM,
-            fontSize: "12px",
-            fontFamily: "DM Sans",
-            margin: "0 0 8px 0",
-          }}
-        >
-          {guitar.year} • {guitar.make}
-        </p>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            color: T.txt2,
-            fontSize: "12px",
-          }}
-        >
-          <Heart size={14} />
-          <span>0 likes</span>
+        {/* Content */}
+        <div style={{ padding: "12px" }}>
+          <h4
+            style={{
+              color: T.txt,
+              fontSize: "14px",
+              fontFamily: "DM Sans",
+              fontWeight: 600,
+              margin: "0 0 4px 0",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {guitarName}
+          </h4>
+          <p
+            style={{
+              color: T.txtM,
+              fontSize: "12px",
+              fontFamily: "DM Sans",
+              margin: "0 0 8px 0",
+            }}
+          >
+            {guitar.year} • {guitar.make}
+          </p>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              color: T.txt2,
+              fontSize: "12px",
+            }}
+          >
+            <Heart size={14} fill={likeCount > 0 ? T.warm : "none"} color={likeCount > 0 ? T.warm : T.txt2} />
+            <span>{likeCount} {likeCount === 1 ? "like" : "likes"}</span>
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

@@ -111,6 +111,28 @@ export async function getUserFavorites(userId, targetType = null, options = {}) 
 }
 
 /**
+ * Get the total number of favorites for a specific item.
+ * @param {string} targetId - The target item ID
+ * @param {string} targetType - Type of target ('instrument' or 'collection')
+ * @returns {Promise<number>} The favorite count
+ */
+export async function getFavoriteCount(targetId, targetType = 'instrument') {
+  try {
+    const { count, error } = await supabase
+      .from('user_favorites')
+      .select('id', { count: 'exact', head: true })
+      .eq('favorite_id', targetId)
+      .eq('favorite_type', targetType);
+
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error('Error getting favorite count:', error.message);
+    return 0;
+  }
+}
+
+/**
  * Check if a user has favorited a specific item.
  * @param {string} userId - The user's ID
  * @param {string} targetId - The target item ID
