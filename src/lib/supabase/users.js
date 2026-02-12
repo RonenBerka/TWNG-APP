@@ -176,7 +176,7 @@ export async function getAdminUsers({
 } = {}) {
   let query = supabase
     .from('users')
-    .select('*', { count: 'exact' });
+    .select('*, instruments!instruments_current_owner_id_fkey(count)', { count: 'exact' });
 
   if (search) {
     query = query.ilike('username', `%${search}%`);

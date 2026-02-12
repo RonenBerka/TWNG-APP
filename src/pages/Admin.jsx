@@ -2044,7 +2044,7 @@ const UserManagementPage = () => {
                         }}
                       />
                     </TD>
-                    <TD>{u.guitar_count || 0}</TD>
+                    <TD>{u.instruments?.[0]?.count ?? 0}</TD>
                     <TD>{formatDate(u.created_at)}</TD>
                     <TD style={{ textAlign: "right" }}>
                       <ActionBtn
