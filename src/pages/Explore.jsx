@@ -19,7 +19,7 @@ import { getInstruments } from "../lib/supabase/instruments";
 /* ─── Makes (manufacturers) pulled from the actual data ────────────────────────── */
 const MAKES = [
   "Fender", "Gibson", "Gretsch", "Heritage", "Martin",
-  "Nash", "PRS", "Rickenbacker", "Suhr", "Taylor",
+  "Nash Guitars", "PRS", "Rickenbacker", "Suhr", "Taylor",
   "Brian May", "Cordoba", "Epiphone", "Ibanez", "Yamaha",
 ];
 
@@ -178,7 +178,7 @@ function ExploreInstrumentCard({ instrument, view }) {
           }}
         >
           <img
-            src={instrument.image}
+            src={instrument.main_image_url}
             alt={instrument.model}
             style={{
               width: "100px", height: "100px", objectFit: "cover",
@@ -255,7 +255,7 @@ function ExploreInstrumentCard({ instrument, view }) {
         {/* Image area */}
         <div style={{ position: "relative", aspectRatio: "4/5", overflow: "hidden", backgroundColor: T.bgElev }}>
           <img
-            src={instrument.image}
+            src={instrument.main_image_url}
             alt={instrument.model}
             style={{
               width: "100%", height: "100%", objectFit: "cover",
