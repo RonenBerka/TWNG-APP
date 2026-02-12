@@ -282,19 +282,14 @@ export async function deleteUserAccount(userId) {
  * Update a user's role.
  */
 export async function updateUserRole(userId, newRole) {
-  try {
-    const roleValue = newRole && newRole !== 'user' ? newRole : 'user';
-    const { error } = await supabase
-      .from('users')
-      .update({ role: roleValue })
-      .eq('id', userId);
+  const roleValue = newRole && newRole !== 'user' ? newRole : 'user';
+  const { error } = await supabase.rpc('set_user_role', {
+    target_user_id: userId,
+    new_role: roleValue,
+  });
 
-    if (error) throw error;
-    return { success: true };
-  } catch (error) {
-    console.error('Error updating user role:', error);
-    return { success: false, error };
-  }
+  if (error) throw error;
+  return { success: true };
 }
 
 // ============================================================================
