@@ -239,7 +239,7 @@ function ExploreInstrumentCard({ instrument, view }) {
   /* ── Grid Card ─────────────────────────────────────────────────── */
   return (
     <Link
-      to={`/guitar/${guitar.id}`}
+      to={`/instrument/${instrument.id}`}
       style={{ textDecoration: "none", display: "block" }}
     >
       <div
@@ -384,8 +384,8 @@ export default function Explore() {
           yearMin: yearMin > 1900 ? yearMin : undefined,
           yearMax: yearMax < 2026 ? yearMax : undefined,
         });
-        setAllInstruments(data?.data || []);
-        setTotal(data?.count || 0);
+        setAllInstruments(data?.instruments || []);
+        setTotal(data?.total || 0);
         setUsingMockData(false);
       } catch (err) {
         console.error("Failed to fetch instruments:", err);
