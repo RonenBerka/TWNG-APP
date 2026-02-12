@@ -8,6 +8,7 @@ import { getTimelineEvents } from '../lib/supabase/timeline';
 import { getComments } from '../lib/supabase/comments';
 import { getOccForInstrument } from '../lib/supabase/occ';
 import { addFavorite, removeFavorite, getUserFavorites } from '../lib/supabase/userFavorites';
+import { IMG } from '../utils/placeholders';
 
 // ============================================================
 // Badge Component
@@ -559,7 +560,7 @@ export default function InstrumentDetail() {
         if (instrumentData.main_image_url) {
           imageList.push(instrumentData.main_image_url);
         }
-        setImages(imageList.length > 0 ? imageList : [require('../utils/placeholders').IMG.hero_tele]);
+        setImages(imageList.length > 0 ? imageList : [IMG.hero_tele]);
 
         // Load related data in parallel
         const [timelineData, commentsData, occData, favoritesData] = await Promise.all([

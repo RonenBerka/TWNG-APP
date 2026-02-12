@@ -330,6 +330,11 @@ function Badge({ children, variant = "default" }) {
       text: "#10B981",
       border: "#065F46",
     },
+    card: {
+      bg: "rgba(55, 55, 55, 0.85)",
+      text: "#FFFFFF",
+      border: "rgba(255, 255, 255, 0.15)",
+    },
   };
 
   const v = variants[variant] || variants.default;
@@ -952,7 +957,7 @@ function InstrumentCard({ instrument, compact = false }) {
           />
         )}
         <div style={{ position: "absolute", top: "12px", left: "12px" }}>
-          <Badge>
+          <Badge variant="card">
             {instrument.make} · {instrument.year}
           </Badge>
         </div>
