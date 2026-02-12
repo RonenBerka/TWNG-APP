@@ -210,8 +210,8 @@ export default function MyCollection() {
     const fetchMyInstruments = async () => {
       try {
         // getInstruments filters by owner_id when called by auth user
-        const data = await getInstruments({ owner_id: user?.id });
-        setCollectionInstruments(data?.data || []);
+        const data = await getInstruments({ ownerId: user?.id });
+        setCollectionInstruments(data?.instruments || []);
       } catch (err) {
         console.error("Failed to fetch instruments:", err);
       }

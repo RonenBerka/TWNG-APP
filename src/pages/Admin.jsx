@@ -1942,8 +1942,8 @@ const UserManagementPage = () => {
     setUsersLoading(true);
     setUsersError(null);
     try {
-      const data = await getAdminUsers({ search: userSearch || null });
-      setUsers(data || []);
+      const res = await getAdminUsers({ search: userSearch || null });
+      setUsers(res?.data || []);
     } catch (e) {
       setUsersError(e.message || "Failed to load users");
     } finally {
@@ -2650,18 +2650,6 @@ const InstrumentManagementPage = () => {
                             icon={Eye}
                             label={viewingGuitar === g.id ? "Close" : "View"}
                           />
-                          <ActionBtn
-                            onClick={() => handleEdit(g)}
-                            color={editingGuitar === g.id ? "#3B82F6" : T.txt2}
-                            icon={Edit}
-                            label={editingGuitar === g.id ? "Cancel" : "Edit"}
-                          />
-                          <ActionBtn
-                            onClick={() => handleDelete(g)}
-                            color="#EF4444"
-                            icon={Trash2}
-                            label="Delete"
-                          />
                         </div>
                       </TD>
                     </TR>
@@ -2734,72 +2722,6 @@ const InstrumentManagementPage = () => {
                       </tr>
                     )}
                     {/* Edit inline panel */}
-                    {editingGuitar === g.id && (
-                      <tr>
-                        <td colSpan={7} style={{ padding: "0" }}>
-                          <div style={{
-                            backgroundColor: T.bgElev,
-                            borderTop: "2px solid #3B82F6",
-                            padding: "20px 24px",
-                          }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                              <span style={{ color: "#3B82F6", fontWeight: 600, fontSize: "14px" }}>Edit Instrument</span>
-                              <div style={{ display: "flex", gap: "8px" }}>
-                                <button onClick={() => handleEditSave(g.id)} disabled={saving} style={{
-                                  padding: "5px 16px", borderRadius: "6px", border: "none",
-                                  backgroundColor: "#10B981", color: "#fff", fontSize: "12px", fontWeight: 600,
-                                  cursor: saving ? "wait" : "pointer", opacity: saving ? 0.6 : 1,
-                                }}>{saving ? "Saving..." : "Save Changes"}</button>
-                                <button onClick={() => setEditingGuitar(null)} style={{
-                                  padding: "5px 12px", borderRadius: "6px", border: `1px solid ${T.border}`,
-                                  backgroundColor: "transparent", color: T.txt2, fontSize: "12px", cursor: "pointer",
-                                }}>Cancel</button>
-                              </div>
-                            </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px" }}>
-                              {[
-                                ["Make", "make", "text"],
-                                ["Model", "model", "text"],
-                                ["Year", "year", "number"],
-                                ["Serial Number", "serial_number", "text"],
-                                ["Body Style", "body_style", "text"],
-                                ["Finish", "finish", "text"],
-                              ].map(([label, field, type]) => (
-                                <div key={field}>
-                                  <label style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", color: T.txtM, marginBottom: "4px", display: "block" }}>{label}</label>
-                                  <input
-                                    type={type}
-                                    value={editForm[field] || ""}
-                                    onChange={(e) => setEditForm((f) => ({ ...f, [field]: e.target.value }))}
-                                    style={{
-                                      width: "100%", padding: "6px 10px", borderRadius: "6px",
-                                      border: `1px solid ${T.border}`, backgroundColor: T.bgCard,
-                                      color: T.txt, fontSize: "13px", outline: "none",
-                                    }}
-                                  />
-                                </div>
-                              ))}
-                              <div>
-                                <label style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", color: T.txtM, marginBottom: "4px", display: "block" }}>Moderation Status</label>
-                                <select
-                                  value={editForm.moderation_status || "pending"}
-                                  onChange={(e) => setEditForm((f) => ({ ...f, moderation_status: e.target.value }))}
-                                  style={{
-                                    width: "100%", padding: "6px 10px", borderRadius: "6px",
-                                    border: `1px solid ${T.border}`, backgroundColor: T.bgCard,
-                                    color: T.txt, fontSize: "13px", outline: "none",
-                                  }}
-                                >
-                                  <option value="pending">Pending</option>
-                                  <option value="approved">Approved</option>
-                                  <option value="rejected">Rejected</option>
-                                </select>
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
                   </React.Fragment>
                 ))}
               </tbody>
