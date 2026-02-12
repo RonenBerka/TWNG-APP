@@ -160,6 +160,28 @@ function ImageGallery({ images }) {
 // ============================================================
 function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
   const [publishing, setPublishing] = useState(false);
+  const [shared, setShared] = useState(false);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const title = `${instrument.year || ''} ${instrument.make || ''} ${instrument.model || ''}`.trim();
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+    if (isMobile && navigator.share) {
+      try { await navigator.share({ title, url }); return; } catch {}
+    }
+    // Copy to clipboard — use textarea fallback first (most reliable)
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    setShared(true);
+    setTimeout(() => setShared(false), 2000);
+  };
 
   const handlePublish = async () => {
     if (!isOwner) return;
@@ -307,19 +329,25 @@ function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
           {loved ? "Loved" : "Love"}
         </button>
         <button
+          onClick={handleShare}
           style={{
             padding: "12px 16px",
             borderRadius: "10px",
             border: "none",
             cursor: "pointer",
-            backgroundColor: T.bgCard,
-            color: T.txt2,
+            backgroundColor: shared ? `${T.warm}20` : T.bgCard,
+            color: shared ? T.warm : T.txt2,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            gap: "6px",
+            fontSize: "13px",
+            fontWeight: 600,
+            transition: "all 200ms",
           }}
         >
-          <Share2 size={18} />
+          {shared ? <Check size={18} /> : <Share2 size={18} />}
+          {shared ? "Copied!" : ""}
         </button>
       </div>
     </div>

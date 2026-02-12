@@ -13,6 +13,7 @@ import {
   Calendar,
   MessageSquare,
   Star,
+  Check,
 } from "lucide-react";
 import { T } from "../theme/tokens";
 import { useAuth } from "../context/AuthContext";
@@ -394,6 +395,28 @@ export default function TWNGProfile() {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userNotFound, setUserNotFound] = useState(false);
+  const [shared, setShared] = useState(false);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const title = profileUser?.display_name || profileUser?.username || "TWNG Profile";
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+    if (isMobile && navigator.share) {
+      try { await navigator.share({ title, url }); return; } catch {}
+    }
+    // Copy to clipboard — use textarea fallback (most reliable)
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    setShared(true);
+    setTimeout(() => setShared(false), 2000);
+  };
 
   // Follow/count state with graceful fallbacks
   const [followState, setFollowState] = useState({
@@ -837,10 +860,11 @@ export default function TWNGProfile() {
               </button>
             )}
             <button
+              onClick={handleShare}
               style={{
-                backgroundColor: T.bgCard,
-                color: T.txt,
-                border: `1px solid ${T.border}`,
+                backgroundColor: shared ? `${T.warm}20` : T.bgCard,
+                color: shared ? T.warm : T.txt,
+                border: `1px solid ${shared ? T.warm : T.border}`,
                 padding: "10px 20px",
                 borderRadius: "8px",
                 cursor: "pointer",
@@ -853,14 +877,14 @@ export default function TWNGProfile() {
                 transition: "all 0.2s",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = T.bgElev;
+                if (!shared) e.currentTarget.style.backgroundColor = T.bgElev;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = T.bgCard;
+                if (!shared) e.currentTarget.style.backgroundColor = T.bgCard;
               }}
             >
-              <Share2 size={16} />
-              Share
+              {shared ? <Check size={16} /> : <Share2 size={16} />}
+              {shared ? "Copied!" : "Share"}
             </button>
             <button
               style={{
