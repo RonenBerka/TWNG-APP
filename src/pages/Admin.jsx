@@ -2031,6 +2031,9 @@ const UserManagementPage = () => {
                       </div>
                     </TD>
                     <TD>
+                      <span className="text-gray-400 text-xs">{u.email || "—"}</span>
+                    </TD>
+                    <TD>
                       <RoleBadge
                         role={u.role}
                         clickable
