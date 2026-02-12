@@ -99,7 +99,7 @@ export default function GlobalSearchBar() {
     instruments: {
       icon: Zap,
       label: 'Instruments',
-      getPath: (item) => `/instruments/${item.id}`,
+      getPath: (item) => `/instrument/${item.id}`,
       renderTitle: (item) => `${item.make} ${item.model}`,
       renderSubtitle: (item) => item.year ? `${item.year}` : '',
     },

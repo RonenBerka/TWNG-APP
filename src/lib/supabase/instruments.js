@@ -29,9 +29,8 @@ export async function getInstrument(id) {
     .from('instruments')
     .select(INSTRUMENT_SELECT)
     .eq('id', id)
-    .eq('moderation_status', 'approved')
     .is('deleted_at', null)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -57,7 +56,6 @@ export async function getInstruments({
   let query = supabase
     .from('instruments')
     .select(INSTRUMENT_SELECT, { count: 'exact' })
-    .eq('moderation_status', 'approved')
     .is('deleted_at', null);
 
   // Filter archived status
