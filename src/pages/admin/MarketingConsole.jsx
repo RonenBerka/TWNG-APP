@@ -264,7 +264,6 @@ function OutreachModule() {
           supabase
             .from('instruments')
             .select('id, make, model, year, serial_number, moderation_status, created_at, current_owner:current_owner_id(username)')
-            .eq('moderation_status', 'approved')
             .order('created_at', { ascending: false })
             .limit(20),
         ]);

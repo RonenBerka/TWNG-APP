@@ -235,7 +235,6 @@ export async function getFeaturedInstruments(limit = 8) {
       .from('instruments')
       .select('id, make, model, year, main_image_url, current_owner:users!current_owner_id (id, username, display_name, avatar_url)')
       .eq('is_featured', true)
-      .eq('moderation_status', 'approved')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -256,7 +255,6 @@ export async function getRecentlyAddedInstruments(limit = 8) {
     const { data, error } = await supabase
       .from('instruments')
       .select('id, make, model, year, main_image_url, current_owner:users!current_owner_id (id, username, display_name, avatar_url)')
-      .eq('moderation_status', 'approved')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -278,7 +276,6 @@ export async function getTopInstrumentMakes(limit = 8) {
     const { data: instruments, error } = await supabase
       .from('instruments')
       .select('make')
-      .eq('moderation_status', 'approved')
       .is('deleted_at', null);
 
     if (error) throw error;
@@ -359,7 +356,6 @@ export async function getHomepageStats() {
       supabase
         .from('instruments')
         .select('id', { count: 'exact', head: true })
-        .eq('moderation_status', 'approved')
         .is('deleted_at', null),
       supabase
         .from('users')
@@ -367,7 +363,6 @@ export async function getHomepageStats() {
       supabase
         .from('instruments')
         .select('make')
-        .eq('moderation_status', 'approved')
         .is('deleted_at', null),
     ]);
 

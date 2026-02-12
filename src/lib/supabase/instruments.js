@@ -107,9 +107,8 @@ export async function getInstrumentPrimaryImage(instrumentId) {
     .from('instruments')
     .select('main_image_url')
     .eq('id', instrumentId)
-    .eq('moderation_status', 'approved')
     .is('deleted_at', null)
-    .single();
+    .maybeSingle();
 
   if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
   return data?.main_image_url || null;
@@ -122,7 +121,6 @@ export async function getMakes() {
   const { data, error } = await supabase
     .from('instruments')
     .select('make')
-    .eq('moderation_status', 'approved')
     .is('deleted_at', null)
     .eq('is_archived', false)
     .order('make');
@@ -145,7 +143,6 @@ export async function getInstrumentCountByMake() {
     const { data: instruments, error: err2 } = await supabase
       .from('instruments')
       .select('make')
-      .eq('moderation_status', 'approved')
       .is('deleted_at', null)
       .eq('is_archived', false);
 

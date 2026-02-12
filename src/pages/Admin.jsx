@@ -830,7 +830,7 @@ const DashboardPage = () => {
         />
         <StatCard
           label="Instruments"
-          value={stats?.totalGuitars}
+          value={stats?.totalInstruments}
           icon={Guitar}
           loading={loading}
         />
@@ -868,8 +868,9 @@ const DashboardPage = () => {
         ) : (
           <div className="space-y-0">
             {activity.map((item) => {
-              const cat = getActionCategory(item.action);
+              const cat = getActionCategory(item.type || item.action);
               const Icon = actionIcons[cat] || Activity;
+              const typeLabel = (item.type || '').replace(/_/g, ' ');
               return (
                 <div
                   key={item.id}
@@ -881,16 +882,11 @@ const DashboardPage = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p style={{ color: T.txt }} className="text-sm font-medium">
-                      {item.actor_type === "system"
-                        ? "System"
-                        : item.actor_id?.slice(0, 8) || "Unknown"}
+                      {item.label || typeLabel || "Activity"}
                     </p>
-                    <p style={{ color: T.txt2 }} className="text-sm">
-                      {item.action}
-                    </p>
-                    {item.entity_type && (
+                    {item.target_type && (
                       <p style={{ color: T.txtM }} className="text-xs">
-                        {item.entity_type} {item.entity_id?.slice(0, 8)}
+                        {item.target_type}
                       </p>
                     )}
                   </div>
@@ -4613,7 +4609,7 @@ const KPIDashboardPage = () => {
         />
         <StatCard
           label="Total Guitars"
-          value={stats?.totalGuitars}
+          value={stats?.totalInstruments}
           icon={Guitar}
           loading={false}
         />
@@ -4644,7 +4640,7 @@ const KPIDashboardPage = () => {
             marginBottom: "6px",
           }}
         >
-          {Math.floor((stats?.totalGuitars || 0) / 4)}
+          {Math.floor((stats?.totalInstruments || 0) / 4)}
         </h2>
         <p style={{ color: T.txt2, fontSize: "15px" }}>
           Guitars Documented Per Week (estimated)
