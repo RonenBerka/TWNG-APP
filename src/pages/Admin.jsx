@@ -2487,9 +2487,7 @@ const InstrumentManagementPage = () => {
             model: guitar.model,
             year: guitar.year,
             serialNumber: guitar.serial_number,
-            bodyStyle: guitar.body_style,
-            finish: guitar.finish,
-            specifications: guitar.specifications,
+            specifications: guitar.specs || {},
             photoUrls,
           }),
         },
@@ -2533,9 +2531,7 @@ const InstrumentManagementPage = () => {
       model: guitar.model || "",
       year: guitar.year || "",
       serial_number: guitar.serial_number || "",
-      body_style: guitar.body_style || "",
-      finish: guitar.finish || "",
-      state: guitar.state || "draft",
+      moderation_status: guitar.moderation_status || "pending",
     });
   };
 
@@ -2549,9 +2545,7 @@ const InstrumentManagementPage = () => {
           model: editForm.model,
           year: editForm.year ? parseInt(editForm.year) : null,
           serial_number: editForm.serial_number || null,
-          body_style: editForm.body_style || null,
-          finish: editForm.finish || null,
-          moderation_status: editForm.state,
+          moderation_status: editForm.moderation_status,
           updated_at: new Date().toISOString(),
         })
         .eq("id", guitarId);
@@ -2638,7 +2632,7 @@ const InstrumentManagementPage = () => {
                       </TD>
                       <TD mono>{g.serial_number || "—"}</TD>
                       <TD>{g.year || "—"}</TD>
-                      <TD>{g.owner?.username || "—"}</TD>
+                      <TD>{g.current_owner?.username || "—"}</TD>
                       <TD>
                         <StatusBadge status={g.moderation_status} />
                       </TD>
@@ -2714,13 +2708,10 @@ const InstrumentManagementPage = () => {
                                 ["Model", g.model],
                                 ["Year", g.year || "—"],
                                 ["Serial Number", g.serial_number || "—"],
-                                ["Body Style", g.body_style || "—"],
-                                ["Finish", g.finish || "—"],
-                                ["State", g.state],
-                                ["Owner", g.owner?.username || "—"],
+                                ["Moderation Status", g.moderation_status],
+                                ["Owner", g.current_owner?.username || "—"],
                                 ["Created", formatDate(g.created_at)],
                                 ["Updated", formatDate(g.updated_at)],
-                                ["Country of Origin", g.country_of_origin || "—"],
                                 ["ID", g.id],
                               ].map(([label, value]) => (
                                 <div key={label}>
@@ -2729,11 +2720,11 @@ const InstrumentManagementPage = () => {
                                 </div>
                               ))}
                             </div>
-                            {g.specifications && Object.keys(g.specifications).length > 0 && (
+                            {g.specs && Object.keys(g.specs).length > 0 && (
                               <div style={{ marginTop: "16px" }}>
                                 <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", color: T.txtM, marginBottom: "6px" }}>Specifications</div>
                                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "8px" }}>
-                                  {Object.entries(g.specifications).map(([k, v]) => (
+                                  {Object.entries(g.specs).map(([k, v]) => (
                                     <div key={k} style={{ fontSize: "12px" }}>
                                       <span style={{ color: T.txt2 }}>{k}: </span>
                                       <span style={{ color: T.txt }}>{String(v)}</span>
@@ -2793,20 +2784,19 @@ const InstrumentManagementPage = () => {
                                 </div>
                               ))}
                               <div>
-                                <label style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", color: T.txtM, marginBottom: "4px", display: "block" }}>State</label>
+                                <label style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", color: T.txtM, marginBottom: "4px", display: "block" }}>Moderation Status</label>
                                 <select
-                                  value={editForm.state || "draft"}
-                                  onChange={(e) => setEditForm((f) => ({ ...f, state: e.target.value }))}
+                                  value={editForm.moderation_status || "pending"}
+                                  onChange={(e) => setEditForm((f) => ({ ...f, moderation_status: e.target.value }))}
                                   style={{
                                     width: "100%", padding: "6px 10px", borderRadius: "6px",
                                     border: `1px solid ${T.border}`, backgroundColor: T.bgCard,
                                     color: T.txt, fontSize: "13px", outline: "none",
                                   }}
                                 >
-                                  <option value="draft">Draft</option>
-                                  <option value="published">Published</option>
-                                  <option value="archived">Archived</option>
-                                  <option value="pending_transfer">Pending Transfer</option>
+                                  <option value="pending">Pending</option>
+                                  <option value="approved">Approved</option>
+                                  <option value="rejected">Rejected</option>
                                 </select>
                               </div>
                             </div>
@@ -2845,8 +2835,8 @@ const TransferManagementPage = () => {
         status: statusFilter,
         transferType: typeFilter,
       });
-      setTransfers(res.transfers);
-      setTotal(res.total);
+      setTransfers(res.transfers || []);
+      setTotal(res.total || 0);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -2915,7 +2905,7 @@ const TransferManagementPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {transfers.map((t) => (
+                {(transfers || []).map((t) => (
                   <TR key={t.id}>
                     <TD>
                       <span
@@ -2937,9 +2927,9 @@ const TransferManagementPage = () => {
                         "External"}
                     </TD>
                     <TD>
-                      {t.guitar
-                        ? `${t.guitar.make} ${t.guitar.model}`
-                        : t.ie_id?.slice(0, 8)}
+                      {(t.instrument || t.guitar)
+                        ? `${(t.instrument || t.guitar).make} ${(t.instrument || t.guitar).model}`
+                        : t.instrument_id?.slice(0, 8) || t.ie_id?.slice(0, 8)}
                     </TD>
                     <TD>
                       <StatusBadge status={t.status} />
@@ -2997,8 +2987,8 @@ const ContentModerationPage = () => {
         getAdminArticles(),
         getAdminDiscussions(),
       ]);
-      setArticles(artRes.articles);
-      setDiscussions(discRes.posts);
+      setArticles(artRes.articles || []);
+      setDiscussions(discRes.threads || discRes.posts || []);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -3029,8 +3019,8 @@ const ContentModerationPage = () => {
   };
 
   const tabs = [
-    { id: "articles", label: `Articles (${articles.length})` },
-    { id: "discussions", label: `Discussions (${discussions.length})` },
+    { id: "articles", label: `Articles (${(articles || []).length})` },
+    { id: "discussions", label: `Discussions (${(discussions || []).length})` },
   ];
 
   return (
@@ -3137,7 +3127,7 @@ const ContentModerationPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {articles.map((a) => (
+                    {(articles || []).map((a) => (
                       <tr
                         key={a.id}
                         style={{ borderColor: T.border }}
@@ -3200,11 +3190,11 @@ const ContentModerationPage = () => {
             ))}
 
           {activeTab === "discussions" &&
-            (discussions.length === 0 ? (
+            ((discussions || []).length === 0 ? (
               <EmptyState message="No discussion posts yet" icon={FileText} />
             ) : (
               <div className="space-y-3">
-                {discussions.map((d) => (
+                {(discussions || []).map((d) => (
                   <div
                     key={d.id}
                     style={{
@@ -3286,8 +3276,8 @@ const LuthierManagementPage = () => {
     setError(null);
     try {
       const res = await getAdminLuthiers();
-      setLuthiers(res.luthiers);
-      setTotal(res.total);
+      setLuthiers(res.luthiers || []);
+      setTotal(res.total || 0);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -3876,8 +3866,8 @@ const AuditLogsPage = () => {
     setError(null);
     try {
       const res = await getAuditLogs({ category, search });
-      setLogs(res.logs);
-      setTotal(res.total);
+      setLogs(res.data || res.logs || []);
+      setTotal(res.count || res.total || 0);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -3939,7 +3929,7 @@ const AuditLogsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {logs.map((log) => (
+                {(logs || []).map((log) => (
                   <TR key={log.id}>
                     <TD mono>{formatDateTime(log.created_at)}</TD>
                     <TD>

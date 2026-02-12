@@ -1516,7 +1516,6 @@ const BlockEditor = ({
             padding: '16px 16px 16px 16px',
             borderLeft: `4px solid #D97706`,
             border: 'none',
-            borderLeft: `4px solid #D97706`,
             background: 'transparent',
             color: T.txt,
             fontSize: '16px',

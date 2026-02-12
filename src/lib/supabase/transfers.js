@@ -44,7 +44,7 @@ export async function initiateTransfer({
     .select(`
       *,
       instrument:instrument_id ( id, make, model, year, serial_number ),
-      to_owner:to_owner_id ( id, username )
+      to_owner:to_owner_id ( id, username, display_name )
     `)
     .single();
 
@@ -168,7 +168,7 @@ export async function getMyTransfers() {
     .select(`
       *,
       instrument:instrument_id ( id, make, model, year ),
-      to_owner:to_owner_id ( id, username )
+      to_owner:to_owner_id ( id, username, display_name )
     `)
     .eq('from_owner_id', user.id)
     .order('created_at', { ascending: false });
@@ -181,7 +181,7 @@ export async function getMyTransfers() {
     .select(`
       *,
       instrument:instrument_id ( id, make, model, year ),
-      from_owner:from_owner_id ( id, username )
+      from_owner:from_owner_id ( id, username, display_name )
     `)
     .eq('to_owner_id', user.id)
     .order('created_at', { ascending: false });
@@ -200,8 +200,8 @@ export async function getTransfer(transferId) {
     .select(`
       *,
       instrument:instrument_id ( id, make, model, year ),
-      from_owner:from_owner_id ( id, username ),
-      to_owner:to_owner_id ( id, username )
+      from_owner:from_owner_id ( id, username, display_name ),
+      to_owner:to_owner_id ( id, username, display_name )
     `)
     .eq('id', transferId)
     .single();
@@ -218,7 +218,7 @@ export async function searchUsers(query) {
 
   const { data, error } = await supabase
     .from('users')
-    .select('id, username, avatar_url')
+    .select('id, username, display_name, avatar_url')
     .ilike('username', `%${query}%`)
     .limit(10);
 
@@ -236,11 +236,50 @@ export async function declineTransfer(transferId, reason = null) {
 
 /**
  * Expire overdue transfers (mark as expired if past deadline).
- * This is a placeholder for legacy compatibility.
+ * Transfers older than 7 days in 'pending' status are marked as 'expired'.
+ *
+ * This is now implemented via a proper database query.
+ * For the admin endpoint, import and use the function from admin.js instead.
  */
 export async function expireOverdueTransfers() {
-  // Legacy stub - no longer used with new schema
-  return { success: true, expired: [] };
+  try {
+    // Calculate the date 7 days ago
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const cutoffDate = sevenDaysAgo.toISOString();
+
+    // Fetch all pending transfers older than 7 days
+    const { data: overdueTransfers, error: fetchError } = await supabase
+      .from('ownership_transfers')
+      .select('*')
+      .eq('status', 'pending')
+      .lt('created_at', cutoffDate);
+
+    if (fetchError) throw fetchError;
+
+    if (!overdueTransfers || overdueTransfers.length === 0) {
+      return { success: true, expired: [], count: 0 };
+    }
+
+    // Prepare updates for each overdue transfer
+    const updates = overdueTransfers.map(transfer => ({
+      id: transfer.id,
+      status: 'expired',
+      updated_at: new Date().toISOString(),
+    }));
+
+    // Batch update all overdue transfers
+    const { error: updateError } = await supabase
+      .from('ownership_transfers')
+      .upsert(updates, { onConflict: 'id' });
+
+    if (updateError) throw updateError;
+
+    return { success: true, expired: overdueTransfers, count: overdueTransfers.length };
+  } catch (error) {
+    console.error('Error expiring overdue transfers:', error);
+    return { success: false, expired: [], count: 0 };
+  }
 }
 
 // ============================================================================
@@ -280,8 +319,8 @@ export async function getTransferHistory(instrumentId) {
     .from('ownership_transfers')
     .select(`
       *,
-      from_owner:from_owner_id ( id, username ),
-      to_owner:to_owner_id ( id, username )
+      from_owner:from_owner_id ( id, username, display_name ),
+      to_owner:to_owner_id ( id, username, display_name )
     `)
     .eq('instrument_id', instrumentId)
     .in('status', ['completed', 'rejected', 'cancelled'])

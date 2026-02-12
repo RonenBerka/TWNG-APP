@@ -521,9 +521,8 @@ export default function TWNGMessaging() {
           {/* Error message */}
           {error && (
             <div
-              style={{ backgroundColor: T.bgCard, color: T.txt }}
+              style={{ backgroundColor: T.bgCard, color: T.txt, borderColor: T.border }}
               className="mx-4 mt-4 p-3 rounded-lg border flex items-gap-2 gap-2"
-              style={{ borderColor: T.border }}
             >
               <AlertCircle size={16} style={{ color: T.warm }} className="flex-shrink-0" />
               <p className="text-sm">{error}</p>
@@ -649,9 +648,8 @@ export default function TWNGMessaging() {
         {/* Error message */}
         {error && (
           <div
-            style={{ backgroundColor: T.bgCard, color: T.txt }}
+            style={{ backgroundColor: T.bgCard, color: T.txt, borderColor: T.border }}
             className="mx-4 mt-4 p-3 rounded-lg border flex items-center gap-2"
-            style={{ borderColor: T.border }}
           >
             <AlertCircle size={16} style={{ color: T.warm }} className="flex-shrink-0" />
             <p className="text-sm">{error}</p>
@@ -803,9 +801,8 @@ export default function TWNGMessaging() {
         {/* Error message */}
         {error && (
           <div
-            style={{ backgroundColor: T.bgCard, color: T.txt }}
+            style={{ backgroundColor: T.bgCard, color: T.txt, borderColor: T.border }}
             className="mx-4 mt-4 p-3 rounded-lg border flex items-center gap-2"
-            style={{ borderColor: T.border }}
           >
             <AlertCircle size={16} style={{ color: T.warm }} className="flex-shrink-0" />
             <p className="text-sm flex-1">{error}</p>
@@ -940,9 +937,8 @@ export default function TWNGMessaging() {
             {/* Error message */}
             {error && (
               <div
-                style={{ backgroundColor: T.bgCard, color: T.txt }}
+                style={{ backgroundColor: T.bgCard, color: T.txt, borderColor: T.border }}
                 className="mx-6 mt-4 p-3 rounded-lg border flex items-center gap-2"
-                style={{ borderColor: T.border }}
               >
                 <AlertCircle size={16} style={{ color: T.warm }} className="flex-shrink-0" />
                 <p className="text-sm">{error}</p>

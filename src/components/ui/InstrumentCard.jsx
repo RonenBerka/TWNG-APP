@@ -10,11 +10,13 @@ export default function InstrumentCard({ instrument, compact = false }) {
     model,
     year,
     main_image_url,
-    condition,
-    instrument_type,
     current_owner,
-    is_featured
+    is_featured,
+    custom_fields = {}
   } = instrument;
+
+  const condition = custom_fields.condition;
+  const instrument_type = custom_fields.instrument_type;
 
   return (
     <Link to={`/instrument/${id}`} style={{ textDecoration: "none", color: "inherit" }}>

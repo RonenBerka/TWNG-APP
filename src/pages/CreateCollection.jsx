@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { T } from "../theme/tokens";
 import { useAuth } from "../context/AuthContext";
-import { createCollection } from "../lib/supabase/collections";
+import { createCollection, addInstrumentToCollection } from "../lib/supabase/collections";
 
 /* ─── Instrument Search Modal ──────────────────────────────────────── */
 function InstrumentPickerModal({ isOpen, onClose, onAdd, selectedIds }) {
@@ -430,10 +430,10 @@ export default function CreateCollection() {
         is_public: formData.isPublic,
       });
 
-      // TODO: Add instruments to collection once created
-      // for (const [instrumentId, instrument] of selectedInstruments) {
-      //   await addInstrumentToCollection(newCollection.id, instrumentId);
-      // }
+      // Add instruments to collection once created
+      for (const [instrumentId] of selectedInstruments) {
+        await addInstrumentToCollection(newCollection.id, instrumentId);
+      }
 
       navigate(`/collections/${newCollection.id}`);
     } catch (err) {

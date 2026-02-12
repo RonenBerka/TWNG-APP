@@ -25,7 +25,7 @@ export async function getComments(targetType, targetId, options = {}) {
   try {
     let query = supabase
       .from('comments')
-      .select('*, author:user_id (id, username, avatar_url, is_verified)')
+      .select('*, author:user_id (id, username, display_name, avatar_url, is_verified)')
       .eq('target_type', targetType)
       .eq('target_id', targetId);
 
@@ -59,7 +59,7 @@ export async function getCommentThread(commentId) {
     // Get parent comment
     const { data: parent, error: parentErr } = await supabase
       .from('comments')
-      .select('*, author:user_id (id, username, avatar_url, is_verified)')
+      .select('*, author:user_id (id, username, display_name, avatar_url, is_verified)')
       .eq('id', commentId)
       .single();
 
@@ -69,7 +69,7 @@ export async function getCommentThread(commentId) {
     // Get all replies
     const { data: replies, error: repliesErr } = await supabase
       .from('comments')
-      .select('*, author:user_id (id, username, avatar_url, is_verified)')
+      .select('*, author:user_id (id, username, display_name, avatar_url, is_verified)')
       .eq('parent_comment_id', commentId)
       .order('created_at', { ascending: true });
 
@@ -159,7 +159,7 @@ export async function createComment(commentData) {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .select('*, author:user_id (id, username, avatar_url, is_verified)')
+      .select('*, author:user_id (id, username, display_name, avatar_url, is_verified)')
       .single();
 
     if (error) throw error;
@@ -215,7 +215,7 @@ export async function updateComment(commentId, updates) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', commentId)
-      .select('*, author:user_id (id, username, avatar_url, is_verified)')
+      .select('*, author:user_id (id, username, display_name, avatar_url, is_verified)')
       .single();
 
     if (error) throw error;

@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TWNG Email Template Gallery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0a0a;
+            --bg-card: #292524;
+            --accent: #D97706;
+            --text-primary: #FAFAF9;
+            --text-secondary: #A3A3A3;
+            --border: #44403C;
+            --footer: #78716C;
+            --brand-bg: #1C1917;
+            --font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, var(--brand-bg) 0%, #1a1816 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title .accent {
+            color: var(--accent);
+        }
+
+        .template-count {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            background: rgba(217, 119, 6, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--accent);
+        }
+
+        /* Main Container */
+        .container {
+            display: flex;
+            max-width: 1600px;
+            margin: 0 auto;
+            min-height: calc(100vh - 100px);
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: sticky;
+            top: 100px;
+            width: 280px;
+            height: calc(100vh - 100px);
+            background: var(--brand-bg);
+            border-right: 1px solid var(--border);
+            padding: 2rem 1.5rem;
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            margin-bottom: 2rem;
+        }
+
+        .sidebar-section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .sidebar-link {
+            display: block;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 6px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-link:hover {
+            background-color: rgba(217, 119, 6, 0.1);
+            border-left-color: var(--accent);
+            padding-left: 1.2rem;
+        }
+
+        .sidebar-link.active {
+            background-color: rgba(217, 119, 6, 0.2);
+            border-left-color: var(--accent);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        /* Category Section */
+        .category-section {
+            margin-bottom: 4rem;
+            scroll-margin-top: 120px;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .category-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            font-weight: 700;
+        }
+
+        .category-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .category-desc {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-left: auto;
+        }
+
+        /* Email Template Card */
+        .template-card {
+            margin-bottom: 3rem;
+            scroll-margin-top: 120px;
+        }
+
+        .template-label {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+        }
+
+        .template-badge {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .template-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .template-subject {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-style: italic;
+            margin-left: auto;
+        }
+
+        /* Email Container */
+        .email-container {
+            width: 620px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Email Header */
+        .email-header {
+            background: var(--brand-bg);
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .email-logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .email-logo .twng {
+            color: var(--text-primary);
+        }
+
+        .email-logo .accent {
+            color: var(--accent);
+        }
+
+        .email-tagline {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Email Content */
+        .email-body {
+            padding: 2.5rem 2rem;
+        }
+
+        .email-greeting {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            line-height: 1.4;
+        }
+
+        .email-content {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            line-height: 1.7;
+            margin-bottom: 2rem;
+        }
+
+        .email-content p {
+            margin-bottom: 1rem;
+        }
+
+        .email-content strong {
+            color: var(--accent);
+        }
+
+        .email-highlight {
+            background: rgba(217, 119, 6, 0.1);
+            border-left: 3px solid var(--accent);
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        /* CTA Button */
+        .email-cta {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 0.85rem 2rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background: #dc8015;
+            transform: translateY(-2px);
+        }
+
+        .email-cta-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.8rem;
+        }
+
+        /* Email Footer */
+        .email-footer {
+            background: var(--brand-bg);
+            padding: 1.5rem 2rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.8rem;
+            color: var(--footer);
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .email-footer-content {
+            margin-bottom: 1rem;
+        }
+
+        .email-footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .email-footer-link {
+            color: var(--footer);
+            text-decoration: none;
+            font-size: 0.75rem;
+        }
+
+        .email-footer-link:hover {
+            color: var(--accent);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--brand-bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 200px;
+            }
+
+            .email-container {
+                width: 100%;
+                max-width: 600px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                padding: 1.5rem;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 2rem;
+                overflow-y: visible;
+            }
+
+            .sidebar-section {
+                flex: 1;
+                min-width: 200px;
+                margin-bottom: 0;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .email-container {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <h1 class="header-title"><span class="accent">TWNG</span> Email Template Gallery</h1>
+            <div class="template-count">17 Email Templates</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Welcome Sequence</div>
+                <a class="sidebar-link" href="#welcome-email-1" onclick="setActive(event)">Welcome</a>
+                <a class="sidebar-link" href="#welcome-email-2" onclick="setActive(event)">Complete Profile</a>
+                <a class="sidebar-link" href="#welcome-email-3" onclick="setActive(event)">Add First Guitar</a>
+                <a class="sidebar-link" href="#welcome-email-4" onclick="setActive(event)">Explore & Connect</a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Claim Process</div>
+                <a class="sidebar-link" href="#claim-email-1" onclick="setActive(event)">Claim Confirmed</a>
+                <a class="sidebar-link" href="#claim-email-2" onclick="setActive(event)">Add Photos & Story</a>
+                <a class="sidebar-link" href="#claim-email-3" onclick="setActive(event)">Share Collection</a>
+                <a class="sidebar-link" href="#claim-email-4" onclick="setActive(event)">Invite Collectors</a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Re-engagement</div>
+                <a class="sidebar-link" href="#reeng-email-1" onclick="setActive(event)">We Miss You</a>
+                <a class="sidebar-link" href="#reeng-email-2" onclick="setActive(event)">New in Your Brand</a>
+                <a class="sidebar-link" href="#reeng-email-3" onclick="setActive(event)">Featured Spotlight</a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Authentication</div>
+                <a class="sidebar-link" href="#auth-email-1" onclick="setActive(event)">Confirm Signup</a>
+                <a class="sidebar-link" href="#auth-email-2" onclick="setActive(event)">Magic Link</a>
+                <a class="sidebar-link" href="#auth-email-3" onclick="setActive(event)">Reset Password</a>
+                <a class="sidebar-link" href="#auth-email-4" onclick="setActive(event)">Change Email</a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Transactional</div>
+                <a class="sidebar-link" href="#trans-email-1" onclick="setActive(event)">Claim Denied</a>
+                <a class="sidebar-link" href="#trans-email-2" onclick="setActive(event)">Claim Pending Review</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Category 1: Welcome Sequence -->
+            <section class="category-section" id="welcome-section">
+                <div class="category-header">
+                    <div class="category-number">1</div>
+                    <h2 class="category-title">Welcome Sequence</h2>
+                    <span class="category-desc">4 emails</span>
+                </div>
+
+                <!-- Email 1: Welcome -->
+                <div class="template-card" id="welcome-email-1">
+                    <div class="template-label">
+                        <span class="template-badge">Welcome</span>
+                        <span class="template-name">Welcome</span>
+                        <span class="template-subject">"Welcome to TWNG — Your guitars have been waiting for this"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Welcome to TWNG, JohnGuitarDude</div>
+                            <div class="email-content">
+                                <p>We're thrilled to have you join our community of guitar enthusiasts, collectors, and musicians.</p>
+                                <p>TWNG is the digital home for your guitars. Document, share, and connect with musicians who share your passion. Whether you're protecting your collection or discovering new inspiration, you're in the right place.</p>
+                                <div class="email-highlight">
+                                    <strong>What's next?</strong> In the next 5 minutes, we'll help you set up your profile and document your first guitar.
+                                </div>
+                                <p>Your journey starts now. Let's make sure every guitar in your collection is remembered.</p>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Get Started</button>
+                                <div class="email-cta-subtitle">Complete setup in ~5 minutes</div>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email 2: Complete Profile -->
+                <div class="template-card" id="welcome-email-2">
+                    <div class="template-label">
+                        <span class="template-badge">Welcome</span>
+                        <span class="template-name">Complete Profile</span>
+                        <span class="template-subject">"One quick thing — let's set up your profile"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">One more thing, JohnGuitarDude</div>
+                            <div class="email-content">
+                                <p>Your account is ready, but let's complete your profile to help the community get to know you.</p>
+                                <p>Tell us a bit about yourself:</p>
+                                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                                    <li>Your favorite guitar brands</li>
+                                    <li>What draws you to collecting</li>
+                                    <li>A profile photo (optional, but recommended)</li>
+                                </ul>
+                                <p>A complete profile helps you connect with other collectors who share your taste and interests.</p>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Complete Your Profile</button>
+                                <div class="email-cta-subtitle">Takes about 2 minutes</div>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email 3: Add First Guitar -->
+                <div class="template-card" id="welcome-email-3">
+                    <div class="template-label">
+                        <span class="template-badge">Welcome</span>
+                        <span class="template-name">Add First Guitar</span>
+                        <span class="template-subject">"Ready to document your first guitar?"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Ready to document your first guitar?</div>
+                            <div class="email-content">
+                                <p>Every guitar has a story. At TWNG, your collection is preserved digitally forever.</p>
+                                <p>Adding your first guitar takes just a few minutes:</p>
+                                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                                    <li>Select the brand and model</li>
+                                    <li>Add photos and specs</li>
+                                    <li>Tell its story</li>
+                                </ul>
+                                <div class="email-highlight">
+                                    Your guitars deserve to be documented. Let's start with the one that matters most.
+                                </div>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Add Your First Guitar</button>
+                                <div class="email-cta-subtitle">~3 minutes to complete</div>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email 4: Explore & Connect -->
+                <div class="template-card" id="welcome-email-4">
+                    <div class="template-label">
+                        <span class="template-badge">Welcome</span>
+                        <span class="template-name">Explore & Connect</span>
+                        <span class="template-subject">"12,400+ guitars documented — find your next obsession"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Your profile is set. Now explore.</div>
+                            <div class="email-content">
+                                <p>Over <strong>12,400 guitars</strong> are documented on TWNG right now—and counting.</p>
+                                <p>Discover:</p>
+                                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                                    <li>Rare vintage finds from around the world</li>
+                                    <li>Collections from passionate musicians</li>
+                                    <li>Stories from fellow collectors like you</li>
+                                </ul>
+                                <div class="email-highlight">
+                                    Join the conversation. Follow collectors, comment on guitars, and build your network.
+                                </div>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Explore the Community</button>
+                                <div class="email-cta-subtitle">See what collectors are documenting</div>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Category 2: Claim Process -->
+            <section class="category-section" id="claim-section">
+                <div class="category-header">
+                    <div class="category-number">2</div>
+                    <h2 class="category-title">Claim Process</h2>
+                    <span class="category-desc">4 emails</span>
+                </div>
+
+                <!-- Email 1: Claim Confirmed -->
+                <div class="template-card" id="claim-email-1">
+                    <div class="template-label">
+                        <span class="template-badge">Claim</span>
+                        <span class="template-name">Claim Confirmed</span>
+                        <span class="template-subject">"It's official — your Gibson Les Paul is now yours on TWNG"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Claim Confirmed!</div>
+                            <div class="email-content">
+                                <p>Congratulations, JohnGuitarDude! Your <strong>Gibson Les Paul Standard</strong> is now officially yours on TWNG.</p>
+                                <div class="email-highlight">
+                                    Your guitar is protected and documented. Only you can edit or remove it.
+                                </div>
+                                <p>What happens next:</p>
+                                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                                    <li>Add high-quality photos</li>
+                                    <li>Write the guitar's story</li>
+                                    <li>Share with the community</li>
+                                </ul>
+                                <p>The more details you add, the more value your guitar has on TWNG.</p>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">View Your Gibson Les Paul</button>
+                                <div class="email-cta-subtitle">Add photos and details now</div>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email 2: Add Photos & Story -->
+                <div class="template-card" id="claim-email-2">
+                    <div class="template-label">
+                        <span class="template-badge">Claim</span>
+                        <span class="template-name">Add Photos & Story</span>
+                        <span class="template-subject">"Your Gibson Les Paul is waiting for its story"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Add the story behind your Gibson Les Paul</div>
+                            <div class="email-content">
+                                <p>A guitar with photos and a story is 10x more valuable than one without.</p>
+                                <p>Here's what other collectors do:</p>
+                                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                                    <li>📸 Add 4-6 high-quality photos (front, back, headstock, details)</li>
+                                    <li>📝 Write a 2-3 sentence story (how you got it, why it matters)</li>
+                                    <li>🎸 Add specs (year, color, serial number)</li>
+                                </ul>
+                                <div class="email-highlight">
+                                    Pro tip: Collectors with detailed guitars get more engagement and followers.
+                                </div>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Add Photos & Story</button>
+                                <div class="email-cta-subtitle">Takes about 5 minutes</div>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email 3: Share Collection -->
+                <div class="template-card" id="claim-email-3">
+                    <div class="template-label">
+                        <span class="template-badge">Claim</span>
+                        <span class="template-name">Share Collection</span>
+                        <span class="template-subject">"Your collection is looking good"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Your collection is looking great!</div>
+                            <div class="email-content">
+                                <p>You now have 3 guitars documented on TWNG. Your collection is taking shape.</p>
+                                <p>Some collectors are sharing their collections publicly and building a following. Here's why it matters:</p>
+                                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                                    <li>Other musicians discover your taste</li>
+                                    <li>Build relationships with fellow collectors</li>
+                                    <li>Establish yourself as a trusted voice in the community</li>
+                                </ul>
+                                <div class="email-highlight">
+                                    Your profile is 65% complete. One more guitar documented and you'll hit top-tier status.
+                                </div>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">View Your Collection</button>
+                                <div class="email-cta-subtitle">See how it looks to others</div>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email 4: Invite Collectors -->
+                <div class="template-card" id="claim-email-4">
+                    <div class="template-label">
+                        <span class="template-badge">Claim</span>
+                        <span class="template-name">Invite Collectors</span>
+                        <span class="template-subject">"Know someone who'd love this?"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Grow the community together</div>
+                            <div class="email-content">
+                                <p>TWNG is only as good as our community. Do you know other collectors, musicians, or enthusiasts who'd love to document their guitars?</p>
+                                <p>Share your invite link and help grow the platform. When your friends join, they'll see your collection first.</p>
+                                <div class="email-highlight">
+                                    <strong>Your invite link:</strong> twng.io/join/guitarman2024
+                                </div>
+                                <p>Inviting friends helps everyone discover great guitars and connect with passionate collectors.</p>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Copy Invite Link</button>
+                                <div class="email-cta-subtitle">Share with musicians you know</div>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Category 3: Re-engagement -->
+            <section class="category-section" id="reeng-section">
+                <div class="category-header">
+                    <div class="category-number">3</div>
+                    <h2 class="category-title">Re-engagement</h2>
+                    <span class="category-desc">3 emails</span>
+                </div>
+
+                <!-- Email 1: We Miss You -->
+                <div class="template-card" id="reeng-email-1">
+                    <div class="template-label">
+                        <span class="template-badge">Re-engagement</span>
+                        <span class="template-name">We Miss You</span>
+                        <span class="template-subject">"Your guitars miss you"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">We miss you, JohnGuitarDude</div>
+                            <div class="email-content">
+                                <p>It's been a while since you've visited TWNG. Your guitars are still here, waiting for you.</p>
+                                <p>While you were away, the community has been active:</p>
+                                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                                    <li>🎸 234 new guitars documented</li>
+                                    <li>👥 18 collectors started following you</li>
+                                    <li>💬 5 new comments on your collection</li>
+                                </ul>
+                                <div class="email-highlight">
+                                    Come back and see what's new in the community.
+                                </div>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Welcome Back</button>
+                                <div class="email-cta-subtitle">See what's changed</div>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email 2: New in Your Brand -->
+                <div class="template-card" id="reeng-email-2">
+                    <div class="template-label">
+                        <span class="template-badge">Re-engagement</span>
+                        <span class="template-name">New in Your Brand</span>
+                        <span class="template-subject">"New Fender guitars just documented"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">New Fenders on TWNG</div>
+                            <div class="email-content">
+                                <p>Since you last logged in, collectors have documented 12 new Fender guitars.</p>
+                                <p>Some highlights:</p>
+                                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                                    <li>1965 Fender Stratocaster Sonic Blue</li>
+                                    <li>1972 Fender Telecaster Butterscotch</li>
+                                    <li>2020 Fender Custom Shop Telecaster</li>
+                                </ul>
+                                <div class="email-highlight">
+                                    Vintage gems are being documented every day. Check out the latest Fender collection.
+                                </div>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Browse New Fenders</button>
+                                <div class="email-cta-subtitle">See the latest additions</div>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email 3: Featured Spotlight -->
+                <div class="template-card" id="reeng-email-3">
+                    <div class="template-label">
+                        <span class="template-badge">Re-engagement</span>
+                        <span class="template-name">Featured Spotlight</span>
+                        <span class="template-subject">"This collector's story might inspire you"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Meet Sarah Mitchell — Collector Spotlight</div>
+                            <div class="email-content">
+                                <p>Every week, we feature a collector from our community. This week's spotlight is Sarah Mitchell.</p>
+                                <p>Sarah has documented 24 guitars, including a rare 1959 Gibson Les Paul that took 15 years to acquire. In her own words:</p>
+                                <div class="email-highlight">
+                                    "TWNG helped me find two guitars I didn't know existed. The community here is incredibly knowledgeable and supportive."
+                                </div>
+                                <p>Want to be featured? Document your guitars and tell their stories. The best collectors are featured on our homepage.</p>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Read Sarah's Story</button>
+                                <div class="email-cta-subtitle">See her full collection</div>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Category 4: Authentication -->
+            <section class="category-section" id="auth-section">
+                <div class="category-header">
+                    <div class="category-number">4</div>
+                    <h2 class="category-title">Authentication</h2>
+                    <span class="category-desc">4 emails</span>
+                </div>
+
+                <!-- Email 1: Confirm Signup -->
+                <div class="template-card" id="auth-email-1">
+                    <div class="template-label">
+                        <span class="template-badge">Auth</span>
+                        <span class="template-name">Confirm Signup</span>
+                        <span class="template-subject">"Confirm your email for TWNG"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Welcome! Confirm your email</div>
+                            <div class="email-content">
+                                <p>Thanks for signing up to TWNG. To get started, please confirm your email address.</p>
+                                <div class="email-highlight">
+                                    This link expires in 24 hours.
+                                </div>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Confirm Email Address</button>
+                            </div>
+                            <div class="email-content" style="margin-top: 1.5rem; font-size: 0.85rem;">
+                                <p>If you didn't create a TWNG account, you can ignore this email.</p>
+                                <p>Questions? Visit our <strong>Help Center</strong> or reply to this email.</p>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email 2: Magic Link -->
+                <div class="template-card" id="auth-email-2">
+                    <div class="template-label">
+                        <span class="template-badge">Auth</span>
+                        <span class="template-name">Magic Link</span>
+                        <span class="template-subject">"Your TWNG login link"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Here's your login link</div>
+                            <div class="email-content">
+                                <p>Click the button below to sign into TWNG. This link is valid for 15 minutes.</p>
+                                <div class="email-highlight">
+                                    For security, this link can only be used once and will expire in 15 minutes.
+                                </div>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Sign In to TWNG</button>
+                            </div>
+                            <div class="email-content" style="margin-top: 1.5rem; font-size: 0.85rem;">
+                                <p>Or copy and paste this URL: <br>
+                                twng.io/auth/magic/abc123xyz789</p>
+                                <p style="margin-top: 1rem;">If you didn't request this link, you can safely ignore this email.</p>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email 3: Reset Password -->
+                <div class="template-card" id="auth-email-3">
+                    <div class="template-label">
+                        <span class="template-badge">Auth</span>
+                        <span class="template-name">Reset Password</span>
+                        <span class="template-subject">"Reset your TWNG password"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Reset your password</div>
+                            <div class="email-content">
+                                <p>We received a request to reset your TWNG password. Click the button below to create a new password.</p>
+                                <div class="email-highlight">
+                                    This link expires in 1 hour for security reasons.
+                                </div>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Reset Password</button>
+                            </div>
+                            <div class="email-content" style="margin-top: 1.5rem; font-size: 0.85rem;">
+                                <p>If you didn't request a password reset, your account is still secure. Please ignore this email and your password will remain unchanged.</p>
+                                <p style="margin-top: 1rem;">Need help? Contact our support team at support@twng.io</p>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email 4: Change Email -->
+                <div class="template-card" id="auth-email-4">
+                    <div class="template-label">
+                        <span class="template-badge">Auth</span>
+                        <span class="template-name">Change Email</span>
+                        <span class="template-subject">"Confirm your new email address"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Confirm your new email address</div>
+                            <div class="email-content">
+                                <p>You've requested to change your email address to <strong>newemail@example.com</strong>.</p>
+                                <p>Click the button below to confirm this change. Once confirmed, you'll need to use your new email address to sign in.</p>
+                                <div class="email-highlight">
+                                    This link expires in 24 hours.
+                                </div>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Confirm New Email</button>
+                            </div>
+                            <div class="email-content" style="margin-top: 1.5rem; font-size: 0.85rem;">
+                                <p>If you didn't request this change, please ignore this email and your current email address will remain active.</p>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Category 5: Transactional -->
+            <section class="category-section" id="trans-section">
+                <div class="category-header">
+                    <div class="category-number">5</div>
+                    <h2 class="category-title">Transactional</h2>
+                    <span class="category-desc">2 emails</span>
+                </div>
+
+                <!-- Email 1: Claim Denied -->
+                <div class="template-card" id="trans-email-1">
+                    <div class="template-label">
+                        <span class="template-badge">Transactional</span>
+                        <span class="template-name">Claim Denied</span>
+                        <span class="template-subject">"Update on your Fender Stratocaster claim"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Claim Update: Fender Stratocaster</div>
+                            <div class="email-content">
+                                <p>Thank you for trying to claim the <strong>Fender Stratocaster (1965, Sonic Blue)</strong> on TWNG.</p>
+                                <p>Unfortunately, we weren't able to verify this guitar for your account. This typically happens because:</p>
+                                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                                    <li>The guitar may already be claimed by another user</li>
+                                    <li>The serial number or details don't match our records</li>
+                                    <li>Insufficient documentation was provided</li>
+                                </ul>
+                                <p>Don't worry! You can still document this guitar in your collection as an "unverified" entry, or try claiming it again with additional photos or documentation.</p>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Try Again or Add Unverified</button>
+                                <div class="email-cta-subtitle">Continue documenting your collection</div>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email 2: Claim Pending Review -->
+                <div class="template-card" id="trans-email-2">
+                    <div class="template-label">
+                        <span class="template-badge">Transactional</span>
+                        <span class="template-name">Claim Pending Review</span>
+                        <span class="template-subject">"We're reviewing your Fender Stratocaster claim"</span>
+                    </div>
+                    <div class="email-container">
+                        <div class="email-header">
+                            <div class="email-logo"><span class="twng">TWNG</span></div>
+                            <div class="email-tagline">The Guitar Collective</div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-greeting">Claim Under Review</div>
+                            <div class="email-content">
+                                <p>Thanks for submitting your claim for the <strong>Fender Stratocaster (1965, Sonic Blue)</strong>!</p>
+                                <p>We're currently reviewing your documentation to verify ownership. This process typically takes 2-3 business days.</p>
+                                <div class="email-highlight">
+                                    Your claim ID: <strong>CLM-2024-98765</strong><br>
+                                    Status: Under Review<br>
+                                    Submitted: February 5, 2025
+                                </div>
+                                <p>In the meantime, you can continue using your collection and adding other guitars. We'll notify you as soon as your claim is verified.</p>
+                            </div>
+                            <div class="email-cta">
+                                <button class="cta-button">Check Claim Status</button>
+                                <div class="email-cta-subtitle">Track your review progress</div>
+                            </div>
+                        </div>
+                        <div class="email-footer">
+                            <div class="email-footer-content">
+                                <div>TWNG • The Guitar Collective</div>
+                                <div style="margin-top: 0.5rem;">© 2025 TWNG. All rights reserved.</div>
+                            </div>
+                            <div class="email-footer-links">
+                                <a class="email-footer-link" href="#">Privacy</a>
+                                <a class="email-footer-link" href="#">Terms</a>
+                                <a class="email-footer-link" href="#">Help Center</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        function setActive(event) {
+            event.preventDefault();
+            const links = document.querySelectorAll('.sidebar-link');
+            links.forEach(link => link.classList.remove('active'));
+            event.target.classList.add('active');
+            const href = event.target.getAttribute('href');
+            const element = document.querySelector(href);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // Set first link as active on load
+        window.addEventListener('load', () => {
+            const firstLink = document.querySelector('.sidebar-link');
+            if (firstLink) {
+                firstLink.classList.add('active');
+            }
+        });
+
+        // Update active link on scroll
+        window.addEventListener('scroll', () => {
+            const links = document.querySelectorAll('.sidebar-link');
+            let current = '';
+
+            document.querySelectorAll('.template-card').forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            links.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

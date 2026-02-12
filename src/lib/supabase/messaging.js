@@ -69,7 +69,7 @@ export async function getConversations() {
     // Batch fetch other users' profiles
     const { data: otherUsers, error: usersError } = await supabase
       .from('users')
-      .select('id, username, avatar_url')
+      .select('id, username, display_name, avatar_url')
       .in('id', otherUserIds);
 
     if (usersError) throw usersError;
@@ -119,7 +119,7 @@ export async function getMessages(userId1, userId2) {
         content,
         is_read,
         created_at,
-        sender:sender_id(id, username, avatar_url)
+        sender:sender_id(id, username, display_name, avatar_url)
         `
       )
       .or(`and(sender_id.eq.${userId1},recipient_id.eq.${userId2}),and(sender_id.eq.${userId2},recipient_id.eq.${userId1})`)

@@ -11,6 +11,7 @@ interface EmailRequest {
   subject: string;
   html?: string;
   text?: string;
+  from?: string;
   replyTo?: string;
   tags?: string[];
 }

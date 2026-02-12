@@ -190,7 +190,7 @@ function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
         </Badge>
         <Badge variant="default">
           <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            {instrument.instrument_type || 'Instrument'}
+            {instrument.custom_fields?.instrument_type || 'Instrument'}
           </span>
         </Badge>
       </div>

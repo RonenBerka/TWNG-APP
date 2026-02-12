@@ -65,6 +65,33 @@ function MkBadge({ text, color = colors.warmAlways, bg }) {
   );
 }
 
+function MkNotConnectedBanner({ service, description, icon: Icon }) {
+  return (
+    <div
+      style={{
+        padding: '16px 20px',
+        backgroundColor: colors.orangeBg,
+        border: `1px solid ${colors.orange}`,
+        borderRadius: '8px',
+        marginBottom: '20px',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '12px',
+      }}
+    >
+      {Icon && <Icon size={20} style={{ color: colors.orange, flexShrink: 0, marginTop: '2px' }} />}
+      <div>
+        <div style={{ fontWeight: 700, color: T.txt, fontSize: '13px', marginBottom: '4px' }}>
+          {service} — Preview Mode
+        </div>
+        <div style={{ fontSize: '12px', color: T.txtM, lineHeight: '1.5' }}>
+          {description} The data shown below is placeholder content for layout preview purposes.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MkStatCard({ label, value, sub, icon: Icon, color = colors.warmAlways }) {
   return (
     <div
@@ -236,7 +263,7 @@ function OutreachModule() {
             .limit(50),
           supabase
             .from('instruments')
-            .select('id, make, model, year, serial_number, body_style, finish, moderation_status, created_at, owner:current_owner_id(username)')
+            .select('id, make, model, year, serial_number, moderation_status, created_at, current_owner:current_owner_id(username)')
             .eq('moderation_status', 'approved')
             .order('created_at', { ascending: false })
             .limit(20),
@@ -295,8 +322,7 @@ function OutreachModule() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseKey}` },
         body: JSON.stringify({
           guitarId: guitar.id, brand: guitar.make, model: guitar.model,
-          year: guitar.year, serialNumber: guitar.serial_number,
-          bodyStyle: guitar.body_style, finish: guitar.finish, photoUrls: [],
+          year: guitar.year, serialNumber: guitar.serial_number, photoUrls: [],
         }),
       });
       const data = await response.json();
@@ -360,7 +386,7 @@ function OutreachModule() {
       const gi = data.guitarInfo || data.guitar || data.data || {};
       console.log('[extract-post] Guitar info:', gi);
       setExtractedGuitar({
-        make: gi.brand || '',
+        make: gi.make || gi.brand || '',
         model: gi.model || '',
         year: gi.year || '',
         color: gi.color || '',
@@ -398,18 +424,14 @@ function OutreachModule() {
           make: extractedGuitar.make || null,
           model: extractedGuitar.model || null,
           year: extractedGuitar.year || null,
-          color: extractedGuitar.color || null,
-          serial: extractedGuitar.serial || null,
-          story: extractedStory || null,
-          images: extractedData?.data?.images || [],
-          source: extractedData?.data?.source || 'unknown',
-          source_url: extractUrl,
-          source_author: extractedData?.data?.source_author || null,
-          source_author_url: extractedData?.data?.source_author_url || null,
-          source_title: extractedData?.data?.source_title || null,
-          outreach_message_en: outreachMessageEn,
-          outreach_message_he: outreachMessageHe,
-          status: 'unclaimed',
+          description: extractedStory || null,
+          custom_fields: {
+            extraction_source: extractedData?.data?.source || 'unknown',
+            extraction_source_url: extractUrl,
+            extraction_source_author: extractedData?.data?.source_author || null,
+          },
+          moderation_status: 'pending',
+          uploader_id: (await supabase.auth.getUser()).data.user?.id || null,
           current_owner_id: null,
         },
       ]);
@@ -1428,6 +1450,11 @@ function AutomationModule() {
   if (activeScreen === 'overview') {
     return (
       <div>
+        <MkNotConnectedBanner
+          service="Automation Engine"
+          description="Automation workflows require integration with a task runner or serverless backend (e.g., Supabase Edge Functions, n8n, or Zapier). This module will become functional once an automation provider is connected."
+          icon={Zap}
+        />
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '16px' }}>
           Automation Systems Overview
         </h2>
@@ -1584,26 +1611,41 @@ function AutomationModule() {
 
 function ContentModule() {
   const [activeScreen, setActiveScreen] = useState('seeds');
+  const [seededGuitars, setSeededGuitars] = useState([]);
+  const [articles, setArticles] = useState([]);
+  const [contentLoading, setContentLoading] = useState(true);
 
-  const seededGuitars = [
-    { id: 1, model: 'Fender Strat', count: 2847, reach: '1.2M', engagement: '6.8%' },
-    { id: 2, model: 'Gibson Les Paul', count: 2156, reach: '980K', engagement: '7.1%' },
-    { id: 3, model: 'Taylor Acoustic', count: 1923, reach: '850K', engagement: '6.3%' },
-    { id: 4, model: 'Ibanez RG', count: 1654, reach: '720K', engagement: '7.8%' },
-    { id: 5, model: 'PRS Custom', count: 1342, reach: '580K', engagement: '8.2%' },
-    { id: 6, model: 'Epiphone', count: 892, reach: '420K', engagement: '5.9%' },
-    { id: 7, model: 'Squire Strat', count: 756, reach: '340K', engagement: '5.2%' },
-    { id: 8, model: 'Yamaha', count: 623, reach: '280K', engagement: '6.1%' },
-  ];
-
-  const articles = [
-    { id: 1, title: 'Ultimate Strat Buying Guide', type: 'Buyer Guide', status: 'Published', views: 4821, ai: true },
-    { id: 2, title: '10 Greatest Gibson Solos', type: 'Tutorial', status: 'Draft', views: 0, ai: false },
-    { id: 3, title: 'Acoustic vs Electric: Full Comparison', type: 'Comparison', status: 'Published', views: 6543, ai: true },
-    { id: 4, title: 'Shredding Techniques 101', type: 'Tutorial', status: 'Published', views: 3421, ai: false },
-    { id: 5, title: 'Vintage Guitar Price Trends', type: 'Analysis', status: 'Scheduled', views: 0, ai: true },
-    { id: 6, title: 'Setup & Maintenance Guide', type: 'How-To', status: 'Published', views: 5234, ai: false },
-  ];
+  useEffect(() => {
+    (async () => {
+      try {
+        const [instrRes, artRes] = await Promise.all([
+          supabase.from('instruments').select('id, make, model, year, serial_number, created_at').is('deleted_at', null).order('created_at', { ascending: false }).limit(50),
+          supabase.from('articles').select('id, title, status, view_count, likes_count, is_published, published_at, created_at').order('created_at', { ascending: false }).limit(50),
+        ]);
+        if (instrRes.data) {
+          setSeededGuitars(instrRes.data.map((g, i) => ({
+            id: g.id,
+            model: `${g.make || ''} ${g.model || ''}`.trim() || 'Unknown',
+            year: g.year || '—',
+            serial: g.serial_number || '—',
+          })));
+        }
+        if (artRes.data) {
+          setArticles(artRes.data.map((a) => ({
+            id: a.id,
+            title: a.title || 'Untitled',
+            status: a.is_published ? 'Published' : (a.status === 'draft' ? 'Draft' : (a.status || 'Draft')),
+            views: a.view_count || 0,
+            likes: a.likes_count || 0,
+          })));
+        }
+      } catch (e) {
+        console.error('Content fetch error:', e);
+      } finally {
+        setContentLoading(false);
+      }
+    })();
+  }, []);
 
   const cmsFeatures = [
     { id: 1, name: 'Drag & Drop Editor', status: 'Active', version: 'v2.1' },
@@ -1642,7 +1684,7 @@ function ContentModule() {
       <div>
         <div style={{ marginBottom: '16px' }}>
           <div style={{ fontSize: '13px', color: T.txtM, marginBottom: '8px' }}>
-            Progress to 30 Seeded Guitars
+            {contentLoading ? 'Loading...' : `Progress to 30 Seeded Guitars`}
           </div>
           <div
             style={{
@@ -1668,13 +1710,17 @@ function ContentModule() {
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '16px', marginTop: '24px' }}>
           Seeded Guitars
         </h2>
+        {contentLoading ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: T.txtM }}>Loading instruments...</div>
+        ) : seededGuitars.length === 0 ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: T.txtM }}>No instruments found in database.</div>
+        ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${T.border}` }}>
-              <MkTH>Model</MkTH>
-              <MkTH>Posts</MkTH>
-              <MkTH>Reach</MkTH>
-              <MkTH>Engagement</MkTH>
+              <MkTH>Make / Model</MkTH>
+              <MkTH>Year</MkTH>
+              <MkTH>Serial</MkTH>
             </tr>
           </thead>
           <tbody>
@@ -1684,22 +1730,16 @@ function ContentModule() {
                   {guitar.model}
                 </td>
                 <td style={{ padding: '12px 16px', color: T.txt2, fontSize: '13px' }}>
-                  {guitar.count}
+                  {guitar.year}
                 </td>
-                <td style={{ padding: '12px 16px', color: T.txt2, fontSize: '13px' }}>
-                  {guitar.reach}
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <MkBadge
-                    text={guitar.engagement}
-                    color={colors.green}
-                    bg={colors.greenBg}
-                  />
+                <td style={{ padding: '12px 16px', color: T.txt2, fontSize: '13px', fontFamily: 'monospace' }}>
+                  {guitar.serial}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        )}
       </div>
     );
   }
@@ -1710,14 +1750,18 @@ function ContentModule() {
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '16px' }}>
           Articles & Content
         </h2>
+        {contentLoading ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: T.txtM }}>Loading articles...</div>
+        ) : articles.length === 0 ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: T.txtM }}>No articles found in database.</div>
+        ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${T.border}` }}>
               <MkTH>Title</MkTH>
-              <MkTH>Type</MkTH>
               <MkTH>Status</MkTH>
               <MkTH>Views</MkTH>
-              <MkTH>AI</MkTH>
+              <MkTH>Likes</MkTH>
             </tr>
           </thead>
           <tbody>
@@ -1725,9 +1769,6 @@ function ContentModule() {
               <tr key={article.id} style={{ borderBottom: `1px solid ${T.border}` }}>
                 <td style={{ padding: '12px 16px', color: T.txt, fontSize: '13px' }}>
                   {article.title}
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <MkBadge text={article.type} color={colors.blue} bg={colors.blueBg} />
                 </td>
                 <td style={{ padding: '12px 16px' }}>
                   <MkBadge
@@ -1751,13 +1792,14 @@ function ContentModule() {
                 <td style={{ padding: '12px 16px', color: T.txt2, fontSize: '13px' }}>
                   {article.views || '-'}
                 </td>
-                <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                  {article.ai && <span style={{ color: colors.green, fontWeight: 700 }}>✓</span>}
+                <td style={{ padding: '12px 16px', color: T.txt2, fontSize: '13px' }}>
+                  {article.likes || '-'}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        )}
       </div>
     );
   }
@@ -2043,6 +2085,11 @@ function EmailModule() {
   if (activeScreen === 'sequences') {
     return (
       <div>
+        <MkNotConnectedBanner
+          service="Email Sequences"
+          description="Email sequence automation requires connecting a transactional email provider (e.g., Resend, SendGrid, or Mailgun). Templates are ready in the Templates tab — connect a provider to start sending."
+          icon={Mail}
+        />
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '16px' }}>
           Email Sequences
         </h2>
@@ -2772,6 +2819,11 @@ function PaidModule() {
   if (activeScreen === 'overview') {
     return (
       <div>
+        <MkNotConnectedBanner
+          service="Paid Campaigns"
+          description="Campaign tracking requires connecting ad platform APIs (Meta Ads, Google Ads). Connect your ad accounts to see real spend, reach, and conversion data."
+          icon={Target}
+        />
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '16px' }}>
           Campaign Overview
         </h2>
@@ -3122,6 +3174,11 @@ function SocialModule() {
   if (activeScreen === 'overview') {
     return (
       <div>
+        <MkNotConnectedBanner
+          service="Social Media"
+          description="Social channel management requires connecting platform APIs (Instagram Graph API, YouTube Data API, etc.). Connect your social accounts to enable real-time analytics and post scheduling."
+          icon={Share2}
+        />
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: T.txt, marginBottom: '16px' }}>
           Channel Overview
         </h2>
@@ -3344,33 +3401,63 @@ function SocialModule() {
 
 function KPIModule() {
   const [activeScreen, setActiveScreen] = useState('dashboard');
+  const [kpiData, setKpiData] = useState(null);
+  const [kpiLoading, setKpiLoading] = useState(true);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const [usersRes, instrumentsRes, articlesRes, collectionsRes, claimsRes, threadsRes] = await Promise.all([
+          supabase.from('users').select('id', { count: 'exact', head: true }),
+          supabase.from('instruments').select('id', { count: 'exact', head: true }).is('deleted_at', null),
+          supabase.from('articles').select('id', { count: 'exact', head: true }),
+          supabase.from('collections').select('id', { count: 'exact', head: true }),
+          supabase.from('ownership_claims').select('id', { count: 'exact', head: true }),
+          supabase.from('forum_threads').select('id', { count: 'exact', head: true }),
+        ]);
+        setKpiData({
+          users: usersRes.count ?? 0,
+          instruments: instrumentsRes.count ?? 0,
+          articles: articlesRes.count ?? 0,
+          collections: collectionsRes.count ?? 0,
+          claims: claimsRes.count ?? 0,
+          threads: threadsRes.count ?? 0,
+        });
+      } catch (e) {
+        console.error('KPI fetch error:', e);
+      } finally {
+        setKpiLoading(false);
+      }
+    })();
+  }, []);
+
+  const totalUsers = kpiData?.users ?? 0;
   const northStarMetric = {
-    name: 'Monthly Active Members',
-    value: '47,234',
-    change: '+12.4%',
-    target: '50,000',
-    progress: 94.5,
+    name: 'Registered Members',
+    value: kpiLoading ? '...' : totalUsers.toLocaleString(),
+    change: 'Live data',
+    target: '1,000',
+    progress: Math.min((totalUsers / 1000) * 100, 100),
   };
 
   const primaryKPIs = [
-    { id: 1, name: 'Total Guitars Claimed', value: '12,847', change: '+5.2%', color: colors.green },
-    { id: 2, name: 'Member Signups', value: '2,143', change: '+8.7%', color: colors.blue },
-    { id: 3, name: 'Content Posts', value: '8,234', change: '+3.1%', color: colors.orange },
-    { id: 4, name: 'Email Engagement', value: '34.2%', change: '+2.3%', color: colors.purple },
+    { id: 1, name: 'Total Instruments', value: kpiLoading ? '...' : (kpiData?.instruments ?? 0).toLocaleString(), change: 'Live', color: colors.green },
+    { id: 2, name: 'Member Signups', value: kpiLoading ? '...' : (kpiData?.users ?? 0).toLocaleString(), change: 'Live', color: colors.blue },
+    { id: 3, name: 'Published Articles', value: kpiLoading ? '...' : (kpiData?.articles ?? 0).toLocaleString(), change: 'Live', color: colors.orange },
+    { id: 4, name: 'Ownership Claims', value: kpiLoading ? '...' : (kpiData?.claims ?? 0).toLocaleString(), change: 'Live', color: colors.purple },
   ];
 
   const funnelKPIs = [
-    { stage: 'Signup', count: 8423, rate: '100%' },
-    { stage: 'Profile Complete', count: 6234, rate: '74%' },
-    { stage: 'Guitar Claimed', count: 5123, rate: '61%' },
+    { stage: 'Users Registered', count: kpiData?.users ?? 0, rate: '100%' },
+    { stage: 'Collections Created', count: kpiData?.collections ?? 0, rate: totalUsers ? `${Math.round(((kpiData?.collections ?? 0) / totalUsers) * 100)}%` : '0%' },
+    { stage: 'Forum Threads', count: kpiData?.threads ?? 0, rate: totalUsers ? `${Math.round(((kpiData?.threads ?? 0) / totalUsers) * 100)}%` : '0%' },
   ];
 
   const budgetBreakdown = [
-    { channel: 'Meta Ads', spend: '$5,084', percent: 32 },
-    { channel: 'Google Ads', spend: '$6,240', percent: 39 },
-    { channel: 'Email Marketing', spend: '$2,340', percent: 15 },
-    { channel: 'Content Creation', spend: '$2,156', percent: 14 },
+    { channel: 'Meta Ads', spend: 'Not set', percent: 25 },
+    { channel: 'Google Ads', spend: 'Not set', percent: 25 },
+    { channel: 'Email Marketing', spend: 'Not set', percent: 25 },
+    { channel: 'Content Creation', spend: 'Not set', percent: 25 },
   ];
 
   if (activeScreen === 'dashboard') {
@@ -3642,17 +3729,58 @@ function KPIModule() {
 
 function SetupModule() {
   const [activeScreen, setActiveScreen] = useState('checklist');
-
-  const setupTasks = [
+  const [setupTasks, setSetupTasks] = useState([
     { id: 1, name: 'Create admin account', completed: true },
     { id: 2, name: 'Set up Supabase', completed: true },
-    { id: 3, name: 'Configure email system', completed: true },
+    { id: 3, name: 'Configure email system', completed: false },
     { id: 4, name: 'Set up analytics', completed: false },
     { id: 5, name: 'Configure payment processing', completed: false },
-    { id: 6, name: 'Set up CDN', completed: true },
+    { id: 6, name: 'Set up CDN', completed: false },
     { id: 7, name: 'Create brand guidelines', completed: false },
     { id: 8, name: 'Train support team', completed: false },
-  ];
+    { id: 9, name: 'Seed initial instruments', completed: false },
+    { id: 10, name: 'Seed articles content', completed: false },
+    { id: 11, name: 'Connect social media', completed: false },
+    { id: 12, name: 'Launch marketing campaign', completed: false },
+  ]);
+  const [setupLoading, setSetupLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('system_config')
+          .select('value')
+          .eq('key', 'setup_checklist')
+          .single();
+        if (data?.value) {
+          const saved = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+          if (Array.isArray(saved)) {
+            setSetupTasks(saved);
+          }
+        }
+      } catch (e) {
+        // No saved config yet, use defaults
+      } finally {
+        setSetupLoading(false);
+      }
+    })();
+  }, []);
+
+  const toggleTask = async (taskId) => {
+    const updated = setupTasks.map((t) =>
+      t.id === taskId ? { ...t, completed: !t.completed } : t
+    );
+    setSetupTasks(updated);
+    try {
+      await supabase.from('system_config').upsert(
+        { key: 'setup_checklist', value: JSON.stringify(updated), updated_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      );
+    } catch (e) {
+      console.error('Failed to save checklist:', e);
+    }
+  };
 
   const decisions = [
     {
@@ -3726,6 +3854,7 @@ function SetupModule() {
           {setupTasks.map((task) => (
             <div
               key={task.id}
+              onClick={() => toggleTask(task.id)}
               style={{
                 padding: '16px',
                 backgroundColor: T.bgCard,
@@ -3734,6 +3863,8 @@ function SetupModule() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
+                cursor: 'pointer',
+                transition: 'border-color 0.15s',
               }}
             >
               <div

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TWNG — האוסף שלי</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Inter:wght@400;500&family=Crimson+Pro:ital@1&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --glow-amber: #FFB347;
+      --glow-amber-bright: #FFC93C;
+      --bg-deep: #0D0D0D;
+      --bg-warm: #1A1512;
+      --bg-surface: #252019;
+      --accent-gold: #D4AF37;
+      --accent-cream: #F5E6D3;
+      --text-primary: #FFFFFF;
+      --text-secondary: #A0A0A0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      padding: 40px 0;
+      border-bottom: 1px solid var(--bg-surface);
+      margin-bottom: 40px;
+    }
+
+    .logo {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--glow-amber);
+      margin-bottom: 10px;
+    }
+
+    .tagline {
+      font-family: 'Crimson Pro', serif;
+      font-style: italic;
+      color: var(--text-secondary);
+      font-size: 1.2rem;
+    }
+
+    .collection-stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 30px;
+      padding: 20px;
+      background: var(--bg-warm);
+      border-radius: 16px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-number {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--glow-amber);
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .guitars-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 24px;
+      margin-top: 40px;
+    }
+
+    .guitar-card {
+      background: var(--bg-warm);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
+      animation: breathe 4s ease-in-out infinite;
+    }
+
+    .guitar-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(255, 179, 71, 0.15);
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.005); }
+    }
+
+    .guitar-image {
+      width: 100%;
+      height: 200px;
+      background: var(--bg-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+      position: relative;
+    }
+
+    .guitar-image::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: linear-gradient(transparent, var(--bg-warm));
+    }
+
+    .guitar-type-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--bg-deep);
+      color: var(--glow-amber);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .guitar-content {
+      padding: 20px;
+    }
+
+    .guitar-brand {
+      color: var(--glow-amber);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .guitar-model {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 4px 0 12px;
+    }
+
+    .guitar-specs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .spec-tag {
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+
+    .guitar-story {
+      background: var(--bg-surface);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+      border-right: 3px solid var(--glow-amber);
+    }
+
+    .story-label {
+      color: var(--glow-amber);
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .story-text {
+      font-family: 'Crimson Pro', serif;
+      font-style: italic;
+      color: var(--accent-cream);
+      line-height: 1.6;
+    }
+
+    .story-prompt {
+      color: var(--text-secondary);
+      font-style: italic;
+      font-size: 0.9rem;
+    }
+
+    .add-story-btn {
+      background: transparent;
+      border: 1px dashed var(--glow-amber);
+      color: var(--glow-amber);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      margin-top: 12px;
+      transition: all 0.2s;
+    }
+
+    .add-story-btn:hover {
+      background: var(--glow-amber);
+      color: var(--bg-deep);
+    }
+
+    .footer {
+      text-align: center;
+      padding: 60px 0 40px;
+      color: var(--text-secondary);
+    }
+
+    .footer-logo {
+      color: var(--glow-amber);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">TWNG</div>
+      <div class="tagline">"Every Guitar Has a Story"</div>
+
+      <div class="collection-stats">
+        <div class="stat">
+          <div class="stat-number">13</div>
+          <div class="stat-label">גיטרות</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">5</div>
+          <div class="stat-label">מותגים</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">2</div>
+          <div class="stat-label">אקוסטיות</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">11</div>
+          <div class="stat-label">חשמליות</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="guitars-grid">
+
+      <!-- Guitar 1 -->
+      <div class="guitar-card">
+        <div class="guitar-image">
+          🎸
+          <span class="guitar-type-badge">Acoustic</span>
+        </div>
+        <div class="guitar-content">
+          <div class="guitar-brand">Martin / Taylor</div>
+          <div class="guitar-model">Dreadnought</div>
+          <div class="guitar-specs">
+            <span class="spec-tag">Sunburst</span>
+            <span class="spec-tag">Spruce Top</span>
+            <span class="spec-tag">Rosewood</span>
+          </div>
+          <div class="guitar-story">
+            <div class="story-label">📝 הסיפור</div>
+            <p class="story-prompt">מה הסיפור של הגיטרה הזו? איך היא הגיעה אליך?</p>
+            <button class="add-story-btn">✍️ הוסף סיפור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guitar 2 -->
+      <div class="guitar-card">
+        <div class="guitar-image">
+          🎸
+          <span class="guitar-type-badge">Acoustic</span>
+        </div>
+        <div class="guitar-content">
+          <div class="guitar-brand">לזיהוי</div>
+          <div class="guitar-model">Dreadnought Natural</div>
+          <div class="guitar-specs">
+            <span class="spec-tag">Natural</span>
+            <span class="spec-tag">Spruce Top</span>
+          </div>
+          <div class="guitar-story">
+            <div class="story-label">📝 הסיפור</div>
+            <p class="story-prompt">מה הסיפור של הגיטרה הזו?</p>
+            <button class="add-story-btn">✍️ הוסף סיפור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guitar 3 - Telecaster -->
+      <div class="guitar-card">
+        <div class="guitar-image">
+          🎸
+          <span class="guitar-type-badge">Electric</span>
+        </div>
+        <div class="guitar-content">
+          <div class="guitar-brand">Fender</div>
+          <div class="guitar-model">Telecaster</div>
+          <div class="guitar-specs">
+            <span class="spec-tag">Black</span>
+            <span class="spec-tag">SS</span>
+            <span class="spec-tag">Maple Neck</span>
+          </div>
+          <div class="guitar-story">
+            <div class="story-label">📝 הסיפור</div>
+            <p class="story-prompt">טלי שחורה קלאסית. מה הסיפור שלה?</p>
+            <button class="add-story-btn">✍️ הוסף סיפור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guitar 4 - Stratocaster Blue -->
+      <div class="guitar-card">
+        <div class="guitar-image">
+          🎸
+          <span class="guitar-type-badge">Electric</span>
+        </div>
+        <div class="guitar-content">
+          <div class="guitar-brand">Fender</div>
+          <div class="guitar-model">Stratocaster</div>
+          <div class="guitar-specs">
+            <span class="spec-tag">Lake Placid Blue</span>
+            <span class="spec-tag">SSS</span>
+            <span class="spec-tag">Maple Neck</span>
+          </div>
+          <div class="guitar-story">
+            <div class="story-label">📝 הסיפור</div>
+            <p class="story-prompt">סטראט בכחול קלאסי. למה בחרת דווקא בצבע הזה?</p>
+            <button class="add-story-btn">✍️ הוסף סיפור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guitar 5 - Superstrat Black -->
+      <div class="guitar-card">
+        <div class="guitar-image">
+          🎸
+          <span class="guitar-type-badge">Electric</span>
+        </div>
+        <div class="guitar-content">
+          <div class="guitar-brand">Charvel / Jackson</div>
+          <div class="guitar-model">Superstrat</div>
+          <div class="guitar-specs">
+            <span class="spec-tag">Black</span>
+            <span class="spec-tag">Floyd Rose</span>
+            <span class="spec-tag">HSS/HSH</span>
+          </div>
+          <div class="guitar-story">
+            <div class="story-label">📝 הסיפור</div>
+            <p class="story-prompt">גיטרת שרד? מה היא מנגנת הכי טוב?</p>
+            <button class="add-story-btn">✍️ הוסף סיפור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guitar 6 - Green PRS Style -->
+      <div class="guitar-card">
+        <div class="guitar-image">
+          🎸
+          <span class="guitar-type-badge">Electric</span>
+        </div>
+        <div class="guitar-content">
+          <div class="guitar-brand">PRS / דומה</div>
+          <div class="guitar-model">Custom Style</div>
+          <div class="guitar-specs">
+            <span class="spec-tag">Emerald Green</span>
+            <span class="spec-tag">Figured Top</span>
+            <span class="spec-tag">HH</span>
+          </div>
+          <div class="guitar-story">
+            <div class="story-label">📝 הסיפור</div>
+            <p class="story-prompt">ירוק אמרלד מדהים! איפה מצאת אותה?</p>
+            <button class="add-story-btn">✍️ הוסף סיפור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guitar 7 - Orange -->
+      <div class="guitar-card">
+        <div class="guitar-image">
+          🎸
+          <span class="guitar-type-badge">Electric</span>
+        </div>
+        <div class="guitar-content">
+          <div class="guitar-brand">PRS / דומה</div>
+          <div class="guitar-model">Custom Style</div>
+          <div class="guitar-specs">
+            <span class="spec-tag">Orange</span>
+            <span class="spec-tag">Figured Top</span>
+            <span class="spec-tag">HH</span>
+          </div>
+          <div class="guitar-story">
+            <div class="story-label">📝 הסיפור</div>
+            <p class="story-prompt">צבע כתום נדיר! מה הסיפור?</p>
+            <button class="add-story-btn">✍️ הוסף סיפור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guitar 8 - Purple -->
+      <div class="guitar-card">
+        <div class="guitar-image">
+          🎸
+          <span class="guitar-type-badge">Electric</span>
+        </div>
+        <div class="guitar-content">
+          <div class="guitar-brand">PRS / דומה</div>
+          <div class="guitar-model">Custom Style</div>
+          <div class="guitar-specs">
+            <span class="spec-tag">Purple</span>
+            <span class="spec-tag">Figured Top</span>
+            <span class="spec-tag">HH</span>
+          </div>
+          <div class="guitar-story">
+            <div class="story-label">📝 הסיפור</div>
+            <p class="story-prompt">סגול מלכותי. למה הצבע הזה?</p>
+            <button class="add-story-btn">✍️ הוסף סיפור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guitar 9 - Natural Wood -->
+      <div class="guitar-card">
+        <div class="guitar-image">
+          🎸
+          <span class="guitar-type-badge">Electric</span>
+        </div>
+        <div class="guitar-content">
+          <div class="guitar-brand">Carvin / Kiesel</div>
+          <div class="guitar-model">Custom</div>
+          <div class="guitar-specs">
+            <span class="spec-tag">Natural Wood</span>
+            <span class="spec-tag">Figured Top</span>
+            <span class="spec-tag">USA Made</span>
+          </div>
+          <div class="guitar-story">
+            <div class="story-label">📝 הסיפור</div>
+            <p class="story-prompt">עץ טבעי יפהפה. מותאמת אישית?</p>
+            <button class="add-story-btn">✍️ הוסף סיפור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guitar 10 - Jackson Graphics -->
+      <div class="guitar-card">
+        <div class="guitar-image">
+          🎸
+          <span class="guitar-type-badge">Electric</span>
+        </div>
+        <div class="guitar-content">
+          <div class="guitar-brand">Jackson</div>
+          <div class="guitar-model">Soloist / Dinky</div>
+          <div class="guitar-specs">
+            <span class="spec-tag">Custom Graphics</span>
+            <span class="spec-tag">Floyd Rose</span>
+            <span class="spec-tag">HSS</span>
+          </div>
+          <div class="guitar-story">
+            <div class="story-label">📝 הסיפור</div>
+            <p class="story-prompt">גרפיקה ייחודית! מה ההשראה?</p>
+            <button class="add-story-btn">✍️ הוסף סיפור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guitar 11 - Les Paul Honey -->
+      <div class="guitar-card">
+        <div class="guitar-image">
+          🎸
+          <span class="guitar-type-badge">Electric</span>
+        </div>
+        <div class="guitar-content">
+          <div class="guitar-brand">Gibson / Epiphone</div>
+          <div class="guitar-model">Les Paul</div>
+          <div class="guitar-specs">
+            <span class="spec-tag">Honey Burst</span>
+            <span class="spec-tag">HH</span>
+            <span class="spec-tag">Mahogany</span>
+          </div>
+          <div class="guitar-story">
+            <div class="story-label">📝 הסיפור</div>
+            <p class="story-prompt">לס פול קלאסית. הגיטרה הראשונה שלך?</p>
+            <button class="add-story-btn">✍️ הוסף סיפור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guitar 12 - Gold Custom -->
+      <div class="guitar-card">
+        <div class="guitar-image">
+          🎸
+          <span class="guitar-type-badge">Electric</span>
+        </div>
+        <div class="guitar-content">
+          <div class="guitar-brand">Boutique / Custom</div>
+          <div class="guitar-model">Unique Design</div>
+          <div class="guitar-specs">
+            <span class="spec-tag">Gold / Natural</span>
+            <span class="spec-tag">Custom Build</span>
+            <span class="spec-tag">Unique</span>
+          </div>
+          <div class="guitar-story">
+            <div class="story-label">📝 הסיפור</div>
+            <p class="story-prompt">עיצוב ייחודי! מי בנה אותה?</p>
+            <button class="add-story-btn">✍️ הוסף סיפור</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guitar 13 - Amber Les Paul -->
+      <div class="guitar-card">
+        <div class="guitar-image">
+          🎸
+          <span class="guitar-type-badge">Electric</span>
+        </div>
+        <div class="guitar-content">
+          <div class="guitar-brand">Gibson / PRS</div>
+          <div class="guitar-model">Les Paul / Custom Style</div>
+          <div class="guitar-specs">
+            <span class="spec-tag">Amber Burst</span>
+            <span class="spec-tag">Figured Top</span>
+            <span class="spec-tag">HH</span>
+          </div>
+          <div class="guitar-story">
+            <div class="story-label">📝 הסיפור</div>
+            <p class="story-prompt">Flame top מרהיב! מה הסיפור?</p>
+            <button class="add-story-btn">✍️ הוסף סיפור</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="footer">
+      <div class="footer-logo">TWNG</div>
+      <p style="margin-top: 8px;">"Finally, a place to keep them."</p>
+      <p style="margin-top: 20px; font-size: 0.8rem;">זו הדגמה של איך האוסף שלך יראה ב-TWNG</p>
+    </footer>
+
+  </div>
+</body>
+</html>

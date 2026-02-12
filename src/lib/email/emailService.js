@@ -1,54 +1,24 @@
 /**
  * TWNG Email Service
- * Handles sending emails via configurable provider
- * Supports: Resend (recommended), SendGrid, Supabase Edge Functions
+ * All emails are sent via Supabase Edge Function (send-email).
+ * NO API keys are stored or used in the frontend.
  *
- * Database Schema (Migration):
- *
- * CREATE TABLE email_queue (
- *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
- *   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
- *   to_email VARCHAR(255) NOT NULL,
- *   sequence_key VARCHAR(50),
- *   email_key VARCHAR(50),
- *   subject VARCHAR(500),
- *   html TEXT,
- *   text_content TEXT,
- *   variables JSONB DEFAULT '{}',
- *   status VARCHAR(20) DEFAULT 'pending',
- *   send_at TIMESTAMPTZ NOT NULL,
- *   sent_at TIMESTAMPTZ,
- *   error TEXT,
- *   created_at TIMESTAMPTZ DEFAULT NOW()
- * );
- * CREATE INDEX idx_email_queue_status_send_at ON email_queue(status, send_at);
- *
- * CREATE TABLE email_preferences (
- *   user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
- *   marketing_emails BOOLEAN DEFAULT TRUE,
- *   sequence_emails BOOLEAN DEFAULT TRUE,
- *   notification_emails BOOLEAN DEFAULT TRUE,
- *   unsubscribed_at TIMESTAMPTZ,
- *   updated_at TIMESTAMPTZ DEFAULT NOW()
- * );
+ * The Edge Function handles provider logic (Resend/SendGrid) server-side,
+ * keeping secrets safe.
  */
 
 import { supabase } from '../supabase/client';
 import { emailTemplates } from './templates';
 
-// Provider configuration — set via system_config or env
+// Frontend-safe config (no secrets)
 const EMAIL_CONFIG = {
-  provider: import.meta.env.VITE_EMAIL_PROVIDER || 'resend', // 'resend' | 'sendgrid' | 'supabase'
   from: import.meta.env.VITE_EMAIL_FROM || 'TWNG <hello@twng.com>',
   replyTo: import.meta.env.VITE_EMAIL_REPLY_TO || 'support@twng.com',
-  resendApiKey: import.meta.env.VITE_RESEND_API_KEY,
-  sendgridApiKey: import.meta.env.VITE_SENDGRID_API_KEY,
   baseUrl: typeof window !== 'undefined' ? window.location.origin : (import.meta.env.VITE_BASE_URL || 'https://twng.com'),
 };
 
 /**
- * Core send function
- * Sends an email via configured provider and logs to email_log table
+ * Core send function — routes through Supabase Edge Function
  * @param {Object} options
  * @param {string} options.to - Recipient email address
  * @param {string} options.subject - Email subject
@@ -60,156 +30,82 @@ const EMAIL_CONFIG = {
  */
 export async function sendEmail({ to, subject, html, text, userId, tags = [] }) {
   try {
-    // Check if user has unsubscribed
+    // Check unsubscribe status
     if (userId) {
-      const unsubscribed = await isUnsubscribed(to);
+      const unsubscribed = await isUnsubscribed(userId);
       if (unsubscribed) {
-        console.warn(`[Email] User ${userId} is unsubscribed, skipping email to ${to}`);
         return { success: false, error: 'User unsubscribed', messageId: null };
       }
     }
 
-    let result;
-    switch (EMAIL_CONFIG.provider) {
-      case 'resend':
-        result = await sendViaResend({ to, subject, html, text, tags });
-        break;
-      case 'sendgrid':
-        result = await sendViaSendGrid({ to, subject, html, text, tags });
-        break;
-      case 'supabase':
-        result = await sendViaSupabaseFunction({ to, subject, html, text, tags });
-        break;
-      default:
-        throw new Error(`Unknown email provider: ${EMAIL_CONFIG.provider}`);
+    // Send via Edge Function — the function holds the Resend/SendGrid API key
+    const { data, error: fnError } = await supabase.functions.invoke('send-email', {
+      body: {
+        to,
+        subject,
+        html,
+        text: text || stripHtmlTags(html),
+        from: EMAIL_CONFIG.from,
+        replyTo: EMAIL_CONFIG.replyTo,
+        tags,
+      },
+    });
+
+    if (fnError) {
+      let msg = fnError.message || 'Email send failed';
+      try {
+        if (fnError.context) {
+          const body = await fnError.context.json();
+          if (body?.error) msg = body.error;
+        }
+      } catch { /* ignore parse errors */ }
+      throw new Error(msg);
     }
 
-    // Log to email_log table
+    // Log to email_log table (non-blocking)
     if (userId || to) {
-      await supabase
+      supabase
         .from('email_log')
         .insert({
           user_id: userId,
           to_email: to,
           subject,
-          provider: EMAIL_CONFIG.provider,
-          status: result.success ? 'sent' : 'failed',
-          message_id: result.messageId,
-          error: result.error,
-          tags: tags,
+          provider: 'edge_function',
+          status: 'sent',
+          message_id: data?.messageId,
+          tags,
           sent_at: new Date().toISOString(),
-        });
+        })
+        .then(() => {})
+        .catch(() => {});
     }
 
-    return result;
+    return { success: true, messageId: data?.messageId || null, error: null };
   } catch (error) {
-    console.error('[Email] Send failed:', error);
+    // Log failure (non-blocking)
+    if (userId || to) {
+      supabase
+        .from('email_log')
+        .insert({
+          user_id: userId,
+          to_email: to,
+          subject,
+          provider: 'edge_function',
+          status: 'failed',
+          error: error.message,
+          sent_at: new Date().toISOString(),
+        })
+        .then(() => {})
+        .catch(() => {});
+    }
+
     return { success: false, messageId: null, error: error.message };
   }
 }
 
 /**
- * Send email via Resend provider
- * @private
- */
-async function sendViaResend({ to, subject, html, text, tags }) {
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${EMAIL_CONFIG.resendApiKey}`,
-    },
-    body: JSON.stringify({
-      from: EMAIL_CONFIG.from,
-      to,
-      subject,
-      html,
-      text: text || stripHtmlTags(html),
-      reply_to: EMAIL_CONFIG.replyTo,
-      tags: tags.map(tag => ({ name: tag })),
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`Resend API error: ${error.message}`);
-  }
-
-  const data = await response.json();
-  return { success: true, messageId: data.id, error: null };
-}
-
-/**
- * Send email via SendGrid provider
- * @private
- */
-async function sendViaSendGrid({ to, subject, html, text, tags }) {
-  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${EMAIL_CONFIG.sendgridApiKey}`,
-    },
-    body: JSON.stringify({
-      personalizations: [{ to: [{ email: to }] }],
-      from: { email: EMAIL_CONFIG.from },
-      subject,
-      content: [
-        { type: 'text/html', value: html },
-        { type: 'text/plain', value: text || stripHtmlTags(html) },
-      ],
-      reply_to: { email: EMAIL_CONFIG.replyTo },
-      categories: tags,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`SendGrid API error: ${error.errors?.[0]?.message || 'Unknown error'}`);
-  }
-
-  const messageId = response.headers.get('x-message-id');
-  return { success: true, messageId, error: null };
-}
-
-/**
- * Send email via Supabase Edge Function
- * Assumes you have a Supabase Edge Function at `supabase/functions/send-email`
- * @private
- */
-async function sendViaSupabaseFunction({ to, subject, html, text, tags }) {
-  const { data, error } = await supabase.functions.invoke('send-email', {
-    body: {
-      to,
-      subject,
-      html,
-      text: text || stripHtmlTags(html),
-      replyTo: EMAIL_CONFIG.replyTo,
-      tags,
-    },
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  return { success: true, messageId: data?.messageId, error: null };
-}
-
-/**
  * Schedule an email for later (for sequences)
  * Inserts into email_queue table with send_at timestamp
- * @param {Object} options
- * @param {string} options.to - Recipient email
- * @param {string} options.userId - User ID
- * @param {string} options.subject - Email subject
- * @param {string} options.html - HTML body
- * @param {string} options.text - Plain text body
- * @param {Date|string} options.sendAt - When to send
- * @param {string} [options.sequenceKey] - Sequence identifier
- * @param {string} [options.emailKey] - Email within sequence
- * @param {Object} [options.variables] - Template variables
- * @returns {Promise<{success: boolean, error: string}>}
  */
 export async function scheduleEmail({
   to,
@@ -244,20 +140,12 @@ export async function scheduleEmail({
 
     return { success: true, error: null };
   } catch (error) {
-    console.error('[Email] Schedule failed:', error);
     return { success: false, error: error.message };
   }
 }
 
 /**
  * Send a sequence email by key
- * @param {string} sequenceKey - e.g., 'welcome', 'claim', 'reengagement'
- * @param {string} emailKey - e.g., 'welcome', 'completeProfile', 'activation'
- * @param {Object} options
- * @param {string} options.to - Recipient email
- * @param {string} options.userId - User ID
- * @param {Object} options.variables - Template variables
- * @returns {Promise<{success: boolean, messageId: string, error: string}>}
  */
 export async function sendSequenceEmail(sequenceKey, emailKey, { to, userId, variables = {} }) {
   try {
@@ -270,52 +158,41 @@ export async function sendSequenceEmail(sequenceKey, emailKey, { to, userId, var
     const html = interpolateTemplate(template.html, variables);
     const text = interpolateTemplate(template.text, variables);
 
-    return await sendEmail({
-      to,
-      userId,
-      subject,
-      html,
-      text,
-      tags: [sequenceKey, emailKey],
-    });
+    return await sendEmail({ to, userId, subject, html, text, tags: [sequenceKey, emailKey] });
   } catch (error) {
-    console.error('[Email] Sequence send failed:', error);
     return { success: false, messageId: null, error: error.message };
   }
 }
 
 /**
  * Check if user has unsubscribed
- * @param {string} email - Email address to check (unused, users table has no email column)
- * @returns {Promise<boolean>}
  */
-export async function isUnsubscribed(email) {
+export async function isUnsubscribed(userId) {
   try {
-    // Note: The users table does not have an email column, so we cannot look up by email.
-    // Return false (not unsubscribed) as a safe default to ensure emails are sent.
-    return false;
-  } catch (error) {
-    console.error('[Email] Unsubscribe check failed:', error);
-    return false;
+    const { data } = await supabase
+      .from('email_preferences')
+      .select('marketing_emails')
+      .eq('user_id', userId)
+      .single();
+
+    return data?.marketing_emails === false;
+  } catch {
+    return false; // default: not unsubscribed
   }
 }
 
 /**
  * Process email queue (called by cron/edge function)
- * Fetches pending emails where send_at <= now and sends them
- * Should be called every 5 minutes via cron or webhook
- * @returns {Promise<{sent: number, failed: number, errors: Object[]}>}
  */
 export async function processEmailQueue() {
   try {
-    // Fetch emails that should be sent now
     const { data: emails, error } = await supabase
       .from('email_queue')
       .select('*')
       .eq('status', 'pending')
       .lte('send_at', new Date().toISOString())
       .order('send_at', { ascending: true })
-      .limit(50); // Process max 50 per batch
+      .limit(50);
 
     if (error) throw error;
     if (!emails || emails.length === 0) {
@@ -335,60 +212,38 @@ export async function processEmailQueue() {
           tags: [email.sequence_key, email.email_key].filter(Boolean),
         });
 
-        if (result.success) {
-          // Mark as sent
-          await supabase
-            .from('email_queue')
-            .update({
-              status: 'sent',
-              sent_at: new Date().toISOString(),
-              message_id: result.messageId,
-            })
-            .eq('id', email.id);
-
-          results.sent++;
-        } else {
-          // Mark as failed
-          await supabase
-            .from('email_queue')
-            .update({
-              status: 'failed',
-              error: result.error,
-            })
-            .eq('id', email.id);
-
-          results.failed++;
-          results.errors.push({ emailId: email.id, error: result.error });
-        }
-      } catch (error) {
-        console.error(`[Email Queue] Failed to process email ${email.id}:`, error);
         await supabase
           .from('email_queue')
           .update({
-            status: 'failed',
-            error: error.message,
+            status: result.success ? 'sent' : 'failed',
+            sent_at: result.success ? new Date().toISOString() : undefined,
+            error: result.error || undefined,
           })
           .eq('id', email.id);
 
+        if (result.success) results.sent++;
+        else {
+          results.failed++;
+          results.errors.push({ emailId: email.id, error: result.error });
+        }
+      } catch (err) {
+        await supabase
+          .from('email_queue')
+          .update({ status: 'failed', error: err.message })
+          .eq('id', email.id);
         results.failed++;
-        results.errors.push({ emailId: email.id, error: error.message });
+        results.errors.push({ emailId: email.id, error: err.message });
       }
     }
 
     return results;
   } catch (error) {
-    console.error('[Email Queue] Process failed:', error);
-    return { sent: 0, failed: emails?.length || 0, errors: [{ global: error.message }] };
+    return { sent: 0, failed: 0, errors: [{ global: error.message }] };
   }
 }
 
 /**
  * Trigger welcome sequence for a new user
- * Schedules 4 emails: immediate, day 1, day 3, day 7
- * @param {string} userId - User ID
- * @param {string} email - User email
- * @param {string} username - User's chosen username
- * @returns {Promise<{success: boolean, scheduled: number, error: string}>}
  */
 export async function triggerWelcomeSequence(userId, email, username) {
   try {
@@ -396,60 +251,33 @@ export async function triggerWelcomeSequence(userId, email, username) {
     const now = new Date();
 
     const emails = [
-      {
-        key: 'welcome',
-        sendAt: now,
-        variables: { username, baseUrl },
-      },
-      {
-        key: 'completeProfile',
-        sendAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
-        variables: { username, baseUrl },
-      },
-      {
-        key: 'firstGuitar',
-        sendAt: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-        variables: { username, baseUrl },
-      },
-      {
-        key: 'community',
-        sendAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
-        variables: { username, baseUrl },
-      },
+      { key: 'welcome', sendAt: now, variables: { username, baseUrl } },
+      { key: 'completeProfile', sendAt: new Date(now.getTime() + 24 * 60 * 60 * 1000), variables: { username, baseUrl } },
+      { key: 'firstGuitar', sendAt: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000), variables: { username, baseUrl } },
+      { key: 'community', sendAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), variables: { username, baseUrl } },
     ];
 
     let scheduled = 0;
-    for (const emailConfig of emails) {
+    for (const cfg of emails) {
       const result = await scheduleEmail({
-        userId,
-        to: email,
-        subject: emailTemplates.welcome[emailConfig.key].subject,
-        html: emailTemplates.welcome[emailConfig.key].html,
-        text: emailTemplates.welcome[emailConfig.key].text,
-        sendAt: emailConfig.sendAt,
-        sequenceKey: 'welcome',
-        emailKey: emailConfig.key,
-        variables: emailConfig.variables,
+        userId, to: email,
+        subject: emailTemplates.welcome[cfg.key].subject,
+        html: emailTemplates.welcome[cfg.key].html,
+        text: emailTemplates.welcome[cfg.key].text,
+        sendAt: cfg.sendAt,
+        sequenceKey: 'welcome', emailKey: cfg.key, variables: cfg.variables,
       });
-
       if (result.success) scheduled++;
     }
 
     return { success: scheduled === emails.length, scheduled, error: null };
   } catch (error) {
-    console.error('[Email] Welcome sequence trigger failed:', error);
     return { success: false, scheduled: 0, error: error.message };
   }
 }
 
 /**
- * Trigger claim activation sequence for approved guitar claims
- * Schedules 4 emails: immediate, day 1, day 3, day 7
- * @param {string} userId - User ID
- * @param {string} email - User email
- * @param {string} username - User's username
- * @param {Object} guitarData - Guitar details { brand, model, year, color }
- * @returns {Promise<{success: boolean, scheduled: number, error: string}>}
+ * Trigger claim activation sequence
  */
 export async function triggerClaimSequence(userId, email, username, guitarData) {
   try {
@@ -457,60 +285,33 @@ export async function triggerClaimSequence(userId, email, username, guitarData) 
     const now = new Date();
 
     const emails = [
-      {
-        key: 'claimApproved',
-        sendAt: now,
-        variables: { username, ...guitarData, baseUrl },
-      },
-      {
-        key: 'addMoreGuitars',
-        sendAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
-        variables: { username, baseUrl },
-      },
-      {
-        key: 'buildCollection',
-        sendAt: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-        variables: { username, baseUrl },
-      },
-      {
-        key: 'exploreFeatures',
-        sendAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
-        variables: { username, baseUrl },
-      },
+      { key: 'claimApproved', sendAt: now, variables: { username, ...guitarData, baseUrl } },
+      { key: 'addMoreGuitars', sendAt: new Date(now.getTime() + 24 * 60 * 60 * 1000), variables: { username, baseUrl } },
+      { key: 'buildCollection', sendAt: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000), variables: { username, baseUrl } },
+      { key: 'exploreFeatures', sendAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), variables: { username, baseUrl } },
     ];
 
     let scheduled = 0;
-    for (const emailConfig of emails) {
+    for (const cfg of emails) {
       const result = await scheduleEmail({
-        userId,
-        to: email,
-        subject: emailTemplates.claim[emailConfig.key].subject,
-        html: emailTemplates.claim[emailConfig.key].html,
-        text: emailTemplates.claim[emailConfig.key].text,
-        sendAt: emailConfig.sendAt,
-        sequenceKey: 'claim',
-        emailKey: emailConfig.key,
-        variables: emailConfig.variables,
+        userId, to: email,
+        subject: emailTemplates.claim[cfg.key].subject,
+        html: emailTemplates.claim[cfg.key].html,
+        text: emailTemplates.claim[cfg.key].text,
+        sendAt: cfg.sendAt,
+        sequenceKey: 'claim', emailKey: cfg.key, variables: cfg.variables,
       });
-
       if (result.success) scheduled++;
     }
 
     return { success: scheduled === emails.length, scheduled, error: null };
   } catch (error) {
-    console.error('[Email] Claim sequence trigger failed:', error);
     return { success: false, scheduled: 0, error: error.message };
   }
 }
 
 /**
  * Trigger re-engagement sequence for inactive users
- * Schedules 3 emails: day 14, day 21, day 30
- * @param {string} userId - User ID
- * @param {string} email - User email
- * @param {string} username - User's username
- * @param {string} [preferredBrand] - Optional: user's preferred guitar brand
- * @returns {Promise<{success: boolean, scheduled: number, error: string}>}
  */
 export async function triggerReengagementSequence(userId, email, username, preferredBrand) {
   try {
@@ -518,88 +319,47 @@ export async function triggerReengagementSequence(userId, email, username, prefe
     const now = new Date();
 
     const emails = [
-      {
-        key: 'comeBack',
-        sendAt: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
-        variables: { username, baseUrl, preferredBrand },
-      },
-      {
-        key: 'newFeatures',
-        sendAt: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000),
-        variables: { username, baseUrl },
-      },
-      {
-        key: 'exclusiveOffer',
-        sendAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
-        variables: { username, baseUrl, preferredBrand },
-      },
+      { key: 'comeBack', sendAt: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000), variables: { username, baseUrl, preferredBrand } },
+      { key: 'newFeatures', sendAt: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000), variables: { username, baseUrl } },
+      { key: 'exclusiveOffer', sendAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000), variables: { username, baseUrl, preferredBrand } },
     ];
 
     let scheduled = 0;
-    for (const emailConfig of emails) {
+    for (const cfg of emails) {
       const result = await scheduleEmail({
-        userId,
-        to: email,
-        subject: emailTemplates.reengagement[emailConfig.key].subject,
-        html: emailTemplates.reengagement[emailConfig.key].html,
-        text: emailTemplates.reengagement[emailConfig.key].text,
-        sendAt: emailConfig.sendAt,
-        sequenceKey: 'reengagement',
-        emailKey: emailConfig.key,
-        variables: emailConfig.variables,
+        userId, to: email,
+        subject: emailTemplates.reengagement[cfg.key].subject,
+        html: emailTemplates.reengagement[cfg.key].html,
+        text: emailTemplates.reengagement[cfg.key].text,
+        sendAt: cfg.sendAt,
+        sequenceKey: 'reengagement', emailKey: cfg.key, variables: cfg.variables,
       });
-
       if (result.success) scheduled++;
     }
 
     return { success: scheduled === emails.length, scheduled, error: null };
   } catch (error) {
-    console.error('[Email] Re-engagement sequence trigger failed:', error);
     return { success: false, scheduled: 0, error: error.message };
   }
 }
 
 /**
- * Send a transactional/auth email (not part of a sequence)
- * Used for password reset, magic link, claim denied, etc.
- * @param {string} category - e.g., 'auth', 'claim'
- * @param {string} templateKey - e.g., 'passwordReset', 'claimDenied'
- * @param {Object} options
- * @param {string} options.to - Recipient email
- * @param {string} [options.userId] - User ID for tracking
- * @param {Object} options.variables - Template variables
- * @returns {Promise<{success: boolean, messageId: string, error: string}>}
+ * Send a transactional/auth email
  */
 export async function sendTransactionalEmail(category, templateKey, { to, userId, variables = {} }) {
   try {
     const templateFn = emailTemplates[category]?.[templateKey];
-    if (!templateFn) {
-      throw new Error(`Template not found: ${category}.${templateKey}`);
-    }
+    if (!templateFn) throw new Error(`Template not found: ${category}.${templateKey}`);
 
-    // Auth/transactional templates are functions that take variables
     const { subject, html, text } = templateFn(variables);
-
-    return await sendEmail({
-      to,
-      userId,
-      subject,
-      html,
-      text,
-      tags: [category, templateKey],
-    });
+    return await sendEmail({ to, userId, subject, html, text, tags: [category, templateKey] });
   } catch (error) {
-    console.error('[Email] Transactional send failed:', error);
     return { success: false, messageId: null, error: error.message };
   }
 }
 
 /**
- * Cancel a sequence (e.g., user becomes active again)
- * Deletes all pending emails for this user/sequence from queue
- * @param {string} userId - User ID
- * @param {string} sequenceKey - Sequence to cancel
- * @returns {Promise<{success: boolean, deleted: number, error: string}>}
+ * Cancel a scheduled sequence
  */
 export async function cancelSequence(userId, sequenceKey) {
   try {
@@ -611,19 +371,14 @@ export async function cancelSequence(userId, sequenceKey) {
       .eq('status', 'pending');
 
     if (error) throw error;
-
     return { success: true, deleted: data?.length || 0, error: null };
   } catch (error) {
-    console.error('[Email] Cancel sequence failed:', error);
     return { success: false, deleted: 0, error: error.message };
   }
 }
 
 /**
  * Update user email preferences
- * @param {string} userId - User ID
- * @param {Object} preferences - { marketingEmails, sequenceEmails, notificationEmails }
- * @returns {Promise<{success: boolean, error: string}>}
  */
 export async function updateEmailPreferences(userId, preferences) {
   try {
@@ -638,27 +393,18 @@ export async function updateEmailPreferences(userId, preferences) {
       });
 
     if (error) throw error;
-
     return { success: true, error: null };
   } catch (error) {
-    console.error('[Email] Update preferences failed:', error);
     return { success: false, error: error.message };
   }
 }
 
-/**
- * Helper: Strip HTML tags from string
- * @private
- */
+// ------- Helpers -------
+
 function stripHtmlTags(html) {
   return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
 }
 
-/**
- * Helper: Interpolate variables into template strings
- * Usage: interpolateTemplate('Hello {{name}}', { name: 'John' }) => 'Hello John'
- * @private
- */
 function interpolateTemplate(template, variables) {
   return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
     return variables[key] !== undefined ? String(variables[key]) : match;

@@ -48,14 +48,14 @@ export function useGuitars({
         const q = search.toLowerCase();
         filtered = filtered.filter(
           (g) =>
-            g.brand.toLowerCase().includes(q) ||
+            g.make?.toLowerCase().includes(q) ||
             g.model.toLowerCase().includes(q) ||
             String(g.year).includes(q)
         );
       }
       if (brand) {
         filtered = filtered.filter((g) =>
-          g.brand.toLowerCase().includes(brand.toLowerCase())
+          g.make?.toLowerCase().includes(brand.toLowerCase())
         );
       }
       if (bodyStyle) {

@@ -110,13 +110,14 @@ export default function Navbar({ transparent = false }) {
               onClick={() => setShowSearch(!showSearch)}
               aria-label="Search (Ctrl+K)"
               style={{
-                padding: "8px", borderRadius: "8px", display: "flex",
-                alignItems: "center", justifyContent: "center",
-                backgroundColor: "transparent", border: "none",
-                color: TH.txt2, cursor: "pointer",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                width: "40px", height: "40px", borderRadius: "8px",
+                border: `1px solid ${TH.border}`, backgroundColor: TH.bgCard,
+                color: TH.txt, cursor: "pointer", transition: "all 0.2s",
+                padding: 0,
               }}
             >
-              <Search size={18} />
+              <Search size={18} strokeWidth={2} />
             </button>
 
             {/* Theme toggle */}
@@ -125,14 +126,14 @@ export default function Navbar({ transparent = false }) {
               title={isDark ? "Switch to light mode" : "Switch to dark mode"}
               aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
               style={{
-                padding: "8px", borderRadius: "8px", display: "flex",
-                alignItems: "center", justifyContent: "center",
-                backgroundColor: "transparent", border: "none",
-                color: TH.txt2, cursor: "pointer",
-                transition: "color 0.2s",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                width: "40px", height: "40px", borderRadius: "8px",
+                border: `1px solid ${TH.border}`, backgroundColor: TH.bgCard,
+                color: TH.txt, cursor: "pointer", transition: "all 0.2s",
+                padding: 0,
               }}
             >
-              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+              {isDark ? <Sun size={18} strokeWidth={2} /> : <Moon size={18} strokeWidth={2} />}
             </button>
 
             {!isAuthenticated ? (
@@ -310,25 +311,27 @@ export default function Navbar({ transparent = false }) {
               onClick={() => setShowSearch(!showSearch)}
               aria-label="Search"
               style={{
-                padding: "8px", borderRadius: "8px", display: "flex",
-                alignItems: "center", justifyContent: "center",
-                backgroundColor: "transparent", border: "none",
-                color: TH.txt2, cursor: "pointer",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                width: "36px", height: "36px", borderRadius: "8px",
+                border: `1px solid ${TH.border}`, backgroundColor: TH.bgCard,
+                color: TH.txt, cursor: "pointer", transition: "all 0.2s",
+                padding: 0,
               }}
             >
-              <Search size={20} />
+              <Search size={18} strokeWidth={2} />
             </button>
             <button
               onClick={toggleTheme}
               aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
               style={{
-                padding: "8px", borderRadius: "8px", display: "flex",
-                alignItems: "center", justifyContent: "center",
-                backgroundColor: "transparent", border: "none",
-                color: TH.txt2, cursor: "pointer",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                width: "36px", height: "36px", borderRadius: "8px",
+                border: `1px solid ${TH.border}`, backgroundColor: TH.bgCard,
+                color: TH.txt, cursor: "pointer", transition: "all 0.2s",
+                padding: 0,
               }}
             >
-              {isDark ? <Sun size={20} /> : <Moon size={20} />}
+              {isDark ? <Sun size={18} strokeWidth={2} /> : <Moon size={18} strokeWidth={2} />}
             </button>
             {isAuthenticated && (
               <>

@@ -55,7 +55,7 @@ export async function globalSearch(query, options = {}) {
     // Search users
     const { data: usersData, error: usersError } = await supabase
       .from('users')
-      .select('id, username, avatar_url, is_verified')
+      .select('id, username, display_name, avatar_url, is_verified')
       .ilike('username', searchTerm)
       .limit(limit);
 

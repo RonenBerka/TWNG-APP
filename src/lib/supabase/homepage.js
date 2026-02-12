@@ -233,7 +233,7 @@ export async function getFeaturedInstruments(limit = 8) {
   try {
     const { data, error } = await supabase
       .from('instruments')
-      .select('id, make, model, year, main_image_url, current_owner:users!current_owner_id (id, username, avatar_url)')
+      .select('id, make, model, year, main_image_url, current_owner:users!current_owner_id (id, username, display_name, avatar_url)')
       .eq('is_featured', true)
       .eq('moderation_status', 'approved')
       .is('deleted_at', null)
@@ -255,7 +255,7 @@ export async function getRecentlyAddedInstruments(limit = 8) {
   try {
     const { data, error } = await supabase
       .from('instruments')
-      .select('id, make, model, year, main_image_url, current_owner:users!current_owner_id (id, username, avatar_url)')
+      .select('id, make, model, year, main_image_url, current_owner:users!current_owner_id (id, username, display_name, avatar_url)')
       .eq('moderation_status', 'approved')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
@@ -312,7 +312,7 @@ export async function getHomepageArticles(limit = 3) {
   try {
     const { data, error } = await supabase
       .from('articles')
-      .select('id, title, excerpt, cover_image_url, published_at, author:users!author_id (id, username, avatar_url)')
+      .select('id, title, excerpt, cover_image_url, published_at, author:users!author_id (id, username, display_name, avatar_url)')
       .eq('status', 'published')
       .order('published_at', { ascending: false })
       .limit(limit);
@@ -332,7 +332,7 @@ export async function getFeaturedArticles(limit = 3) {
   try {
     const { data, error } = await supabase
       .from('articles')
-      .select('id, title, excerpt, cover_image_url, published_at, author:users!author_id (id, username, avatar_url)')
+      .select('id, title, excerpt, cover_image_url, published_at, author:users!author_id (id, username, display_name, avatar_url)')
       .eq('status', 'published')
       .eq('is_featured', true)
       .order('published_at', { ascending: false })
@@ -395,7 +395,7 @@ export async function getFeaturedCollections(limit = 6) {
   try {
     const { data, error } = await supabase
       .from('collections')
-      .select('id, name, description, cover_image_url, user:users!user_id (id, username, avatar_url)')
+      .select('id, name, description, cover_image_url, user:users!user_id (id, username, display_name, avatar_url)')
       .eq('is_public', true)
       .order('created_at', { ascending: false })
       .limit(limit);

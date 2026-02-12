@@ -46,7 +46,7 @@ export async function getForumThreads(
       `
       *,
       author:author_id (
-        id, username, avatar_url
+        id, username, display_name, avatar_url
       ),
       category:category_id (
         id, name, slug
@@ -102,7 +102,7 @@ export async function getForumThread(threadId) {
       `
       *,
       author:author_id (
-        id, username, avatar_url
+        id, username, display_name, avatar_url
       ),
       category:category_id (
         id, name, slug
@@ -132,7 +132,7 @@ export async function getForumPosts(
       `
       *,
       author:author_id (
-        id, username, avatar_url
+        id, username, display_name, avatar_url
       )
     `,
       { count: 'exact' }
@@ -191,7 +191,7 @@ export async function createForumThread(categoryId, title, content) {
       `
       *,
       author:author_id (
-        id, username, avatar_url
+        id, username, display_name, avatar_url
       )
     `
     )
@@ -226,7 +226,7 @@ export async function createForumPost(threadId, content, parentPostId = null) {
       `
       *,
       author:author_id (
-        id, username, avatar_url
+        id, username, display_name, avatar_url
       )
     `
     )
@@ -359,7 +359,7 @@ export async function searchForumThreads(
       `
       *,
       author:author_id (
-        id, username, avatar_url
+        id, username, display_name, avatar_url
       ),
       category:category_id (
         id, name, slug

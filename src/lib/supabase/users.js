@@ -50,8 +50,11 @@ export async function updateUserProfile(userId, updates) {
   const updatePayload = {};
 
   if (updates.username !== undefined) updatePayload.username = updates.username;
+  if (updates.display_name !== undefined) updatePayload.display_name = updates.display_name;
   if (updates.avatar_url !== undefined) updatePayload.avatar_url = updates.avatar_url;
   if (updates.bio !== undefined) updatePayload.bio = updates.bio;
+  if (updates.location !== undefined) updatePayload.location = updates.location;
+  if (updates.social_links !== undefined) updatePayload.social_links = updates.social_links;
   if (updates.is_verified !== undefined) updatePayload.is_verified = updates.is_verified;
   if (updates.is_luthier !== undefined) updatePayload.is_luthier = updates.is_luthier;
 

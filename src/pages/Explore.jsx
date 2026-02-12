@@ -210,12 +210,12 @@ function ExploreInstrumentCard({ instrument, view }) {
                 padding: "3px 10px", borderRadius: "6px", fontSize: "11px",
                 backgroundColor: T.bgElev, color: T.txt2, border: `1px solid ${T.border}`,
                 fontFamily: "'JetBrains Mono', monospace",
-              }}>{instrument.instrument_type}</span>
+              }}>{instrument.custom_fields?.instrument_type}</span>
               <span style={{
                 padding: "3px 10px", borderRadius: "6px", fontSize: "11px",
                 backgroundColor: T.bgElev, color: T.txt2, border: `1px solid ${T.border}`,
                 fontFamily: "'JetBrains Mono', monospace",
-              }}>{instrument.condition}</span>
+              }}>{instrument.custom_fields?.condition}</span>
             </div>
           </div>
           <button
@@ -319,12 +319,12 @@ function ExploreInstrumentCard({ instrument, view }) {
               padding: "4px 10px", borderRadius: "6px", fontSize: "11px",
               backgroundColor: T.bgElev, color: T.txt2, border: `1px solid ${T.border}`,
               fontFamily: "'JetBrains Mono', monospace",
-            }}>{instrument.instrument_type}</span>
+            }}>{instrument.custom_fields?.instrument_type}</span>
             <span style={{
               padding: "4px 10px", borderRadius: "6px", fontSize: "11px",
               backgroundColor: T.bgElev, color: T.txt2, border: `1px solid ${T.border}`,
               fontFamily: "'JetBrains Mono', monospace",
-            }}>{instrument.condition}</span>
+            }}>{instrument.custom_fields?.condition}</span>
           </div>
         </div>
       </div>
@@ -402,8 +402,8 @@ export default function Explore() {
   const filtered = useMemo(() => {
     return allInstruments.filter(i => {
       if (selectedMakes.length > 0 && !selectedMakes.includes(i.make)) return false;
-      if (selectedInstrumentTypes.length > 0 && !selectedInstrumentTypes.includes(i.instrument_type)) return false;
-      if (selectedCondition !== "All" && i.condition !== selectedCondition) return false;
+      if (selectedInstrumentTypes.length > 0 && !selectedInstrumentTypes.includes(i.custom_fields?.instrument_type)) return false;
+      if (selectedCondition !== "All" && i.custom_fields?.condition !== selectedCondition) return false;
       return true;
     });
   }, [allInstruments, selectedMakes, selectedInstrumentTypes, selectedCondition]);

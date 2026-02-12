@@ -489,24 +489,28 @@ export default function EditCollection() {
     }
   };
 
-  const handleAddInstrument = (instrument) => {
+  const handleAddInstrument = async (instrument) => {
     if (!instruments.find((i) => i.id === instrument.id)) {
-      setInstruments([...instruments, instrument]);
-      // TODO: Actually add to collection via API
-      // await addInstrumentToCollection(id, instrument.id);
+      try {
+        await addInstrumentToCollection(id, instrument.id);
+        setInstruments([...instruments, instrument]);
+      } catch (err) {
+        console.error("Failed to add instrument:", err);
+        setError("Failed to add instrument. Please try again.");
+      }
     }
   };
 
   const handleRemoveInstrument = async (instrumentId) => {
     try {
       setRemovingId(instrumentId);
-      // TODO: Call removeInstrumentFromCollection
-      // await removeInstrumentFromCollection(id, instrumentId);
+      await removeInstrumentFromCollection(id, instrumentId);
       setInstruments((prev) =>
         prev.filter((inst) => inst.id !== instrumentId)
       );
     } catch (err) {
       console.error("Failed to remove instrument:", err);
+      setError("Failed to remove instrument. Please try again.");
     } finally {
       setRemovingId(null);
     }

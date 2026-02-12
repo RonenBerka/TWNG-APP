@@ -18,4 +18,15 @@ export default defineConfig({
       ignored: ['**/docs/**', '**/supabase/**', '**/dist/**', '**/*.OLD'],
     },
   },
+
+  // Strip console.log/warn in production builds (keep console.error)
+  build: {
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: false,
+        pure_funcs: ['console.log', 'console.warn'],
+      },
+    },
+  },
 })

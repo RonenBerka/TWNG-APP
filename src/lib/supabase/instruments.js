@@ -11,10 +11,10 @@ import { supabase } from './client';
 const INSTRUMENT_SELECT = `
   *,
   current_owner:users!current_owner_id (
-    id, username, avatar_url
+    id, username, display_name, avatar_url
   ),
   uploader:users!uploader_id (
-    id, username, avatar_url
+    id, username, display_name, avatar_url
   ),
   instrument_sensitive_details (
     serial_number, serial_number_is_locked, serial_number_grace_period_ends_at

@@ -284,8 +284,8 @@ export async function getAdminTransfers({
     .select(`
       *,
       instrument:instruments!instrument_id (id, make, model, serial_number),
-      from_user:users!from_user_id (id, username, avatar_url),
-      to_user:users!to_user_id (id, username, avatar_url)
+      from_user:users!from_owner_id (id, username, avatar_url),
+      to_user:users!to_owner_id (id, username, avatar_url)
     `, { count: 'exact' })
     .order('created_at', { ascending: false })
     .range((page - 1) * perPage, page * perPage - 1);
@@ -420,30 +420,118 @@ export { getHomepageBlocks as saveHomepageBlocks }; // stub - save not yet impl
 
 export async function getRecentActivity(limit = 20) {
   try {
-    const { data, error } = await supabase
-      .from('audit_log')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    if (error) throw error;
-    return data || [];
+    // Query recent activity from user_activity_feed (main audit source)
+    const [recentInstruments, recentUsers, recentThreads, recentActivityFeed] = await Promise.all([
+      supabase
+        .from('instruments')
+        .select('id, make, model, serial_number, created_at, updated_at')
+        .is('deleted_at', null)
+        .order('updated_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('users')
+        .select('id, username, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5),
+      supabase
+        .from('forum_threads')
+        .select('id, title, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5),
+      supabase
+        .from('user_activity_feed')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit),
+    ]);
+
+    if (recentActivityFeed.error) throw recentActivityFeed.error;
+
+    // Merge all activity streams
+    const allActivity = [
+      ...(recentActivityFeed.data || []).map(a => ({
+        id: a.id,
+        type: a.activity_type,
+        target_type: a.target_type,
+        target_id: a.target_id,
+        actor_id: a.actor_id,
+        data: a.data,
+        created_at: a.created_at,
+      })),
+      ...(recentInstruments.data || []).map(i => ({
+        id: i.id,
+        type: 'instrument_updated',
+        target_type: 'instrument',
+        target_id: i.id,
+        label: `${i.make} ${i.model}`,
+        created_at: i.updated_at,
+      })),
+      ...(recentUsers.data || []).map(u => ({
+        id: u.id,
+        type: 'user_created',
+        target_type: 'user',
+        target_id: u.id,
+        label: u.username,
+        created_at: u.created_at,
+      })),
+      ...(recentThreads.data || []).map(t => ({
+        id: t.id,
+        type: 'thread_created',
+        target_type: 'thread',
+        target_id: t.id,
+        label: t.title,
+        created_at: t.created_at,
+      })),
+    ];
+
+    // Sort by created_at descending and limit to requested count
+    return allActivity
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, limit);
   } catch (error) {
     console.error('Error fetching recent activity:', error);
     return [];
   }
 }
 
-export async function getAuditLogs({ page = 1, perPage = 50 } = {}) {
+export async function getAuditLogs({ page = 1, perPage = 50, action = '', userId = '' } = {}) {
   try {
     const from = (page - 1) * perPage;
     const to = from + perPage - 1;
-    const { data, error, count } = await supabase
-      .from('audit_log')
+
+    // Query user_activity_feed table with filters
+    let query = supabase
+      .from('user_activity_feed')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to);
+
+    if (action) {
+      query = query.eq('activity_type', action);
+    }
+
+    if (userId) {
+      query = query.eq('actor_id', userId);
+    }
+
+    const { data, error, count } = await query;
+
     if (error) throw error;
-    return { data: data || [], count: count || 0, page, perPage };
+
+    return {
+      data: (data || []).map(log => ({
+        id: log.id,
+        action: log.activity_type,
+        actor_id: log.actor_id,
+        target_type: log.target_type,
+        target_id: log.target_id,
+        details: log.data,
+        created_at: log.created_at,
+      })),
+      count: count || 0,
+      page,
+      perPage,
+    };
   } catch (error) {
     console.error('Error fetching audit logs:', error);
     return { data: [], count: 0, page, perPage };
@@ -460,4 +548,56 @@ export async function updatePrivacyRequest() {
 
 export async function getDuplicateMatches() {
   return { data: [], count: 0 };
+}
+
+// ─────────────────────────────────────────────────────
+// TRANSFER MANAGEMENT
+// ─────────────────────────────────────────────────────
+
+/**
+ * Expire overdue transfers that are still pending after 7 days.
+ * Transfers are marked as 'expired' if they were created more than 7 days ago
+ * and are still in 'pending' status.
+ *
+ * @returns {Promise<{expired: Array, count: number}>} Expired transfer details and count
+ */
+export async function expireOverdueTransfers() {
+  try {
+    // Calculate the date 7 days ago
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const cutoffDate = sevenDaysAgo.toISOString();
+
+    // Fetch all pending transfers older than 7 days
+    const { data: overdueTransfers, error: fetchError } = await supabase
+      .from('ownership_transfers')
+      .select('*')
+      .eq('status', 'pending')
+      .lt('created_at', cutoffDate);
+
+    if (fetchError) throw fetchError;
+
+    if (!overdueTransfers || overdueTransfers.length === 0) {
+      return { expired: [], count: 0 };
+    }
+
+    // Prepare updates for each overdue transfer
+    const updates = overdueTransfers.map(transfer => ({
+      id: transfer.id,
+      status: 'expired',
+      updated_at: new Date().toISOString(),
+    }));
+
+    // Batch update all overdue transfers
+    const { error: updateError } = await supabase
+      .from('ownership_transfers')
+      .upsert(updates, { onConflict: 'id' });
+
+    if (updateError) throw updateError;
+
+    return { expired: overdueTransfers, count: overdueTransfers.length };
+  } catch (error) {
+    console.error('Error expiring overdue transfers:', error);
+    return { expired: [], count: 0 };
+  }
 }

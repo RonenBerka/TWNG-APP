@@ -74,7 +74,7 @@ function CollectionCard({ instrument, view }) {
               padding: "4px 10px", borderRadius: "6px", fontSize: "11px",
               backgroundColor: T.bgElev, color: T.txt2, border: `1px solid ${T.border}`,
               fontFamily: "'JetBrains Mono', monospace",
-            }}>{instrument.condition}</span>
+            }}>{instrument.custom_fields?.condition}</span>
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(!menuOpen); }}
               aria-label="More options"
@@ -226,7 +226,7 @@ export default function MyCollection() {
       nickname: i.nickname || `Instrument #${idx + 1}`,
       dateAdded: i.created_at || `2024-01-${String(15 - idx).padStart(2, "0")}`,
       serial: i.serial_number || `SN-${100000 + (typeof i.id === 'number' ? i.id : idx)}`,
-      loves: 0, // TODO: wire to actual engagement metrics when available
+      loves: i.loves || 0, // Engagement metrics fallback to 0 if not available
     })),
   [collectionInstruments]);
 
@@ -240,9 +240,9 @@ export default function MyCollection() {
     const matchFilter =
       selectedFilter === "all" ||
       (selectedFilter === "verified" && i.verified) ||
-      (selectedFilter === "electric" && i.instrument_type === "Solid Body") ||
-      (selectedFilter === "acoustic" && (i.instrument_type === "Classical" || i.instrument_type === "Acoustic")) ||
-      (selectedFilter === "bass" && i.instrument_type === "Bass");
+      (selectedFilter === "electric" && i.custom_fields?.instrument_type === "Solid Body") ||
+      (selectedFilter === "acoustic" && (i.custom_fields?.instrument_type === "Classical" || i.custom_fields?.instrument_type === "Acoustic")) ||
+      (selectedFilter === "bass" && i.custom_fields?.instrument_type === "Bass");
     return matchSearch && matchFilter;
   });
 

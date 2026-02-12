@@ -1,0 +1,103 @@
+{
+  "prompts": {
+    "is_guitar_post": {
+      "name": "Quick Guitar Post Classifier",
+      "purpose": "Fast filter to determine if a post is about a guitar the person owns (saves API costs before full extraction)",
+      "input_variables": ["caption"],
+      "prompt": "You are a quick classifier. Determine if this Instagram post is about a guitar the person OWNS.\n\nINPUT:\n- Caption: {caption}\n\nRULES:\n- Return TRUE if: Post shows/discusses a guitar the poster owns or acquired\n- Return FALSE if: \n  - Post is about guitar gear that isn't a guitar (pedals, amps, strings)\n  - Post is about someone else's guitar they don't own\n  - Post is a meme or repost\n  - Post is about wanting a guitar (not owning)\n  - Post is from a store/dealer selling guitars\n\nOUTPUT (JSON only, no explanation):\n{\n  \"is_guitar_post\": boolean,\n  \"confidence\": \"high\" | \"medium\" | \"low\"\n}"
+    },
+
+    "collector_qualification": {
+      "name": "Collector Account Qualification",
+      "purpose": "Analyze an Instagram account to determine if they're a guitar collector worth pursuing for outreach",
+      "input_variables": ["handle", "followers", "following", "bio", "posts_array"],
+      "prompt": "You are qualifying Instagram accounts to determine if they're worth pursuing for TWNG, a guitar collector platform.\n\nINPUT:\n- Handle: {handle}\n- Followers: {followers}\n- Following: {following}\n- Bio: {bio}\n- Recent posts (last 20): {posts_array}\n  Each post includes: caption, likes, comments, date, image_url\n\nTASK:\nAnalyze this account and determine if they are a guitar collector worth pursuing.\n\nANALYSIS REQUIRED:\n\n1. ACCOUNT TYPE CLASSIFICATION:\n   - \"collector\" = Personal account, owns multiple guitars, posts about collection\n   - \"musician\" = Plays guitar but not focused on collecting\n   - \"dealer\" = Sells guitars professionally\n   - \"brand\" = Guitar company or music store\n   - \"influencer\" = Paid promotions, gear reviews\n   - \"casual\" = Occasional guitar posts, not a collector\n   \n2. COLLECTION ANALYSIS (if collector):\n   - Estimated number of unique guitars visible\n   - Primary brands/types\n   - Era focus (vintage/modern/mixed)\n   - Collection quality (budget/mid/high-end/premium)\n   \n3. STORY RICHNESS:\n   - Do their captions tell stories?\n   - Do they share acquisition details?\n   - Do they express emotional connection?\n   - Score 1-10\n\n4. ENGAGEMENT QUALITY:\n   - Do they respond to comments?\n   - Are comments substantive or just emojis?\n   - Score 1-10\n\n5. REACHABILITY:\n   - Bio suggests openness to contact?\n   - Recent activity level?\n   - Score 1-10\n\nOUTPUT FORMAT (JSON):\n{\n  \"qualified\": boolean,\n  \"qualification_score\": number (1-100),\n  \"account_type\": string,\n  \"skip_reason\": string or null,\n  \"collection_analysis\": {\n    \"estimated_guitars\": number,\n    \"primary_brands\": [strings],\n    \"era_focus\": \"vintage\" | \"modern\" | \"mixed\",\n    \"quality_tier\": \"budget\" | \"mid\" | \"high\" | \"premium\",\n    \"notable_pieces\": [strings]\n  },\n  \"scores\": {\n    \"story_richness\": number,\n    \"engagement_quality\": number,\n    \"reachability\": number\n  },\n  \"outreach_priority\": \"high\" | \"medium\" | \"low\",\n  \"best_guitars_for_hook\": [\n    {\n      \"guitar\": string,\n      \"post_url\": string,\n      \"hook_angle\": string\n    }\n  ],\n  \"notes\": string\n}\n\nQUALIFICATION THRESHOLDS:\n- qualified: true if account_type = \"collector\" AND qualification_score >= 60\n- high priority: score >= 80\n- medium priority: score 60-79\n- low priority: score < 60"
+    },
+
+    "follow_up_generation": {
+      "name": "Follow-Up Message Generator",
+      "purpose": "Generate appropriate follow-up messages for non-responders",
+      "input_variables": ["original_message", "days", "follow_up_number", "handle", "notable_guitar"],
+      "prompt": "Generate a follow-up message for someone who hasn't responded to our initial outreach.\n\nINPUT:\n- Original message: {original_message}\n- Days since sent: {days}\n- Follow-up number: {follow_up_number} (1 or 2)\n- Their handle: {handle}\n- Notable guitar from their collection: {notable_guitar}\n\nRULES:\n- Follow-up 1 (day 3-4): Light, friendly bump. \"Just floating this back up...\"\n- Follow-up 2 (day 7-8): Final note, no pressure, mention preview will expire\n- Keep it SHORT (under 50 words for DM)\n- Don't repeat the whole pitch\n- Reference one specific guitar to prove it's not automated spam\n- End with easy out (\"no worries if not interested\")\n\nOUTPUT (JSON):\n{\n  \"message\": string,\n  \"tone\": \"friendly\" | \"casual\" | \"final\"\n}"
+    },
+
+    "post_qualification": {
+      "name": "Post Qualification (System A)",
+      "purpose": "Determine if an Instagram post is worth featuring on TWNG",
+      "input_variables": ["caption", "likes", "comments", "followers", "date"],
+      "prompt": "You are evaluating Instagram posts for TWNG, a platform for guitar collectors. Your job is to identify posts worth featuring based on the guitar's interest level and the story quality.\n\nINPUT:\n- Post caption: {caption}\n- Likes: {likes}\n- Comments: {comments}\n- Account followers: {followers}\n- Post date: {date}\n\nEVALUATION CRITERIA:\n\n1. GUITAR INTEREST (1-10):\n- Vintage (pre-1985): +3 points\n- Rare/unusual model: +2 points\n- Famous brand (Gibson, Fender, Martin, PRS, Gretsch): +1 point\n- Custom/boutique: +2 points\n- Historical significance mentioned: +2 points\n\n2. STORY QUALITY (1-10):\n- Personal history/memory shared: +3 points\n- Acquisition story (how they got it): +2 points\n- Technical details provided: +1 point\n- Emotional connection expressed: +2 points\n- Just \"NGD\" or minimal caption: -3 points\n\n3. ENGAGEMENT QUALITY:\n- Likes > 500: High\n- Likes 100-500: Medium\n- Likes < 100: Low\n\n4. ACCOUNT REACHABILITY:\n- 1K-10K followers: Highly reachable\n- 10K-50K followers: Reachable\n- 50K-100K followers: Difficult\n- 100K+ followers: Celebrity tier (skip)\n\nOUTPUT FORMAT (JSON):\n{\n  \"feature_worthy\": boolean,\n  \"overall_score\": number (1-10),\n  \"guitar_interest_score\": number,\n  \"story_quality_score\": number,\n  \"extracted_data\": {\n    \"brand\": string or null,\n    \"model\": string or null,\n    \"year\": string or null,\n    \"nickname\": string or null,\n    \"story_summary\": string (2-3 sentences)\n  },\n  \"suggested_angle\": string,\n  \"skip_reason\": string or null\n}\n\nOnly mark feature_worthy: true if overall_score >= 7."
+    },
+    
+    "guitar_extraction": {
+      "name": "Guitar Data Extraction (System B)",
+      "purpose": "Extract structured guitar data from Instagram post captions",
+      "input_variables": ["caption", "image_url", "post_date", "post_url"],
+      "prompt": "You are a guitar expert extracting structured data from Instagram posts for a guitar collection database.\n\nINPUT:\n- Post caption: {caption}\n- Image URL: {image_url}\n- Post date: {post_date}\n- Post URL: {post_url}\n\nTASK:\nExtract all guitar-related information from the caption. Be precise and conservative - only include information explicitly stated or strongly implied.\n\nEXTRACTION RULES:\n1. Brand: Look for Gibson, Fender, Martin, Taylor, PRS, Gretsch, Rickenbacker, Ibanez, ESP, Jackson, Epiphone, Squier, Guild, Collings, Santa Cruz, etc.\n2. Model: Les Paul, Stratocaster, Telecaster, SG, ES-335, Jazzmaster, Jaguar, D-28, J-45, etc.\n3. Year: Extract if explicitly mentioned. Format as YYYY. If \"late 60s\" → \"1968-1969\". If \"early 50s\" → \"1950-1953\".\n4. Serial/identifier: Any serial number, factory codes, or unique identifiers mentioned.\n5. Finish/color: Sunburst, natural, black, cherry, etc.\n6. Condition notes: Refrets, refinish, repairs, modifications mentioned.\n7. Provenance: Previous owners, where acquired, how long owned.\n8. Story: Any personal narrative, memories, or emotional content.\n\nOUTPUT FORMAT (JSON):\n{\n  \"contains_guitar\": boolean,\n  \"confidence\": \"high\" | \"medium\" | \"low\",\n  \"guitars\": [\n    {\n      \"brand\": string or null,\n      \"model\": string or null,\n      \"year\": string or null,\n      \"year_approximate\": boolean,\n      \"serial_number\": string or null,\n      \"finish\": string or null,\n      \"guitar_type\": \"electric\" | \"acoustic\" | \"bass\" | \"other\" | null,\n      \"body_style\": string or null,\n      \"condition_notes\": string or null,\n      \"modifications\": string or null,\n      \"provenance\": string or null,\n      \"years_owned\": number or null,\n      \"acquisition_story\": string or null,\n      \"personal_story\": string or null,\n      \"nickname\": string or null\n    }\n  ],\n  \"source_post_url\": string,\n  \"source_post_date\": string,\n  \"source_image_url\": string,\n  \"extraction_notes\": string or null\n}\n\nIf the post does not contain guitar content, return:\n{\n  \"contains_guitar\": false,\n  \"confidence\": \"high\",\n  \"guitars\": [],\n  \"skip_reason\": \"no guitar content\" | \"unrelated content\" | \"gear other than guitar\"\n}"
+    },
+    
+    "article_generation": {
+      "name": "Feature Article Generation (System A)",
+      "purpose": "Generate a short feature article for TWNG based on an Instagram post",
+      "input_variables": ["extracted_data", "caption", "angle", "handle"],
+      "prompt": "You are writing a short feature article for TWNG, a platform for guitar collectors. The tone should be warm, knowledgeable, and celebratory of the guitar and its story.\n\nINPUT:\n- Guitar data: {extracted_data}\n- Original caption: {caption}\n- Suggested angle: {angle}\n- Owner's Instagram handle: {handle}\n\nARTICLE REQUIREMENTS:\n1. Length: 200-350 words\n2. Tone: Enthusiastic but not hyperbolic. Knowledgeable. Respectful.\n3. Structure:\n   - Hook opening (1-2 sentences that grab attention)\n   - The guitar itself (specs, history of the model)\n   - The owner's story (from their caption)\n   - Why it matters / what makes it special\n   - Closing that invites the owner to share more\n\n4. DO NOT:\n   - Make up facts not in the source material\n   - Speculate about value/price\n   - Be condescending or overly effusive\n   - Use clichéd phrases like \"axe\" or \"shred\"\n\n5. DO:\n   - Credit the owner by Instagram handle\n   - Include specific details from their caption\n   - Add brief historical context about the guitar model if relevant\n   - End with a soft call-to-action\n\nOUTPUT FORMAT:\n{\n  \"title\": string (compelling, specific, 6-10 words),\n  \"subtitle\": string (one-line summary),\n  \"body\": string (the article text, with paragraph breaks as \\n\\n),\n  \"tags\": [array of relevant tags],\n  \"category\": \"Guitar Spotlight\" | \"Rare Find\" | \"Story Behind the Strings\" | \"Collection Feature\"\n}"
+    },
+    
+    "collection_summary": {
+      "name": "Collection Summary & Outreach Hooks (System B)",
+      "purpose": "Compile multiple extracted guitars into a collection summary and generate outreach copy",
+      "input_variables": ["handle", "name", "guitars_array"],
+      "prompt": "You are compiling a guitar collection summary for outreach purposes.\n\nINPUT:\n- Collector's Instagram handle: {handle}\n- Collector's name (if known): {name}\n- Extracted guitars: {guitars_array}\n\nTASKS:\n\n1. DEDUPLICATE: If the same guitar appears in multiple posts, merge into one entry. Use the most complete information from all appearances.\n\n2. COLLECTION SUMMARY: Analyze the collection and provide:\n   - Total unique guitars\n   - Primary brands represented\n   - Era focus (vintage, modern, mixed)\n   - Style focus (electric, acoustic, bass, mixed)\n   - Notable pieces (most interesting 2-3 guitars)\n   - Collection personality (e.g., \"Vintage Gibson purist\", \"Eclectic player's collection\", \"Fender aficionado\")\n\n3. OUTREACH HOOKS: Identify 2-3 specific guitars or stories to reference in personalized outreach. These should be the most interesting or emotionally resonant items.\n\nOUTPUT FORMAT:\n{\n  \"collection_summary\": {\n    \"total_guitars\": number,\n    \"primary_brands\": [strings],\n    \"era_focus\": string,\n    \"style_focus\": string,\n    \"collection_personality\": string,\n    \"notable_pieces\": [\n      {\n        \"guitar\": string,\n        \"why_notable\": string\n      }\n    ]\n  },\n  \"deduplicated_guitars\": [],\n  \"outreach_hooks\": [\n    {\n      \"guitar\": string,\n      \"hook\": string\n    }\n  ],\n  \"suggested_outreach_opener\": string\n}"
+    },
+    
+    "outreach_personalization": {
+      "name": "Outreach Message Personalization",
+      "purpose": "Generate personalized outreach message based on collection data",
+      "input_variables": ["handle", "name", "collection_summary", "outreach_hooks", "preview_url", "template_type"],
+      "prompt": "Generate a personalized outreach message for a guitar collector.\n\nINPUT:\n- Instagram handle: {handle}\n- Name (if known): {name}\n- Collection summary: {collection_summary}\n- Outreach hooks: {outreach_hooks}\n- Preview URL: {preview_url}\n- Template type: {template_type} (\"featured_guitar\" or \"pre_built_collection\")\n\nREQUIREMENTS:\n1. Keep it short (under 150 words for DM, under 250 for email)\n2. Reference at least one specific guitar by name\n3. Include one specific detail that proves you looked at their content\n4. Be genuine, not salesy\n5. Clear call-to-action but no pressure\n6. Match their vibe (casual poster = casual message, serious collector = more formal)\n\nOUTPUT FORMAT:\n{\n  \"dm_version\": string (short, for Instagram DM),\n  \"email_version\": string (longer, for email),\n  \"email_subject\": string,\n  \"personalization_score\": number (1-10, how personalized is this),\n  \"hooks_used\": [strings]\n}"
+    }
+  },
+  
+  "example_usage": {
+    "post_qualification": {
+      "input": {
+        "caption": "Principal Skinner 9-1951 my favorite Gibson Les Paul. I have owned this one for 15 years. Still the best and will always be. Big thanks to Eliot and Ronny for betting on me all those years ago. @rumbleseatmusic @rumbleseat1953 #ATC 😎👍 ( And yes that is me playing Mr Skinner with Jon Lord, The London Philharmonic with Bruce Dickinson on vocals @abbeyroadstudios . )",
+        "likes": 5563,
+        "comments": 142,
+        "followers": 850000,
+        "date": "2025-01-26"
+      },
+      "expected_output_notes": "Would score high on guitar interest (vintage 1951 Les Paul) and story quality (15 years ownership, famous collaborations), but would be flagged as 'celebrity tier' due to follower count"
+    },
+    "guitar_extraction": {
+      "input": {
+        "caption": "Principal Skinner 9-1951 my favorite Gibson Les Paul. I have owned this one for 15 years. Still the best and will always be.",
+        "image_url": "https://instagram.com/p/xxx/media",
+        "post_date": "2025-01-26",
+        "post_url": "https://instagram.com/p/xxx"
+      },
+      "expected_output": {
+        "contains_guitar": true,
+        "confidence": "high",
+        "guitars": [
+          {
+            "brand": "Gibson",
+            "model": "Les Paul",
+            "year": "1951",
+            "year_approximate": false,
+            "serial_number": null,
+            "finish": null,
+            "guitar_type": "electric",
+            "body_style": "solid body",
+            "condition_notes": null,
+            "modifications": null,
+            "provenance": null,
+            "years_owned": 15,
+            "acquisition_story": "Acquired with help from Eliot and Ronny at Rumble Seat Music",
+            "personal_story": "Owner's favorite guitar, described as 'still the best and will always be'. Used in recording with Jon Lord and Bruce Dickinson at Abbey Road Studios.",
+            "nickname": "Principal Skinner"
+          }
+        ]
+      }
+    }
+  }
+}

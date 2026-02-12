@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>TWNG Guitar Story Extractor</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #F59E0B;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 24px;
+    }
+
+    /* Source Selector */
+    .source-selector {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .source-btn {
+      padding: 12px 24px;
+      background: #1a1a1a;
+      border: 2px solid #333;
+      border-radius: 8px;
+      color: #888;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .source-btn:hover {
+      border-color: #555;
+      color: #ccc;
+    }
+
+    .source-btn.active {
+      border-color: #F59E0B;
+      color: #F59E0B;
+      background: #1a1a0a;
+    }
+
+    .source-btn .icon {
+      font-size: 18px;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .step {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #333;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      background: #F59E0B;
+      color: black;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .step-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #252525;
+      color: white;
+      font-size: 14px;
+      resize: vertical;
+    }
+
+    textarea:focus, input:focus {
+      outline: none;
+      border-color: #F59E0B;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #888;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      background: #F59E0B;
+      border: none;
+      border-radius: 8px;
+      color: black;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+
+    .btn:hover {
+      background: #D97706;
+    }
+
+    .btn-secondary {
+      background: #333;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #444;
+    }
+
+    .btn-copy {
+      background: #10B981;
+    }
+
+    .guitar-card {
+      background: linear-gradient(135deg, #1a1a1a 0%, #252525 100%);
+      border: 1px solid #F59E0B33;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .guitar-card h3 {
+      color: #F59E0B;
+      margin-bottom: 16px;
+      font-size: 16px;
+    }
+
+    .field-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .field {
+      flex: 1;
+    }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .outreach-box {
+      background: #1a2a1a;
+      border: 1px solid #10B98133;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .outreach-box h3 {
+      color: #10B981;
+      margin-bottom: 16px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab {
+      padding: 8px 16px;
+      background: #252525;
+      border: none;
+      border-radius: 6px;
+      color: #888;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .tab.active {
+      background: #10B981;
+      color: black;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .status {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+
+    .status.success {
+      background: #10B98122;
+      color: #10B981;
+    }
+
+    .status.error {
+      background: #EF444422;
+      color: #EF4444;
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+    }
+
+    .hashtags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .hashtag {
+      padding: 4px 10px;
+      background: #333;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #888;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .hashtag:hover {
+      background: #444;
+      color: #F59E0B;
+    }
+
+    .enrichment-section {
+      background: #1a1a2a;
+      border: 1px solid #6366F133;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .enrichment-section h4 {
+      color: #818CF8;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .specs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .spec-item {
+      background: #252535;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .spec-item .label {
+      color: #666;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .spec-item .value {
+      color: #e0e0e0;
+    }
+
+    .artists-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .artist-card {
+      background: #252525;
+      border: 1px solid #F59E0B33;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .artist-card .artist-name {
+      color: #F59E0B;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .artist-card .artist-guitar {
+      color: #10B981;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .artist-card .artist-notes {
+      color: #888;
+      font-size: 11px;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    .songs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .song-item {
+      background: #1A2A1A;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .song-item .title {
+      color: #10B981;
+    }
+
+    .song-item .artist {
+      color: #666;
+    }
+
+    .bottom-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .json-output {
+      background: #151515;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 11px;
+      white-space: pre-wrap;
+      max-height: 300px;
+      overflow-y: auto;
+      color: #10B981;
+    }
+
+    .json-container {
+      position: relative;
+    }
+
+    .json-container h4 {
+      color: #666;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .copy-json-btn {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      padding: 6px 12px;
+      font-size: 11px;
+    }
+
+    .search-tips {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+    }
+
+    .search-tips h5 {
+      color: #888;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .tips-list {
+      font-size: 12px;
+      color: #666;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎸 TWNG Guitar Story Extractor</h1>
+    <p class="subtitle">חילוץ סיפורי גיטרות → העשרה אוטומטית → כרטיס TWNG מוכן</p>
+
+    <!-- Source Selector -->
+    <div class="source-selector">
+      <button class="source-btn active" data-source="instagram" onclick="setSource('instagram')">
+        <span class="icon">📸</span> Instagram
+      </button>
+      <button class="source-btn" data-source="reddit" onclick="setSource('reddit')">
+        <span class="icon">🤖</span> Reddit
+      </button>
+      <button class="source-btn" data-source="facebook" onclick="setSource('facebook')">
+        <span class="icon">📘</span> Facebook
+      </button>
+      <button class="source-btn" data-source="other" onclick="setSource('other')">
+        <span class="icon">🌐</span> אחר
+      </button>
+    </div>
+
+    <div class="workflow">
+      <!-- Step 1: Input -->
+      <div class="step">
+        <div class="step-header">
+          <div class="step-number">1</div>
+          <div class="step-title">הזן מידע מהפוסט</div>
+        </div>
+
+        <div class="input-group">
+          <label>קישור לפוסט</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="postUrl" placeholder="https://..." style="flex: 1;">
+            <button class="btn btn-secondary" onclick="showJsonPaste()" title="Reddit: הוסף .json לURL, פתח בטאב, העתק">📋 JSON</button>
+          </div>
+          <p class="help-text" id="fetchStatus">💡 רדיט: הוסף <code>.json</code> ל-URL, פתח בטאב חדש, העתק והדבק למטה</p>
+        </div>
+
+        <div class="input-group" id="jsonPasteGroup" style="display: none;">
+          <label>הדבק Reddit JSON כאן</label>
+          <textarea id="rawJson" rows="3" placeholder='[{"kind": "Listing", ...}]'></textarea>
+          <button class="btn" onclick="parseRedditJson()" style="margin-top: 8px;">🔄 פענח JSON</button>
+        </div>
+
+        <div class="input-group">
+          <label>שם משתמש / מפרסם</label>
+          <input type="text" id="username" placeholder="@username">
+
+        <div class="input-group" id="titleGroup" style="display: none;">
+          <label>כותרת (אם יש)</label>
+          <input type="text" id="postTitle" placeholder="כותרת הפוסט...">
+        </div>
+
+        <div class="input-group">
+          <label>טקסט הפוסט</label>
+          <textarea id="postText" rows="5" placeholder="הדבק כאן את הטקסט המלא מהפוסט..."></textarea>
+        </div>
+
+        <div class="input-group">
+          <label>קישורי תמונות (שורה לכל תמונה)</label>
+          <textarea id="imageUrls" rows="2" placeholder="https://...jpg"></textarea>
+        </div>
+
+        <button class="btn" onclick="analyzePost()">🔍 נתח וחלץ מידע</button>
+      </div>
+
+      <!-- Step 2: Extracted Data + Enrichment -->
+      <div class="step">
+        <div class="step-header">
+          <div class="step-number">2</div>
+          <div class="step-title">מידע + העשרה אוטומטית</div>
+        </div>
+
+        <div class="guitar-card">
+          <h3>🎸 פרטי הגיטרה</h3>
+
+          <div class="field-row">
+            <div class="field">
+              <label>יצרן</label>
+              <input type="text" id="brand" placeholder="Fender" onchange="enrichData()">
+            </div>
+            <div class="field">
+              <label>דגם</label>
+              <input type="text" id="model" placeholder="Stratocaster" onchange="enrichData()">
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label>שנה</label>
+              <input type="text" id="year" placeholder="1972">
+            </div>
+            <div class="field">
+              <label>צבע</label>
+              <input type="text" id="color" placeholder="Sunburst">
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label>מספר סידורי</label>
+              <input type="text" id="serial" placeholder="S7xxxxx">
+            </div>
+            <div class="field">
+              <label>מצב</label>
+              <input type="text" id="condition" placeholder="Vintage / Mint / Player">
+            </div>
+          </div>
+
+          <div class="field">
+            <label>הסיפור (מותאם ל-TWNG)</label>
+            <textarea id="story" rows="3" placeholder="הסיפור יופיע כאן..."></textarea>
+          </div>
+        </div>
+
+        <!-- Specs Section -->
+        <div class="enrichment-section" id="specsSection" style="display: none;">
+          <h4>📋 מפרט טכני מומלץ</h4>
+          <div class="specs-grid" id="specsGrid"></div>
+        </div>
+
+        <!-- Artists Section -->
+        <div class="enrichment-section" id="artistsSection" style="display: none;">
+          <h4>🌟 אמנים מפורסמים (דגם ספציפי)</h4>
+          <div class="artists-list" id="artistsList"></div>
+        </div>
+
+        <!-- Songs Section -->
+        <div class="enrichment-section" id="songsSection" style="display: none;">
+          <h4>🎵 שירים מפורסמים</h4>
+          <div class="songs-list" id="songsList"></div>
+        </div>
+      </div>
+
+      <!-- Step 3: Outreach -->
+      <div class="step">
+        <div class="step-header">
+          <div class="step-number">3</div>
+          <div class="step-title">פנייה לבעלים</div>
+        </div>
+
+        <div class="outreach-box">
+          <h3>✉️ הודעה מוכנה</h3>
+
+          <div class="tabs">
+            <button class="tab active" onclick="switchLang('en')">English</button>
+            <button class="tab" onclick="switchLang('he')">עברית</button>
+          </div>
+
+          <div class="field">
+            <textarea id="outreachMessage" rows="8"></textarea>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-copy" onclick="copyOutreach()">📋 העתק הודעה</button>
+            <button class="btn btn-secondary" id="openDmBtn" onclick="openDM()">📨 פתח הודעה</button>
+          </div>
+        </div>
+
+        <div id="statusMessage"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Section: JSON Output + Search Tips -->
+    <div class="bottom-section">
+      <div class="json-container">
+        <h4>📦 JSON מוכן ל-Supabase</h4>
+        <button class="btn btn-secondary copy-json-btn" onclick="copyGuitarJSON()">📋 העתק</button>
+        <div class="json-output" id="jsonOutput">// הרץ ניתוח כדי לראות את ה-JSON</div>
+      </div>
+
+      <div class="step" style="margin-top: 0;">
+        <div class="step-header">
+          <div class="step-number">🔍</div>
+          <div class="step-title" id="searchTipsTitle">איפה לחפש</div>
+        </div>
+        <div class="hashtags" id="searchTerms"></div>
+        <div class="search-tips" id="searchTips"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Current source
+    let currentSource = 'instagram';
+    let currentLang = 'en';
+
+    // Source-specific config
+    const SOURCE_CONFIG = {
+      instagram: {
+        urlPlaceholder: 'https://www.instagram.com/p/...',
+        userPrefix: '@',
+        hasTitle: false,
+        searchTerms: ['#myfirstguitar', '#guitarlove', '#guitarstory', '#ngd', '#newguitarday', '#vintageguitar', '#guitarcollection', '#fenderguitar', '#gibsonguitar', '#guitarporn', '#guitarlife'],
+        searchTips: 'חפש האשטגים של סיפורים אישיים. סנן לפי Recent.',
+        dmUrl: (user) => `https://instagram.com/direct/t/${user}`,
+        dmLabel: 'פתח DM'
+      },
+      reddit: {
+        urlPlaceholder: 'https://www.reddit.com/r/guitar/comments/...',
+        userPrefix: 'u/',
+        hasTitle: true,
+        searchTerms: ['r/guitar', 'r/guitars', 'r/guitarporn', 'r/offset', 'r/LesPaul', 'r/telecaster', 'r/fender', 'r/Gibson', 'r/vintageguitars', 'r/Luthier'],
+        searchTips: 'חפש: "NGD" (New Guitar Day), "my first", "finally got", "story behind", "inherited", "dream guitar"',
+        dmUrl: (user) => `https://www.reddit.com/message/compose/?to=${user}`,
+        dmLabel: 'פתח PM'
+      },
+      facebook: {
+        urlPlaceholder: 'https://www.facebook.com/...',
+        userPrefix: '',
+        hasTitle: false,
+        searchTerms: ['Guitar Stories', 'Vintage Guitars', 'Guitar Collectors', 'Fender Players', 'Gibson Fans', 'Guitar Nerds', 'NGD'],
+        searchTips: 'חפש בקבוצות: "Guitar Collectors", "Vintage Guitars for Sale", "Guitar Stories". חפש פוסטים עם "NGD" או "story".',
+        dmUrl: (user) => `https://www.facebook.com/messages/t/${user}`,
+        dmLabel: 'פתח Messenger'
+      },
+      other: {
+        urlPlaceholder: 'https://...',
+        userPrefix: '',
+        hasTitle: true,
+        searchTerms: ['YouTube', 'TikTok', 'Forums', 'Reverb', 'The Gear Page', 'My Les Paul Forum', 'Strat-Talk'],
+        searchTips: 'פורומים: The Gear Page, TDPRI, My Les Paul Forum, Strat-Talk. YouTube: "my guitar collection", "NGD".',
+        dmUrl: (user) => '#',
+        dmLabel: 'פתח הודעה'
+      }
+    };
+
+    // Guitar data
+    const BRANDS = ['Fender', 'Gibson', 'PRS', 'Ibanez', 'Epiphone', 'Martin', 'Taylor', 'Gretsch', 'Rickenbacker', 'ESP', 'Jackson', 'Schecter', 'Squier', 'Guild', 'Yamaha', 'Washburn', 'Dean', 'BC Rich', 'Charvel', 'Suhr', 'Music Man', 'Ernie Ball'];
+
+    const MODELS = {
+      'Fender': ['Stratocaster', 'Telecaster', 'Jazzmaster', 'Jaguar', 'Mustang', 'Jazz Bass', 'Precision Bass', 'Strat', 'Tele'],
+      'Gibson': ['Les Paul', 'SG', 'ES-335', 'Flying V', 'Explorer', 'Firebird', 'ES-175', 'L-00', 'J-45', 'Hummingbird'],
+      'PRS': ['Custom 24', 'McCarty', 'Silver Sky', 'SE', 'Hollowbody'],
+      'Ibanez': ['RG', 'JEM', 'S', 'Prestige', 'AZ', 'Artcore'],
+      'Martin': ['D-28', 'D-18', 'OM-28', '000-15', 'HD-28'],
+      'Taylor': ['814ce', '314ce', 'GS Mini', 'Academy']
+    };
+
+    const COLORS = ['Sunburst', 'Black', 'White', 'Natural', 'Cherry', 'Vintage White', 'Olympic White', 'Fiesta Red', 'Surf Green', 'Lake Placid Blue', 'Butterscotch', 'Blonde', 'Tobacco Burst', 'Wine Red', 'Pelham Blue', 'Sea Foam Green', 'Candy Apple Red', 'Shell Pink', 'Sonic Blue', '3-Tone Sunburst', 'Goldtop', 'Heritage Cherry', 'TV Yellow'];
+
+    // Specs Database
+    const GUITAR_SPECS = {
+      'Fender Stratocaster': { body: 'Alder / Ash', neck: 'Maple', fretboard: 'Maple / Rosewood', pickups: '3x Single Coil', bridge: 'Tremolo', scale: '25.5"', frets: '21-22' },
+      'Fender Telecaster': { body: 'Alder / Ash', neck: 'Maple', fretboard: 'Maple / Rosewood', pickups: '2x Single Coil', bridge: 'Fixed', scale: '25.5"', frets: '21-22' },
+      'Gibson Les Paul': { body: 'Mahogany + Maple Top', neck: 'Mahogany', fretboard: 'Rosewood / Ebony', pickups: '2x Humbucker', bridge: 'Tune-O-Matic', scale: '24.75"', frets: '22' },
+      'Gibson SG': { body: 'Mahogany', neck: 'Mahogany', fretboard: 'Rosewood', pickups: '2x Humbucker', bridge: 'Tune-O-Matic', scale: '24.75"', frets: '22' },
+      'Gibson ES-335': { body: 'Maple/Poplar (Semi-Hollow)', neck: 'Mahogany', fretboard: 'Rosewood', pickups: '2x Humbucker', bridge: 'Tune-O-Matic', scale: '24.75"', frets: '22' },
+      'PRS Custom 24': { body: 'Mahogany + Maple Top', neck: 'Mahogany', fretboard: 'Rosewood', pickups: '2x Humbucker (Coil Split)', bridge: 'PRS Tremolo', scale: '25"', frets: '24' },
+      'Ibanez RG': { body: 'Basswood / Mahogany', neck: 'Maple / Wizard', fretboard: 'Rosewood / Maple', pickups: 'HSH or HSS', bridge: 'Floyd Rose / Edge', scale: '25.5"', frets: '24' }
+    };
+
+    // Famous Artists (Year-Specific)
+    const FAMOUS_ARTISTS_DETAILED = {
+      'Fender Stratocaster': [
+        { artist: 'Jimi Hendrix', years: '1968', guitar: '1968 Olympic White Stratocaster', notes: 'הגיטרה מ-Woodstock' },
+        { artist: 'Eric Clapton', years: '1956', guitar: '"Blackie" (הרכבה מחלקי 56-57)', notes: 'הגיטרה האייקונית שלו' },
+        { artist: 'Stevie Ray Vaughan', years: '1962-1963', guitar: '"Number One" 1962/63', notes: 'הצליל של Texas Blues' },
+        { artist: 'David Gilmour', years: '1969', guitar: '"The Black Strat" 1969', notes: 'הסולואים של Pink Floyd' },
+        { artist: 'Rory Gallagher', years: '1961', guitar: '1961 Sunburst (heavily worn)', notes: 'אחת הגיטרות הכי בלויות בהיסטוריה' }
+      ],
+      'Fender Telecaster': [
+        { artist: 'Keith Richards', years: '1953', guitar: '"Micawber" 1953', notes: '5 מיתרים, Open G tuning' },
+        { artist: 'Bruce Springsteen', years: '1950s', guitar: '"Esquire" 1950s', notes: 'Born to Run era' },
+        { artist: 'Jimmy Page', years: '1959', guitar: '"Dragon Telecaster" 1959', notes: 'לפני שעבר ל-Les Paul' }
+      ],
+      'Gibson Les Paul': [
+        { artist: 'Jimmy Page', years: '1959', guitar: '"Number One" 1959 Standard', notes: 'LED ZEPPELIN - הגיטרה האגדית' },
+        { artist: 'Peter Green', years: '1959', guitar: '1959 Standard (reversed pickup)', notes: 'Out of phase sound - עברה לגארי מור' },
+        { artist: 'Gary Moore', years: '1959', guitar: '1959 Standard (של Peter Green)', notes: 'Still Got the Blues - הפיקאפ ההפוך' },
+        { artist: 'Slash', years: '1959', guitar: '"Jessica" 1959 replica', notes: 'Appetite for Destruction' },
+        { artist: 'Billy Gibbons', years: '1959', guitar: '"Pearly Gates" 1959 Standard', notes: 'ZZ Top - נקנתה ב-$250' }
+      ],
+      'Gibson SG': [
+        { artist: 'Angus Young', years: '1968', guitar: '1968 SG Standard', notes: 'AC/DC - הגיטרה האדומה האייקונית' },
+        { artist: 'Tony Iommi', years: '1965', guitar: '1965 SG Special', notes: 'Black Sabbath - cross inlays מותאמות' }
+      ],
+      'Gibson ES-335': [
+        { artist: 'B.B. King', years: '1958-1959', guitar: '"Lucille" (ES-355)', notes: 'למעשה ES-355 בהתאמה אישית' },
+        { artist: 'Eric Clapton', years: '1964', guitar: '"The Fool" 1964 ES-335', notes: 'Cream era - עם ציורי פסיכדליה' }
+      ]
+    };
+
+    // Famous Songs
+    const FAMOUS_SONGS = {
+      'Fender Stratocaster': [
+        { song: 'Purple Haze', artist: 'Jimi Hendrix' },
+        { song: 'Comfortably Numb', artist: 'Pink Floyd' },
+        { song: 'Texas Flood', artist: 'Stevie Ray Vaughan' }
+      ],
+      'Fender Telecaster': [
+        { song: 'Honky Tonk Women', artist: 'Rolling Stones' },
+        { song: 'Born to Run', artist: 'Bruce Springsteen' }
+      ],
+      'Gibson Les Paul': [
+        { song: 'Whole Lotta Love', artist: 'Led Zeppelin' },
+        { song: 'Sweet Child O\' Mine', artist: 'Guns N\' Roses' },
+        { song: 'Still Got the Blues', artist: 'Gary Moore' }
+      ],
+      'Gibson SG': [
+        { song: 'Back in Black', artist: 'AC/DC' },
+        { song: 'Iron Man', artist: 'Black Sabbath' }
+      ],
+      'Gibson ES-335': [
+        { song: 'The Thrill Is Gone', artist: 'B.B. King' },
+        { song: 'Johnny B. Goode', artist: 'Chuck Berry' }
+      ]
+    };
+
+    // Outreach templates
+    const outreachTemplates = {
+      en: `Hey {username}! 👋
+
+I came across your post about your {brand} {model} and loved the story behind it.
+
+I'm building TWNG (twng.com) - a platform where guitarists document and preserve their guitars' stories. Think of it as a digital home for every guitar's journey.
+
+I'd love to feature your {brand} on TWNG. I've already started creating a profile based on your post - you can claim it, add details, and share with the community.
+
+Would you be interested? I can send you a direct link to claim your guitar's profile.
+
+🎸 Every guitar has a story. Let's make sure yours is preserved.`,
+
+      he: `היי {username}! 👋
+
+נתקלתי בפוסט שלך על ה-{brand} {model} ואהבתי את הסיפור מאחורי הגיטרה.
+
+אני בונה את TWNG (twng.com) - פלטפורמה שבה גיטריסטים יכולים לתעד ולשמר את הסיפורים של הגיטרות שלהם.
+
+אשמח לארח את ה-{brand} שלך ב-TWNG. כבר התחלתי ליצור פרופיל - תוכל לתבוע אותו ולהוסיף פרטים.
+
+מעניין אותך? אשלח לינק לתבוע את הפרופיל.
+
+🎸 לכל גיטרה יש סיפור. בוא נוודא שהסיפור שלך נשמר.`
+    };
+
+    // ===== FUNCTIONS =====
+
+    // Fetch data from URL automatically
+    async function fetchFromUrl() {
+      const url = document.getElementById('postUrl').value.trim();
+      if (!url) {
+        showFetchStatus('הזן קישור', 'error');
+        return;
+      }
+
+      const fetchBtn = document.getElementById('fetchBtn');
+      fetchBtn.disabled = true;
+      fetchBtn.textContent = '⏳';
+      showFetchStatus('שולף מידע...', '');
+
+      try {
+        // Detect source from URL
+        if (url.includes('reddit.com')) {
+          await fetchRedditPost(url);
+        } else if (url.includes('instagram.com')) {
+          showFetchStatus('⚠️ אינסטגרם לא תומך בשליפה אוטומטית - הזן ידנית', 'error');
+        } else if (url.includes('facebook.com')) {
+          showFetchStatus('⚠️ פייסבוק לא תומך בשליפה אוטומטית - הזן ידנית', 'error');
+        } else {
+          showFetchStatus('⚠️ מקור לא מזוהה - הזן ידנית', 'error');
+        }
+      } catch (err) {
+        showFetchStatus('❌ שגיאה: ' + err.message, 'error');
+      }
+
+      fetchBtn.disabled = false;
+      fetchBtn.textContent = '🔄 שלוף';
+    }
+
+    async function fetchRedditPost(url) {
+      // Convert URL to JSON endpoint
+      let jsonUrl = url.replace(/\/$/, '') + '.json';
+
+      // Use a CORS proxy for browser fetch
+      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(jsonUrl);
+
+      try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error('Failed to fetch');
+
+        const data = await response.json();
+        const post = data[0]?.data?.children?.[0]?.data;
+
+        if (!post) throw new Error('Post not found');
+
+        // Set source to Reddit
+        setSource('reddit');
+
+        // Fill in fields
+        document.getElementById('username').value = 'u/' + post.author;
+        document.getElementById('postTitle').value = post.title || '';
+        document.getElementById('postText').value = post.selftext || '';
+
+        // Extract images
+        const images = [];
+        if (post.media_metadata) {
+          for (const [id, media] of Object.entries(post.media_metadata)) {
+            if (media.s?.u) {
+              images.push(media.s.u.replace(/&amp;/g, '&'));
+            }
+          }
+        } else if (post.url && /\.(jpg|jpeg|png|gif|webp)/i.test(post.url)) {
+          images.push(post.url);
+        }
+        document.getElementById('imageUrls').value = images.join('\n');
+
+        showFetchStatus('✅ נשלף בהצלחה! לחץ "נתח וחלץ מידע"', 'success');
+
+      } catch (err) {
+        // Try direct fetch as fallback
+        showFetchStatus('⚠️ שליפה דרך proxy נכשלה. נסה להעתיק את המידע ידנית.', 'error');
+      }
+    }
+
+    function showFetchStatus(msg, type) {
+      const el = document.getElementById('fetchStatus');
+      el.textContent = msg;
+      el.style.color = type === 'error' ? '#EF4444' : type === 'success' ? '#10B981' : '#888';
+    }
+
+    function showJsonPaste() {
+      const group = document.getElementById('jsonPasteGroup');
+      group.style.display = group.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function parseRedditJson() {
+      const jsonText = document.getElementById('rawJson').value.trim();
+      if (!jsonText) {
+        showStatus('הדבק JSON', 'error');
+        return;
+      }
+
+      try {
+        const data = JSON.parse(jsonText);
+        const post = data[0]?.data?.children?.[0]?.data;
+
+        if (!post) throw new Error('Post not found in JSON');
+
+        // Set source to Reddit
+        setSource('reddit');
+
+        // Fill in fields
+        document.getElementById('username').value = 'u/' + post.author;
+        document.getElementById('postTitle').value = post.title || '';
+        document.getElementById('postText').value = post.selftext || '';
+        document.getElementById('postUrl').value = `https://reddit.com${post.permalink}`;
+
+        // Extract images
+        const images = [];
+        if (post.media_metadata) {
+          for (const [id, media] of Object.entries(post.media_metadata)) {
+            if (media.s?.u) {
+              images.push(media.s.u.replace(/&amp;/g, '&'));
+            }
+          }
+        } else if (post.url && /\.(jpg|jpeg|png|gif|webp)/i.test(post.url)) {
+          images.push(post.url);
+        }
+        document.getElementById('imageUrls').value = images.join('\n');
+
+        // Hide JSON paste area
+        document.getElementById('jsonPasteGroup').style.display = 'none';
+        document.getElementById('rawJson').value = '';
+
+        showStatus('✅ JSON פוענח! לחץ "נתח וחלץ מידע"', 'success');
+
+      } catch (err) {
+        showStatus('❌ JSON לא תקין: ' + err.message, 'error');
+      }
+    }
+
+    function setSource(source) {
+      currentSource = source;
+      const config = SOURCE_CONFIG[source];
+
+      // Update buttons
+      document.querySelectorAll('.source-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.source === source);
+      });
+
+      // Update placeholders
+      document.getElementById('postUrl').placeholder = config.urlPlaceholder;
+      document.getElementById('username').placeholder = config.userPrefix + 'username';
+
+      // Show/hide title field
+      document.getElementById('titleGroup').style.display = config.hasTitle ? 'block' : 'none';
+
+      // Update DM button
+      document.getElementById('openDmBtn').textContent = '📨 ' + config.dmLabel;
+
+      // Update search terms
+      const termsContainer = document.getElementById('searchTerms');
+      termsContainer.innerHTML = config.searchTerms.map(term =>
+        `<span class="hashtag">${term}</span>`
+      ).join('');
+
+      // Update search tips
+      document.getElementById('searchTips').innerHTML = `<h5>💡 טיפים לחיפוש</h5><div class="tips-list">${config.searchTips}</div>`;
+    }
+
+    function analyzePost() {
+      const title = document.getElementById('postTitle')?.value || '';
+      const text = document.getElementById('postText').value;
+      const fullText = `${title} ${text}`;
+
+      if (!text && !title) {
+        showStatus('הזן טקסט לניתוח', 'error');
+        return;
+      }
+
+      // Detect brand & model together for better accuracy
+      let detectedBrand = '';
+      let detectedModel = '';
+
+      // Brand + Model combinations to check (most specific first)
+      const BRAND_MODEL_PATTERNS = [
+        // Gibson models (check specific names first)
+        { pattern: /\bSG\s*(Standard|Special|Custom|Junior)?\b/i, brand: 'Gibson', model: 'SG' },
+        { pattern: /\bES[-\s]?335\b/i, brand: 'Gibson', model: 'ES-335' },
+        { pattern: /\bES[-\s]?355\b/i, brand: 'Gibson', model: 'ES-335' },
+        { pattern: /\bFlying\s*V\b/i, brand: 'Gibson', model: 'Flying V' },
+        { pattern: /\bExplorer\b/i, brand: 'Gibson', model: 'Explorer' },
+        { pattern: /\bFirebird\b/i, brand: 'Gibson', model: 'Firebird' },
+        { pattern: /\bLes\s*Paul\s*(Standard|Custom|Junior|Special|Studio|Classic|Traditional)?\b/i, brand: 'Gibson', model: 'Les Paul' },
+        // Fender models
+        { pattern: /\bStrat(ocaster)?\b/i, brand: 'Fender', model: 'Stratocaster' },
+        { pattern: /\bTele(caster)?\b/i, brand: 'Fender', model: 'Telecaster' },
+        { pattern: /\bJazzmaster\b/i, brand: 'Fender', model: 'Jazzmaster' },
+        { pattern: /\bJaguar\b/i, brand: 'Fender', model: 'Jaguar' },
+        { pattern: /\bMustang\b/i, brand: 'Fender', model: 'Mustang' },
+        { pattern: /\bPrecision\s*Bass\b/i, brand: 'Fender', model: 'Precision Bass' },
+        { pattern: /\bP[-\s]?Bass\b/i, brand: 'Fender', model: 'Precision Bass' },
+        { pattern: /\bJazz\s*Bass\b/i, brand: 'Fender', model: 'Jazz Bass' },
+        { pattern: /\bJ[-\s]?Bass\b/i, brand: 'Fender', model: 'Jazz Bass' },
+        // PRS models
+        { pattern: /\bCustom\s*24\b/i, brand: 'PRS', model: 'Custom 24' },
+        { pattern: /\bMcCarty\b/i, brand: 'PRS', model: 'McCarty' },
+        { pattern: /\bSilver\s*Sky\b/i, brand: 'PRS', model: 'Silver Sky' },
+        // Ibanez models
+        { pattern: /\bJEM\s*\d*\b/i, brand: 'Ibanez', model: 'JEM' },
+        { pattern: /\bRG\s*\d+\b/i, brand: 'Ibanez', model: 'RG' },
+        // Gretsch models
+        { pattern: /\bWhite\s*Falcon\b/i, brand: 'Gretsch', model: 'White Falcon' },
+        // Martin models
+        { pattern: /\bD[-\s]?28\b/i, brand: 'Martin', model: 'D-28' },
+        { pattern: /\bD[-\s]?18\b/i, brand: 'Martin', model: 'D-18' },
+      ];
+
+      // First try to match brand+model patterns
+      for (const {pattern, brand, model} of BRAND_MODEL_PATTERNS) {
+        if (pattern.test(fullText)) {
+          detectedBrand = brand;
+          detectedModel = model;
+          break;
+        }
+      }
+
+      // If no model found, try to detect brand alone
+      if (!detectedBrand) {
+        for (const brand of BRANDS) {
+          // Use word boundary to avoid partial matches
+          const brandRegex = new RegExp(`\\b${brand}\\b`, 'i');
+          if (brandRegex.test(fullText)) {
+            detectedBrand = brand;
+            break;
+          }
+        }
+      }
+
+      // If brand found but no model, search brand-specific models
+      if (detectedBrand && !detectedModel && MODELS[detectedBrand]) {
+        for (const model of MODELS[detectedBrand]) {
+          const modelRegex = new RegExp(`\\b${model.replace(/\s+/g, '\\s*')}\\b`, 'i');
+          if (modelRegex.test(fullText)) {
+            detectedModel = model;
+            break;
+          }
+        }
+      }
+
+      document.getElementById('brand').value = detectedBrand;
+      document.getElementById('model').value = detectedModel;
+
+      // Detect year
+      const yearMatch = fullText.match(/\b(19[5-9]\d|20[0-2]\d)\b/);
+      if (yearMatch) document.getElementById('year').value = yearMatch[1];
+
+      // Detect color (use specific patterns, longer matches first)
+      const COLOR_PATTERNS = [
+        { pattern: /\bvintage\s*cherry\b/i, color: 'Vintage Cherry' },
+        { pattern: /\bheritage\s*cherry\b/i, color: 'Heritage Cherry' },
+        { pattern: /\b3[- ]?tone\s*sunburst\b/i, color: '3-Tone Sunburst' },
+        { pattern: /\btobacco\s*(sun)?burst\b/i, color: 'Tobacco Burst' },
+        { pattern: /\bcandy\s*apple\s*red\b/i, color: 'Candy Apple Red' },
+        { pattern: /\blake\s*placid\s*blue\b/i, color: 'Lake Placid Blue' },
+        { pattern: /\bsea\s*foam\s*green\b/i, color: 'Sea Foam Green' },
+        { pattern: /\bsurf\s*green\b/i, color: 'Surf Green' },
+        { pattern: /\bfiesta\s*red\b/i, color: 'Fiesta Red' },
+        { pattern: /\bolympic\s*white\b/i, color: 'Olympic White' },
+        { pattern: /\bvintage\s*white\b/i, color: 'Vintage White' },
+        { pattern: /\bshell\s*pink\b/i, color: 'Shell Pink' },
+        { pattern: /\bsonic\s*blue\b/i, color: 'Sonic Blue' },
+        { pattern: /\bpelham\s*blue\b/i, color: 'Pelham Blue' },
+        { pattern: /\bwine\s*red\b/i, color: 'Wine Red' },
+        { pattern: /\btv\s*yellow\b/i, color: 'TV Yellow' },
+        { pattern: /\bbutterscotch\b/i, color: 'Butterscotch' },
+        { pattern: /\bsunburst\b/i, color: 'Sunburst' },
+        { pattern: /\bgoldtop\b/i, color: 'Goldtop' },
+        { pattern: /\bcherry\b/i, color: 'Cherry' },
+        { pattern: /\bblonde\b/i, color: 'Blonde' },
+        { pattern: /\bnatural\b/i, color: 'Natural' },
+        { pattern: /\bwhite\b/i, color: 'White' },
+        { pattern: /\bblack\b/i, color: 'Black' },
+      ];
+
+      for (const {pattern, color} of COLOR_PATTERNS) {
+        if (pattern.test(fullText)) {
+          document.getElementById('color').value = color;
+          break;
+        }
+      }
+
+      // Detect serial
+      const serialMatch = fullText.match(/serial[:\s#]*([A-Z0-9]+)/i) || fullText.match(/\b([A-Z]\d{5,10})\b/);
+      if (serialMatch) document.getElementById('serial').value = serialMatch[1];
+
+      // Story
+      document.getElementById('story').value = title ? `${title}\n\n${text}`.substring(0, 500) : text.substring(0, 500);
+
+      enrichData();
+      generateOutreach();
+      updateJSON();
+      showStatus('✅ המידע חולץ והועשר!', 'success');
+    }
+
+    function enrichData() {
+      const brand = document.getElementById('brand').value;
+      const model = document.getElementById('model').value;
+      const key = `${brand} ${model}`;
+      const year = document.getElementById('year').value;
+
+      // Specs
+      const specsSection = document.getElementById('specsSection');
+      if (GUITAR_SPECS[key]) {
+        document.getElementById('specsGrid').innerHTML = Object.entries(GUITAR_SPECS[key]).map(([label, value]) =>
+          `<div class="spec-item"><div class="label">${label}</div><div class="value">${value}</div></div>`
+        ).join('');
+        specsSection.style.display = 'block';
+      } else {
+        specsSection.style.display = 'none';
+      }
+
+      // Artists
+      const artistsSection = document.getElementById('artistsSection');
+      if (FAMOUS_ARTISTS_DETAILED[key]) {
+        let artists = [...FAMOUS_ARTISTS_DETAILED[key]];
+        if (year) {
+          const userYear = parseInt(year);
+          artists.sort((a, b) => Math.abs(parseInt(a.years) - userYear) - Math.abs(parseInt(b.years) - userYear));
+        }
+        document.getElementById('artistsList').innerHTML = artists.slice(0, 4).map(a =>
+          `<div class="artist-card"><div class="artist-name">${a.artist}</div><div class="artist-guitar">${a.guitar}</div><div class="artist-notes">${a.notes}</div></div>`
+        ).join('');
+        artistsSection.style.display = 'block';
+      } else {
+        artistsSection.style.display = 'none';
+      }
+
+      // Songs
+      const songsSection = document.getElementById('songsSection');
+      if (FAMOUS_SONGS[key]) {
+        document.getElementById('songsList').innerHTML = FAMOUS_SONGS[key].slice(0, 4).map(s =>
+          `<div class="song-item"><span class="title">${s.song}</span><span class="artist">${s.artist}</span></div>`
+        ).join('');
+        songsSection.style.display = 'block';
+      } else {
+        songsSection.style.display = 'none';
+      }
+
+      updateJSON();
+    }
+
+    function updateJSON() {
+      const brand = document.getElementById('brand').value;
+      const model = document.getElementById('model').value;
+      const key = `${brand} ${model}`;
+
+      const data = {
+        source: currentSource,
+        post_url: document.getElementById('postUrl').value,
+        author: {
+          username: document.getElementById('username').value,
+        },
+        guitar: {
+          brand, model,
+          year: document.getElementById('year').value,
+          color: document.getElementById('color').value,
+          serial: document.getElementById('serial').value,
+          condition: document.getElementById('condition').value
+        },
+        story: document.getElementById('story').value,
+        images: document.getElementById('imageUrls').value.split('\n').filter(u => u.trim()),
+        suggested_specs: GUITAR_SPECS[key] || null,
+        famous_artists: FAMOUS_ARTISTS_DETAILED[key] || [],
+        famous_songs: FAMOUS_SONGS[key] || [],
+        extracted_at: new Date().toISOString().split('T')[0],
+        status: 'unclaimed'
+      };
+
+      document.getElementById('jsonOutput').textContent = JSON.stringify(data, null, 2);
+    }
+
+    function switchLang(lang) {
+      currentLang = lang;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      generateOutreach();
+    }
+
+    function generateOutreach() {
+      const username = document.getElementById('username').value || 'there';
+      const brand = document.getElementById('brand').value || 'guitar';
+      const model = document.getElementById('model').value || '';
+
+      const message = outreachTemplates[currentLang]
+        .replace(/{username}/g, username.replace(/[@u\/]/g, ''))
+        .replace(/{brand}/g, brand)
+        .replace(/{model}/g, model);
+
+      document.getElementById('outreachMessage').value = message;
+    }
+
+    function copyOutreach() {
+      navigator.clipboard.writeText(document.getElementById('outreachMessage').value);
+      showStatus('✅ ההודעה הועתקה!', 'success');
+    }
+
+    function copyGuitarJSON() {
+      navigator.clipboard.writeText(document.getElementById('jsonOutput').textContent);
+      showStatus('✅ JSON הועתק!', 'success');
+    }
+
+    function openDM() {
+      const username = document.getElementById('username').value.replace(/[@u\/]/g, '');
+      if (username) {
+        window.open(SOURCE_CONFIG[currentSource].dmUrl(username), '_blank');
+      } else {
+        showStatus('הזן שם משתמש', 'error');
+      }
+    }
+
+    function showStatus(message, type) {
+      const el = document.getElementById('statusMessage');
+      el.innerHTML = `<div class="status ${type}">${message}</div>`;
+      setTimeout(() => el.innerHTML = '', 3000);
+    }
+
+    // Initialize
+    setSource('instagram');
+    generateOutreach();
+  </script>
+</body>
+</html>

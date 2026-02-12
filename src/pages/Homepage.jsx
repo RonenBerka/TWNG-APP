@@ -16,9 +16,6 @@ import {
   Eye,
   Quote,
   MessageSquare,
-  Instagram,
-  Twitter,
-  Youtube,
   Sparkles,
   LayoutGrid,
   List,
@@ -1415,6 +1412,8 @@ function ArticlesSection({ altBg, articles: liveArticles, sectionConfig }) {
     readTime: a.readTime || a.read_time || '5 min',
     image: a.image || a.cover_image_url || IMG.artist1,
     type: a.type || a.category || 'Article',
+    author: typeof a.author === 'string' ? a.author
+      : a.author?.display_name || a.author?.username || 'TWNG Editorial',
   }));
   const { isDark } = useTheme();
   const [hov, setHov] = useState(null);
@@ -1741,194 +1740,6 @@ function CTASection({ ctaContent }) {
 }
 
 // ============================================================
-// Footer
-// ============================================================
-function Footer() {
-  const columns = [
-    {
-      title: "Platform",
-      links: [
-        "Explore Instruments",
-        "Collections",
-        "Magic Add",
-        "Luthier Directory",
-        "Community Forum",
-      ],
-    },
-    {
-      title: "Content",
-      links: [
-        "Articles",
-        "Guides",
-        "Interviews",
-        "Make Histories",
-        "Newsletter",
-      ],
-    },
-    {
-      title: "Company",
-      links: ["About TWNG", "Careers", "Press", "Contact", "API (Coming Soon)"],
-    },
-    {
-      title: "Legal",
-      links: ["Terms of Service", "Privacy Policy", "Cookie Policy", "DMCA"],
-    },
-  ];
-
-  return (
-    <footer
-      style={{
-        borderTop: `1px solid ${T.border}`,
-        backgroundColor: T.bgCard,
-      }}
-    >
-      <div style={{ maxWidth: "80rem", marginLeft: "auto", marginRight: "auto", paddingLeft: "24px", paddingRight: "24px", paddingTop: "64px", paddingBottom: "64px" }}>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "40px",
-          marginBottom: "48px"
-        }}>
-          <div>
-            <img
-              src={IMG.logo}
-              alt="TWNG"
-              style={{
-                height: "28px",
-                filter: "brightness(0) invert(1)",
-                marginBottom: "12px"
-              }}
-            />
-            <p style={{ fontSize: "14px", lineHeight: "1.625", maxWidth: "20rem", color: T.txt2 }}>
-              The instrument documentation platform for collectors, musicians, and
-              luthiers.
-            </p>
-            <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
-              {[Instagram, Twitter, Youtube].map((Icon, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "8px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    border: `1px solid ${T.border}`,
-                    transition: "all 0.2s",
-                    color: T.txtM,
-                    textDecoration: "none"
-                  }}
-                >
-                  <Icon size={16} />
-                </a>
-              ))}
-            </div>
-          </div>
-          {columns.map((col) => (
-            <div key={col.title}>
-              <h4
-                style={{
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  textTransform: "uppercase",
-                  marginBottom: "16px",
-                  fontFamily: "'JetBrains Mono', monospace",
-                  letterSpacing: "0.1em",
-                  color: T.txtM,
-                }}
-              >
-                {col.title}
-              </h4>
-              <ul style={{ listStyle: "none", padding: "0" }}>
-                {col.links.map((link) => {
-                  const linkMap = {
-                    "Explore Instruments": "/explore",
-                    "Collections": "/collection",
-                    "Magic Add": "/instrument/new",
-                    "Luthier Directory": "/luthiers",
-                    "Community Forum": "/community",
-                    "Articles": "/articles",
-                    "Guides": "/articles",
-                    "Interviews": "/articles",
-                    "Make Histories": "/articles",
-                    "About TWNG": "/about",
-                    "Careers": "/about",
-                    "Press": "/about",
-                    "Contact": "#",
-                    "API (Coming Soon)": "#",
-                    "Terms of Service": "/legal/terms",
-                    "Privacy Policy": "/legal/privacy",
-                    "Cookie Policy": "#",
-                    "DMCA": "#",
-                    "Newsletter": "/about",
-                  };
-                  const route = linkMap[link] || "#";
-                  return (
-                    <li key={link} style={{ marginBottom: "10px" }}>
-                      {route.startsWith("/") ? (
-                        <Link
-                          to={route}
-                          style={{
-                            fontSize: "14px",
-                            transition: "color 0.2s",
-                            color: T.txt2,
-                            textDecoration: "none"
-                          }}
-                        >
-                          {link}
-                        </Link>
-                      ) : (
-                        <a
-                          href={route}
-                          style={{
-                            fontSize: "14px",
-                            transition: "color 0.2s",
-                            color: T.txt2,
-                            textDecoration: "none"
-                          }}
-                        >
-                          {link}
-                        </a>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </div>
-        <div
-          style={{
-            borderTop: `1px solid ${T.border}`,
-            paddingTop: "24px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "12px"
-          }}
-        >
-          <p
-            style={{
-              fontSize: "12px",
-              fontFamily: "'JetBrains Mono', monospace",
-              color: T.txtM,
-            }}
-          >
-            © 2026 TWNG. All rights reserved.
-          </p>
-          <p style={{ fontSize: "12px", color: T.txtM }}>
-            Made with for instrument lovers everywhere
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-// ============================================================
 // Main Component
 // ============================================================
 const SECTION_MAP = {
@@ -2056,7 +1867,6 @@ export default function TWNGHomepage() {
           />
         );
       })}
-      <Footer />
     </div>
   );
 }

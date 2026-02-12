@@ -1,0 +1,2767 @@
+{
+  "metadata": {
+    "platform": "TWNG (The Witness NG)",
+    "description": "Guitar documentation, community, and ownership verification platform",
+    "url": "https://shiny-muffin-21f968.netlify.app",
+    "stack": "React + Supabase + Netlify",
+    "created_at": "2026-02-11",
+    "version": "1.0.0"
+  },
+  "actors": [
+    {
+      "id": "ACT-001",
+      "name": "Guest",
+      "description": "Unauthenticated user",
+      "permissions": [
+        "browse_instruments",
+        "browse_articles",
+        "view_explore_page",
+        "sign_up",
+        "sign_in"
+      ],
+      "restrictions": [
+        "cannot_add_instruments",
+        "cannot_claim_ownership",
+        "cannot_create_collections",
+        "cannot_write_articles",
+        "cannot_message_users",
+        "cannot_access_admin_console"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACT-002",
+      "name": "Registered User",
+      "description": "Authenticated user with full platform access",
+      "permissions": [
+        "add_instruments",
+        "edit_own_instruments",
+        "delete_own_instruments",
+        "claim_ownership",
+        "initiate_transfer",
+        "accept_transfer",
+        "create_collections",
+        "edit_own_collections",
+        "delete_own_collections",
+        "add_remove_instruments_from_collections",
+        "write_articles",
+        "publish_articles",
+        "edit_own_articles",
+        "like_articles",
+        "create_forum_threads",
+        "reply_to_threads",
+        "browse_forum",
+        "send_messages",
+        "view_conversations",
+        "add_remove_favorites",
+        "edit_profile",
+        "change_avatar",
+        "manage_notification_settings"
+      ],
+      "restrictions": [
+        "cannot_access_admin_console",
+        "cannot_moderate_content",
+        "cannot_manage_other_users",
+        "cannot_approve_claims",
+        "cannot_lock_threads",
+        "cannot_pin_threads",
+        "cannot_access_marketing_console"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACT-003",
+      "name": "Admin",
+      "description": "Administrator with full platform management capabilities",
+      "permissions": [
+        "all_registered_user_permissions",
+        "access_admin_console",
+        "view_admin_dashboard",
+        "manage_users",
+        "suspend_users",
+        "moderate_content",
+        "approve_reject_claims",
+        "manage_transfers",
+        "review_change_requests",
+        "view_audit_logs",
+        "manage_luthiers",
+        "lock_threads",
+        "pin_threads",
+        "access_marketing_console",
+        "view_kpi_dashboard",
+        "manage_email_templates",
+        "view_outreach_data",
+        "access_setup_checklist"
+      ],
+      "restrictions": [],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    }
+  ],
+  "entities": [
+    {
+      "id": "ENT-001",
+      "name": "Instruments",
+      "description": "Guitar/instrument records in the platform database",
+      "attributes": [
+        "id",
+        "make",
+        "model",
+        "year",
+        "serial_number",
+        "type",
+        "subtype",
+        "country_of_origin",
+        "description",
+        "photos",
+        "owner_id",
+        "deleted_at"
+      ],
+      "operations": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "soft_delete",
+        "search",
+        "filter"
+      ],
+      "access_control": "users_can_crud_own_instruments",
+      "relationships": [
+        "has_many_ownership_claims",
+        "has_many_transfers",
+        "belongs_to_user_as_owner",
+        "has_many_collection_memberships",
+        "has_many_favorites",
+        "has_many_attribute_changes"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-002",
+      "name": "Articles",
+      "description": "User-generated content articles about guitars and topics",
+      "attributes": [
+        "id",
+        "author_id",
+        "title",
+        "slug",
+        "content",
+        "excerpt",
+        "cover_image_url",
+        "is_published",
+        "published_at",
+        "status",
+        "view_count",
+        "likes_count",
+        "created_at",
+        "updated_at"
+      ],
+      "operations": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "publish",
+        "unpublish",
+        "like",
+        "view"
+      ],
+      "access_control": "authors_can_manage_own_articles",
+      "relationships": [
+        "belongs_to_user_as_author",
+        "has_many_likes"
+      ],
+      "constraints": [
+        "requires_title",
+        "requires_content"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-003",
+      "name": "Collections",
+      "description": "Curated groups of instruments created by users",
+      "attributes": [
+        "id",
+        "name",
+        "description",
+        "owner_id",
+        "is_public",
+        "created_at",
+        "updated_at"
+      ],
+      "operations": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "add_instrument",
+        "remove_instrument",
+        "browse_public"
+      ],
+      "access_control": "owners_can_manage_own_collections",
+      "relationships": [
+        "belongs_to_user_as_owner",
+        "has_many_instruments",
+        "has_many_collection_memberships"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-004",
+      "name": "Users/Profiles",
+      "description": "User accounts and profile information",
+      "attributes": [
+        "id",
+        "username",
+        "email",
+        "avatar_url",
+        "bio",
+        "role",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "operations": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "signup",
+        "signin",
+        "signout",
+        "password_reset"
+      ],
+      "access_control": "users_can_edit_own_profile",
+      "relationships": [
+        "has_many_instruments",
+        "has_many_articles",
+        "has_many_collections",
+        "has_many_ownership_claims",
+        "has_many_messages",
+        "has_many_favorites",
+        "has_many_forum_threads",
+        "has_many_forum_posts"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-005",
+      "name": "Ownership Claims",
+      "description": "Claims of ownership for instruments",
+      "attributes": [
+        "id",
+        "instrument_id",
+        "claimant_id",
+        "status",
+        "proof_url",
+        "created_at",
+        "updated_at",
+        "reviewed_at",
+        "reviewed_by_id"
+      ],
+      "operations": [
+        "create",
+        "read",
+        "update",
+        "approve",
+        "reject"
+      ],
+      "access_control": "claimant_or_admin_can_manage",
+      "relationships": [
+        "belongs_to_instrument",
+        "belongs_to_user_as_claimant",
+        "belongs_to_user_as_reviewer"
+      ],
+      "status_values": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-006",
+      "name": "Ownership Transfers",
+      "description": "Transfer of instrument ownership from one user to another",
+      "attributes": [
+        "id",
+        "instrument_id",
+        "from_owner_id",
+        "to_owner_id",
+        "status",
+        "transfer_notes",
+        "initiated_at",
+        "accepted_at",
+        "completed_at",
+        "rejected_at"
+      ],
+      "operations": [
+        "create",
+        "read",
+        "accept",
+        "reject",
+        "complete"
+      ],
+      "access_control": "owner_initiates_recipient_accepts",
+      "relationships": [
+        "belongs_to_instrument",
+        "belongs_to_user_as_from_owner",
+        "belongs_to_user_as_to_owner"
+      ],
+      "status_values": [
+        "pending",
+        "accepted",
+        "completed",
+        "rejected"
+      ],
+      "constraints": [
+        "only_current_owner_can_initiate"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-007",
+      "name": "Forum Threads",
+      "description": "Discussion threads in the community forum",
+      "attributes": [
+        "id",
+        "title",
+        "content",
+        "author_id",
+        "category",
+        "is_pinned",
+        "is_locked",
+        "created_at",
+        "updated_at"
+      ],
+      "operations": [
+        "create",
+        "read",
+        "update",
+        "delete",
+        "pin",
+        "unpin",
+        "lock",
+        "unlock"
+      ],
+      "access_control": "authors_can_manage_own_threads_admins_can_manage_all",
+      "relationships": [
+        "belongs_to_user_as_author",
+        "has_many_forum_posts"
+      ],
+      "constraints": [
+        "admin_only_pin_lock",
+        "locked_thread_no_new_replies"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-008",
+      "name": "Forum Posts",
+      "description": "Individual replies and posts within forum threads",
+      "attributes": [
+        "id",
+        "thread_id",
+        "author_id",
+        "content",
+        "created_at",
+        "updated_at"
+      ],
+      "operations": [
+        "create",
+        "read",
+        "update",
+        "delete"
+      ],
+      "access_control": "authors_can_manage_own_posts_admins_can_manage_all",
+      "relationships": [
+        "belongs_to_forum_thread",
+        "belongs_to_user_as_author"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-009",
+      "name": "Messages",
+      "description": "Direct messages between users",
+      "attributes": [
+        "id",
+        "sender_id",
+        "recipient_id",
+        "content",
+        "is_read",
+        "created_at",
+        "read_at"
+      ],
+      "operations": [
+        "create",
+        "read",
+        "mark_as_read"
+      ],
+      "access_control": "participants_can_view_own_messages",
+      "relationships": [
+        "belongs_to_user_as_sender",
+        "belongs_to_user_as_recipient"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-010",
+      "name": "User Favorites",
+      "description": "Instruments marked as favorites by users",
+      "attributes": [
+        "id",
+        "user_id",
+        "instrument_id",
+        "created_at"
+      ],
+      "operations": [
+        "create",
+        "delete",
+        "list"
+      ],
+      "access_control": "users_can_manage_own_favorites",
+      "relationships": [
+        "belongs_to_user",
+        "belongs_to_instrument"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-011",
+      "name": "Instrument Attributes History",
+      "description": "Audit trail of changes made to instrument records",
+      "attributes": [
+        "id",
+        "instrument_id",
+        "user_id",
+        "change_type",
+        "field_name",
+        "old_value",
+        "new_value",
+        "change_reason",
+        "grace_period",
+        "status",
+        "created_at"
+      ],
+      "operations": [
+        "create",
+        "read",
+        "approve",
+        "reject"
+      ],
+      "access_control": "admin_review_required",
+      "relationships": [
+        "belongs_to_instrument",
+        "belongs_to_user_as_changer"
+      ],
+      "status_values": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ENT-012",
+      "name": "System Config",
+      "description": "Key-value store for platform settings and configuration",
+      "attributes": [
+        "id",
+        "key",
+        "value",
+        "updated_at"
+      ],
+      "operations": [
+        "read",
+        "update"
+      ],
+      "access_control": "admin_only",
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    }
+  ],
+  "actions": [
+    {
+      "id": "ACN-001",
+      "category": "Authentication",
+      "name": "Sign Up",
+      "description": "Register a new user account with email and password",
+      "actors_involved": [
+        "ACT-001"
+      ],
+      "preconditions": [
+        "user_not_authenticated",
+        "valid_email_format",
+        "password_meets_requirements"
+      ],
+      "workflow": [
+        "user_submits_signup_form",
+        "validate_email_unique",
+        "hash_password",
+        "create_user_record",
+        "send_verification_email",
+        "return_success"
+      ],
+      "affected_entities": [
+        "ENT-004"
+      ],
+      "postconditions": [
+        "user_account_created",
+        "user_authenticated",
+        "profile_created"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-002",
+      "category": "Authentication",
+      "name": "Sign In",
+      "description": "Authenticate with email and password",
+      "actors_involved": [
+        "ACT-001",
+        "ACT-002"
+      ],
+      "preconditions": [
+        "user_account_exists",
+        "email_verified"
+      ],
+      "workflow": [
+        "user_enters_credentials",
+        "validate_email_exists",
+        "verify_password",
+        "create_session",
+        "return_auth_token"
+      ],
+      "affected_entities": [
+        "ENT-004"
+      ],
+      "postconditions": [
+        "user_authenticated",
+        "session_active"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-003",
+      "category": "Authentication",
+      "name": "Sign In with Google OAuth",
+      "description": "Authenticate using Google OAuth provider",
+      "actors_involved": [
+        "ACT-001",
+        "ACT-002"
+      ],
+      "preconditions": [
+        "google_oauth_configured",
+        "redirect_urls_valid",
+        "user_has_google_account"
+      ],
+      "workflow": [
+        "redirect_to_google_consent_screen",
+        "google_returns_authorization_code",
+        "exchange_code_for_token",
+        "get_user_info_from_google",
+        "create_or_update_user_record",
+        "create_session",
+        "redirect_to_app"
+      ],
+      "affected_entities": [
+        "ENT-004"
+      ],
+      "postconditions": [
+        "user_authenticated",
+        "google_account_linked",
+        "session_active"
+      ],
+      "integrations": [
+        "INT-002"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-004",
+      "category": "Authentication",
+      "name": "Sign Out",
+      "description": "End user session and clear authentication",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated"
+      ],
+      "workflow": [
+        "clear_session_token",
+        "clear_user_context",
+        "redirect_to_homepage"
+      ],
+      "affected_entities": [
+        "ENT-004"
+      ],
+      "postconditions": [
+        "user_unauthenticated",
+        "session_ended"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-005",
+      "category": "Authentication",
+      "name": "Password Reset",
+      "description": "Reset user password via email link",
+      "actors_involved": [
+        "ACT-001",
+        "ACT-002"
+      ],
+      "preconditions": [
+        "email_exists_in_system",
+        "email_verified"
+      ],
+      "workflow": [
+        "user_requests_password_reset",
+        "validate_email",
+        "generate_reset_token",
+        "send_reset_email",
+        "user_clicks_link",
+        "validate_token",
+        "user_enters_new_password",
+        "hash_new_password",
+        "update_password_record",
+        "invalidate_reset_token"
+      ],
+      "affected_entities": [
+        "ENT-004"
+      ],
+      "postconditions": [
+        "password_updated",
+        "reset_token_expired"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-006",
+      "category": "Instruments",
+      "name": "Add Instrument",
+      "description": "Create a new instrument record",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "make_field_provided",
+        "model_field_provided"
+      ],
+      "workflow": [
+        "user_fills_instrument_form",
+        "validate_required_fields",
+        "process_photo_uploads",
+        "create_instrument_record",
+        "set_user_as_owner",
+        "return_instrument_id"
+      ],
+      "affected_entities": [
+        "ENT-001",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "instrument_created",
+        "user_set_as_owner",
+        "instrument_visible_on_platform"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-007",
+      "category": "Instruments",
+      "name": "View Instrument Detail",
+      "description": "Display comprehensive information about a specific instrument",
+      "actors_involved": [
+        "ACT-001",
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "instrument_exists",
+        "instrument_not_deleted"
+      ],
+      "workflow": [
+        "retrieve_instrument_record",
+        "fetch_owner_information",
+        "fetch_related_claims",
+        "fetch_related_transfers",
+        "fetch_collection_memberships",
+        "increment_view_count",
+        "render_detail_page"
+      ],
+      "affected_entities": [
+        "ENT-001",
+        "ENT-004",
+        "ENT-005",
+        "ENT-006"
+      ],
+      "postconditions": [
+        "view_count_incremented",
+        "detail_page_displayed"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-008",
+      "category": "Instruments",
+      "name": "Edit Instrument",
+      "description": "Update instrument record details",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "user_is_owner_or_admin",
+        "instrument_exists"
+      ],
+      "workflow": [
+        "retrieve_instrument",
+        "user_modifies_fields",
+        "validate_changes",
+        "create_attribute_history_record",
+        "update_instrument",
+        "log_change_to_audit_trail",
+        "notify_if_grace_period_applies"
+      ],
+      "affected_entities": [
+        "ENT-001",
+        "ENT-011"
+      ],
+      "postconditions": [
+        "instrument_updated",
+        "change_logged",
+        "attribute_history_created"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-009",
+      "category": "Instruments",
+      "name": "Delete Instrument",
+      "description": "Soft delete an instrument record",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "user_is_owner_or_admin",
+        "instrument_exists"
+      ],
+      "workflow": [
+        "retrieve_instrument",
+        "set_deleted_at_timestamp",
+        "hide_from_public_listings",
+        "log_deletion_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-001"
+      ],
+      "postconditions": [
+        "instrument_soft_deleted",
+        "instrument_hidden_from_listings",
+        "deletion_logged"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-010",
+      "category": "Instruments",
+      "name": "Search/Filter Instruments",
+      "description": "Search and filter instruments by various criteria",
+      "actors_involved": [
+        "ACT-001",
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "instruments_exist_in_database"
+      ],
+      "workflow": [
+        "user_enters_search_query",
+        "user_selects_filters",
+        "query_instruments_table",
+        "apply_filters_make_model_year_type",
+        "apply_text_search",
+        "exclude_deleted_instruments",
+        "return_results",
+        "display_results_list"
+      ],
+      "affected_entities": [
+        "ENT-001"
+      ],
+      "postconditions": [
+        "filtered_results_displayed",
+        "results_paginated"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-011",
+      "category": "Instruments",
+      "name": "Decode Serial Number",
+      "description": "Decode and validate instrument serial number information",
+      "actors_involved": [
+        "ACT-001",
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "serial_number_provided",
+        "instrument_make_known"
+      ],
+      "workflow": [
+        "receive_serial_number",
+        "match_against_manufacturer_database",
+        "decode_manufacturing_info",
+        "return_decoded_info",
+        "display_results"
+      ],
+      "affected_entities": [
+        "ENT-001"
+      ],
+      "postconditions": [
+        "serial_number_decoded",
+        "manufacturing_info_displayed"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-012",
+      "category": "Ownership",
+      "name": "Claim Ownership",
+      "description": "Claim ownership of an instrument",
+      "actors_involved": [
+        "ACT-002"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "instrument_exists",
+        "user_not_current_owner"
+      ],
+      "workflow": [
+        "user_selects_instrument",
+        "user_provides_proof",
+        "create_ownership_claim",
+        "set_claim_status_pending",
+        "notify_admin_of_new_claim",
+        "return_claim_id"
+      ],
+      "affected_entities": [
+        "ENT-005",
+        "ENT-001",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "claim_created",
+        "claim_status_pending",
+        "admin_notified"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-013",
+      "category": "Ownership",
+      "name": "View Claim Status",
+      "description": "Check the status of an ownership claim",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "claim_exists"
+      ],
+      "workflow": [
+        "retrieve_claim",
+        "validate_user_is_claimant_or_admin",
+        "fetch_claim_details",
+        "display_status"
+      ],
+      "affected_entities": [
+        "ENT-005"
+      ],
+      "postconditions": [
+        "claim_status_displayed"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-014",
+      "category": "Ownership",
+      "name": "Admin Approve Claim",
+      "description": "Admin approves an ownership claim",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin",
+        "claim_exists",
+        "claim_status_pending"
+      ],
+      "workflow": [
+        "admin_reviews_claim",
+        "admin_verifies_proof",
+        "admin_approves_claim",
+        "update_claim_status_approved",
+        "transfer_instrument_ownership",
+        "notify_claimant_of_approval",
+        "log_approval_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-005",
+        "ENT-001",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "claim_approved",
+        "ownership_transferred",
+        "claimant_notified"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-015",
+      "category": "Ownership",
+      "name": "Admin Reject Claim",
+      "description": "Admin rejects an ownership claim",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin",
+        "claim_exists",
+        "claim_status_pending"
+      ],
+      "workflow": [
+        "admin_reviews_claim",
+        "admin_evaluates_proof",
+        "admin_rejects_claim",
+        "update_claim_status_rejected",
+        "notify_claimant_of_rejection",
+        "log_rejection_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-005"
+      ],
+      "postconditions": [
+        "claim_rejected",
+        "claimant_notified",
+        "ownership_unchanged"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-016",
+      "category": "Transfers",
+      "name": "Initiate Transfer",
+      "description": "Current owner initiates a transfer to another user",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "user_is_current_owner",
+        "instrument_exists",
+        "recipient_user_exists"
+      ],
+      "workflow": [
+        "owner_selects_recipient",
+        "owner_enters_transfer_notes",
+        "create_transfer_record",
+        "set_transfer_status_pending",
+        "notify_recipient_of_pending_transfer",
+        "return_transfer_id"
+      ],
+      "affected_entities": [
+        "ENT-006",
+        "ENT-001",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "transfer_created",
+        "transfer_status_pending",
+        "recipient_notified"
+      ],
+      "constraints": [
+        "only_owner_can_initiate"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-017",
+      "category": "Transfers",
+      "name": "Accept Transfer",
+      "description": "Recipient accepts an instrument transfer",
+      "actors_involved": [
+        "ACT-002"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "user_is_recipient",
+        "transfer_exists",
+        "transfer_status_pending"
+      ],
+      "workflow": [
+        "recipient_reviews_transfer",
+        "recipient_accepts_transfer",
+        "update_transfer_status_accepted",
+        "set_accepted_at_timestamp",
+        "notify_original_owner"
+      ],
+      "affected_entities": [
+        "ENT-006",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "transfer_accepted",
+        "accepted_at_timestamp_set",
+        "original_owner_notified"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-018",
+      "category": "Transfers",
+      "name": "Reject Transfer",
+      "description": "Recipient rejects an instrument transfer",
+      "actors_involved": [
+        "ACT-002"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "user_is_recipient",
+        "transfer_exists",
+        "transfer_status_pending"
+      ],
+      "workflow": [
+        "recipient_reviews_transfer",
+        "recipient_rejects_transfer",
+        "update_transfer_status_rejected",
+        "set_rejected_at_timestamp",
+        "notify_original_owner"
+      ],
+      "affected_entities": [
+        "ENT-006",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "transfer_rejected",
+        "rejected_at_timestamp_set",
+        "original_owner_notified",
+        "ownership_unchanged"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-019",
+      "category": "Transfers",
+      "name": "Complete Transfer",
+      "description": "Complete a transfer and update ownership",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin",
+        "transfer_exists",
+        "transfer_status_accepted"
+      ],
+      "workflow": [
+        "admin_reviews_accepted_transfer",
+        "update_instrument_owner_id",
+        "update_transfer_status_completed",
+        "set_completed_at_timestamp",
+        "notify_both_parties_of_completion",
+        "log_transfer_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-006",
+        "ENT-001",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "transfer_completed",
+        "ownership_transferred",
+        "completed_at_timestamp_set",
+        "both_parties_notified"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-020",
+      "category": "Collections",
+      "name": "Create Collection",
+      "description": "User creates a new collection",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "collection_name_provided"
+      ],
+      "workflow": [
+        "user_enters_collection_details",
+        "validate_name_unique",
+        "set_visibility_public_or_private",
+        "create_collection_record",
+        "set_user_as_owner",
+        "return_collection_id"
+      ],
+      "affected_entities": [
+        "ENT-003",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "collection_created",
+        "user_set_as_owner",
+        "visibility_set"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-021",
+      "category": "Collections",
+      "name": "Add Instrument to Collection",
+      "description": "Add an instrument to a collection",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "user_is_collection_owner",
+        "collection_exists",
+        "instrument_exists",
+        "instrument_not_already_in_collection"
+      ],
+      "workflow": [
+        "user_selects_instrument",
+        "user_selects_collection",
+        "validate_ownership",
+        "create_collection_membership",
+        "return_success"
+      ],
+      "affected_entities": [
+        "ENT-003",
+        "ENT-001"
+      ],
+      "postconditions": [
+        "instrument_added_to_collection",
+        "collection_membership_created"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-022",
+      "category": "Collections",
+      "name": "Remove Instrument from Collection",
+      "description": "Remove an instrument from a collection",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "user_is_collection_owner",
+        "collection_exists",
+        "instrument_in_collection"
+      ],
+      "workflow": [
+        "user_selects_instrument",
+        "user_selects_collection",
+        "validate_ownership",
+        "delete_collection_membership",
+        "return_success"
+      ],
+      "affected_entities": [
+        "ENT-003",
+        "ENT-001"
+      ],
+      "postconditions": [
+        "instrument_removed_from_collection",
+        "collection_membership_deleted"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-023",
+      "category": "Collections",
+      "name": "Edit Collection",
+      "description": "Update collection details",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "user_is_collection_owner",
+        "collection_exists"
+      ],
+      "workflow": [
+        "user_modifies_collection_details",
+        "validate_changes",
+        "update_collection_record",
+        "log_change_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-003"
+      ],
+      "postconditions": [
+        "collection_updated",
+        "change_logged"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-024",
+      "category": "Collections",
+      "name": "Delete Collection",
+      "description": "Delete a collection",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "user_is_collection_owner",
+        "collection_exists"
+      ],
+      "workflow": [
+        "user_initiates_deletion",
+        "delete_collection_memberships",
+        "delete_collection_record",
+        "log_deletion_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-003"
+      ],
+      "postconditions": [
+        "collection_deleted",
+        "memberships_removed",
+        "deletion_logged"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-025",
+      "category": "Collections",
+      "name": "Browse Public Collections",
+      "description": "View publicly shared collections",
+      "actors_involved": [
+        "ACT-001",
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "public_collections_exist"
+      ],
+      "workflow": [
+        "retrieve_public_collections",
+        "fetch_collection_owners",
+        "fetch_collection_instruments",
+        "display_collections_list"
+      ],
+      "affected_entities": [
+        "ENT-003",
+        "ENT-001",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "public_collections_displayed"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-026",
+      "category": "Articles",
+      "name": "Write Article",
+      "description": "Create a new article with rich text editor",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated"
+      ],
+      "workflow": [
+        "user_opens_article_editor",
+        "user_enters_title",
+        "user_enters_content",
+        "user_optionally_selects_cover_image",
+        "user_enters_excerpt",
+        "validate_title_present",
+        "validate_content_present",
+        "create_article_record",
+        "set_status_draft",
+        "return_article_id"
+      ],
+      "affected_entities": [
+        "ENT-002",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "article_created",
+        "article_status_draft",
+        "author_set"
+      ],
+      "constraints": [
+        "requires_title",
+        "requires_content"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-027",
+      "category": "Articles",
+      "name": "Publish Article",
+      "description": "Publish a draft article",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "user_is_article_author",
+        "article_exists",
+        "article_status_draft"
+      ],
+      "workflow": [
+        "author_reviews_article",
+        "author_publishes_article",
+        "update_article_status_published",
+        "set_published_at_timestamp",
+        "generate_article_slug",
+        "notify_followers"
+      ],
+      "affected_entities": [
+        "ENT-002"
+      ],
+      "postconditions": [
+        "article_published",
+        "article_status_published",
+        "article_publicly_visible",
+        "published_at_timestamp_set"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-028",
+      "category": "Articles",
+      "name": "View Article",
+      "description": "Display an article",
+      "actors_involved": [
+        "ACT-001",
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "article_exists",
+        "article_is_published"
+      ],
+      "workflow": [
+        "retrieve_article",
+        "fetch_author_info",
+        "fetch_likes_count",
+        "increment_view_count",
+        "display_article"
+      ],
+      "affected_entities": [
+        "ENT-002",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "article_displayed",
+        "view_count_incremented"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-029",
+      "category": "Articles",
+      "name": "Like Article",
+      "description": "User likes an article",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "article_exists",
+        "article_is_published",
+        "user_hasnt_already_liked"
+      ],
+      "workflow": [
+        "user_clicks_like_button",
+        "create_like_record",
+        "increment_article_likes_count",
+        "update_ui_to_show_liked_state"
+      ],
+      "affected_entities": [
+        "ENT-002"
+      ],
+      "postconditions": [
+        "like_recorded",
+        "likes_count_incremented",
+        "article_marked_as_liked_by_user"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-030",
+      "category": "Articles",
+      "name": "Edit Article",
+      "description": "Update article content",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "user_is_article_author",
+        "article_exists"
+      ],
+      "workflow": [
+        "author_opens_article_for_editing",
+        "author_modifies_content",
+        "validate_changes",
+        "update_article_record",
+        "log_edit_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-002"
+      ],
+      "postconditions": [
+        "article_updated",
+        "edit_logged",
+        "updated_at_timestamp_changed"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-031",
+      "category": "Forum",
+      "name": "Create Forum Thread",
+      "description": "Start a new discussion thread in the forum",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "forum_category_exists",
+        "thread_title_provided",
+        "thread_content_provided"
+      ],
+      "workflow": [
+        "user_selects_forum_category",
+        "user_enters_thread_title",
+        "user_enters_thread_content",
+        "validate_required_fields",
+        "create_thread_record",
+        "set_author",
+        "set_is_pinned_false",
+        "set_is_locked_false",
+        "return_thread_id"
+      ],
+      "affected_entities": [
+        "ENT-007",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "thread_created",
+        "thread_visible_in_category",
+        "author_set"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-032",
+      "category": "Forum",
+      "name": "Reply to Thread",
+      "description": "Post a reply to a forum thread",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "thread_exists",
+        "thread_not_locked",
+        "reply_content_provided"
+      ],
+      "workflow": [
+        "user_opens_thread",
+        "user_enters_reply_content",
+        "validate_content",
+        "create_forum_post_record",
+        "set_author",
+        "set_thread_reference",
+        "notify_thread_subscribers"
+      ],
+      "affected_entities": [
+        "ENT-008",
+        "ENT-007",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "post_created",
+        "post_visible_in_thread",
+        "author_set",
+        "thread_subscribers_notified"
+      ],
+      "constraints": [
+        "thread_must_not_be_locked"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-033",
+      "category": "Forum",
+      "name": "Pin Thread",
+      "description": "Admin pins a thread to top of category",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin",
+        "thread_exists"
+      ],
+      "workflow": [
+        "admin_selects_thread",
+        "admin_clicks_pin_button",
+        "update_is_pinned_true",
+        "log_action_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-007"
+      ],
+      "postconditions": [
+        "thread_pinned",
+        "thread_appears_at_top",
+        "action_logged"
+      ],
+      "constraints": [
+        "admin_only"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-034",
+      "category": "Forum",
+      "name": "Lock Thread",
+      "description": "Admin locks a thread preventing new replies",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin",
+        "thread_exists"
+      ],
+      "workflow": [
+        "admin_selects_thread",
+        "admin_clicks_lock_button",
+        "update_is_locked_true",
+        "log_action_to_audit_trail",
+        "prevent_new_post_creation"
+      ],
+      "affected_entities": [
+        "ENT-007"
+      ],
+      "postconditions": [
+        "thread_locked",
+        "new_posts_prevented",
+        "action_logged"
+      ],
+      "constraints": [
+        "admin_only",
+        "locked_thread_no_new_replies"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-035",
+      "category": "Forum",
+      "name": "Browse Forum by Category",
+      "description": "View forum threads by category",
+      "actors_involved": [
+        "ACT-001",
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "forum_category_exists",
+        "threads_exist_in_category"
+      ],
+      "workflow": [
+        "user_selects_forum_category",
+        "retrieve_threads_in_category",
+        "sort_by_pinned_then_recent",
+        "display_thread_list"
+      ],
+      "affected_entities": [
+        "ENT-007"
+      ],
+      "postconditions": [
+        "threads_displayed",
+        "pinned_threads_at_top"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-036",
+      "category": "Messaging",
+      "name": "Send Message",
+      "description": "Send a direct message to another user",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "recipient_user_exists",
+        "sender_not_recipient",
+        "message_content_provided"
+      ],
+      "workflow": [
+        "user_selects_recipient",
+        "user_enters_message_content",
+        "validate_recipient_exists",
+        "create_message_record",
+        "set_is_read_false",
+        "notify_recipient",
+        "return_message_id"
+      ],
+      "affected_entities": [
+        "ENT-009",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "message_created",
+        "message_sent",
+        "recipient_notified"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-037",
+      "category": "Messaging",
+      "name": "View Conversations",
+      "description": "View list of conversations with other users",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated"
+      ],
+      "workflow": [
+        "retrieve_user_messages",
+        "group_by_conversation_partner",
+        "fetch_latest_message_per_conversation",
+        "display_conversation_list",
+        "show_unread_status"
+      ],
+      "affected_entities": [
+        "ENT-009",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "conversation_list_displayed",
+        "unread_status_visible"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-038",
+      "category": "Favorites",
+      "name": "Add Instrument to Favorites",
+      "description": "Mark an instrument as favorite",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "instrument_exists",
+        "instrument_not_already_favorited"
+      ],
+      "workflow": [
+        "user_clicks_favorite_button",
+        "create_favorite_record",
+        "update_ui_to_show_favorited_state"
+      ],
+      "affected_entities": [
+        "ENT-010",
+        "ENT-001"
+      ],
+      "postconditions": [
+        "favorite_record_created",
+        "instrument_marked_as_favorite",
+        "ui_updated"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-039",
+      "category": "Favorites",
+      "name": "Remove Instrument from Favorites",
+      "description": "Unmark an instrument as favorite",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "instrument_exists",
+        "instrument_is_favorited"
+      ],
+      "workflow": [
+        "user_clicks_favorite_button",
+        "delete_favorite_record",
+        "update_ui_to_show_unfavorited_state"
+      ],
+      "affected_entities": [
+        "ENT-010",
+        "ENT-001"
+      ],
+      "postconditions": [
+        "favorite_record_deleted",
+        "instrument_unmarked_as_favorite",
+        "ui_updated"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-040",
+      "category": "Profile",
+      "name": "Edit Profile",
+      "description": "Update user profile information",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated"
+      ],
+      "workflow": [
+        "user_opens_profile_settings",
+        "user_modifies_username",
+        "user_modifies_bio",
+        "validate_changes",
+        "update_user_record",
+        "log_profile_change_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-004"
+      ],
+      "postconditions": [
+        "profile_updated",
+        "changes_logged"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-041",
+      "category": "Profile",
+      "name": "Change Avatar",
+      "description": "Upload a new profile avatar image",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated",
+        "image_file_provided"
+      ],
+      "workflow": [
+        "user_selects_image_file",
+        "validate_image_format",
+        "validate_image_size",
+        "upload_image_to_storage",
+        "update_avatar_url_in_profile",
+        "delete_old_avatar_if_exists"
+      ],
+      "affected_entities": [
+        "ENT-004"
+      ],
+      "postconditions": [
+        "avatar_updated",
+        "new_avatar_visible",
+        "old_avatar_removed"
+      ],
+      "integrations": [
+        "INT-001"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-042",
+      "category": "Profile",
+      "name": "Manage Notification Settings",
+      "description": "Configure user notification preferences",
+      "actors_involved": [
+        "ACT-002",
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_authenticated"
+      ],
+      "workflow": [
+        "user_opens_notification_settings",
+        "user_toggles_notification_preferences",
+        "validate_settings",
+        "update_user_settings",
+        "log_preference_changes"
+      ],
+      "affected_entities": [
+        "ENT-004"
+      ],
+      "postconditions": [
+        "notification_settings_updated",
+        "preferences_applied"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-043",
+      "category": "Admin",
+      "name": "Access Admin Dashboard",
+      "description": "View admin console dashboard with platform metrics",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin"
+      ],
+      "workflow": [
+        "admin_navigates_to_admin_console",
+        "verify_admin_role",
+        "fetch_dashboard_metrics",
+        "display_dashboard"
+      ],
+      "affected_entities": [
+        "ENT-004"
+      ],
+      "postconditions": [
+        "admin_dashboard_displayed",
+        "metrics_shown"
+      ],
+      "constraints": [
+        "admin_only"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-044",
+      "category": "Admin",
+      "name": "Manage Users",
+      "description": "View and manage user accounts, suspend users",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin"
+      ],
+      "workflow": [
+        "admin_navigates_to_user_management",
+        "retrieve_user_list",
+        "search_filter_users",
+        "admin_selects_user",
+        "admin_can_view_profile",
+        "admin_can_suspend_user",
+        "log_user_action_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-004"
+      ],
+      "postconditions": [
+        "user_suspended_if_applicable",
+        "action_logged"
+      ],
+      "constraints": [
+        "admin_only"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-045",
+      "category": "Admin",
+      "name": "Moderate Content",
+      "description": "Review and moderate user-generated content",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin"
+      ],
+      "workflow": [
+        "admin_accesses_moderation_dashboard",
+        "retrieve_content_flagged_for_review",
+        "admin_reviews_articles_forum_posts",
+        "admin_can_approve_content",
+        "admin_can_reject_content",
+        "admin_can_remove_content",
+        "notify_author_of_moderation_decision",
+        "log_moderation_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-002",
+        "ENT-008",
+        "ENT-007"
+      ],
+      "postconditions": [
+        "content_moderated",
+        "author_notified",
+        "action_logged"
+      ],
+      "constraints": [
+        "admin_only"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-046",
+      "category": "Admin",
+      "name": "Manage Transfers",
+      "description": "Review and manage instrument ownership transfers",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin"
+      ],
+      "workflow": [
+        "admin_navigates_to_transfer_management",
+        "retrieve_pending_transfers",
+        "retrieve_accepted_transfers",
+        "admin_reviews_transfer_details",
+        "admin_can_complete_transfer",
+        "admin_can_reject_transfer",
+        "notify_both_parties",
+        "log_transfer_action_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-006",
+        "ENT-001",
+        "ENT-004"
+      ],
+      "postconditions": [
+        "transfer_action_taken",
+        "both_parties_notified",
+        "action_logged"
+      ],
+      "constraints": [
+        "admin_only"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-047",
+      "category": "Admin",
+      "name": "Review Change Requests",
+      "description": "Review and approve/reject instrument attribute changes",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin",
+        "pending_change_requests_exist"
+      ],
+      "workflow": [
+        "admin_navigates_to_change_requests",
+        "retrieve_pending_changes",
+        "display_change_details",
+        "admin_reviews_change",
+        "admin_approves_change",
+        "apply_change_to_instrument",
+        "notify_requester_of_approval",
+        "log_approval_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-011",
+        "ENT-001"
+      ],
+      "postconditions": [
+        "change_approved_or_rejected",
+        "instrument_updated_if_approved",
+        "requester_notified",
+        "action_logged"
+      ],
+      "constraints": [
+        "admin_only"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-048",
+      "category": "Admin",
+      "name": "View Audit Logs",
+      "description": "Review comprehensive audit trail of platform activities",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin"
+      ],
+      "workflow": [
+        "admin_navigates_to_audit_logs",
+        "retrieve_audit_trail",
+        "filter_by_action_type",
+        "filter_by_user",
+        "filter_by_date_range",
+        "display_audit_log_entries"
+      ],
+      "affected_entities": [
+        "ENT-001",
+        "ENT-002",
+        "ENT-004",
+        "ENT-005",
+        "ENT-006"
+      ],
+      "postconditions": [
+        "audit_logs_displayed",
+        "filtered_results_shown"
+      ],
+      "constraints": [
+        "admin_only"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-049",
+      "category": "Admin",
+      "name": "Manage Luthiers",
+      "description": "Manage luthier (guitar maker) records and information",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin"
+      ],
+      "workflow": [
+        "admin_navigates_to_luthier_management",
+        "retrieve_luthier_list",
+        "admin_can_add_luthier",
+        "admin_can_edit_luthier_info",
+        "admin_can_remove_luthier",
+        "log_luthier_changes_to_audit_trail"
+      ],
+      "affected_entities": [
+        "ENT-001"
+      ],
+      "postconditions": [
+        "luthier_management_completed",
+        "changes_logged"
+      ],
+      "constraints": [
+        "admin_only"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-050",
+      "category": "Marketing",
+      "name": "Access Marketing Console",
+      "description": "Access marketing and outreach tools",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin"
+      ],
+      "workflow": [
+        "admin_navigates_to_marketing_console",
+        "verify_admin_role",
+        "display_marketing_dashboard"
+      ],
+      "affected_entities": [
+        "ENT-004"
+      ],
+      "postconditions": [
+        "marketing_console_displayed"
+      ],
+      "constraints": [
+        "admin_only"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-051",
+      "category": "Marketing",
+      "name": "View KPI Dashboard",
+      "description": "View key performance indicators and analytics",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin"
+      ],
+      "workflow": [
+        "admin_opens_kpi_dashboard",
+        "fetch_platform_metrics",
+        "calculate_kpis",
+        "display_kpi_charts_and_tables"
+      ],
+      "affected_entities": [
+        "ENT-001",
+        "ENT-004",
+        "ENT-002"
+      ],
+      "postconditions": [
+        "kpi_dashboard_displayed",
+        "metrics_current"
+      ],
+      "constraints": [
+        "admin_only"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-052",
+      "category": "Marketing",
+      "name": "Manage Email Templates",
+      "description": "Create and manage email notification templates",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin"
+      ],
+      "workflow": [
+        "admin_navigates_to_email_templates",
+        "retrieve_template_list",
+        "admin_can_create_template",
+        "admin_can_edit_template",
+        "admin_can_delete_template",
+        "admin_can_preview_template",
+        "log_template_changes"
+      ],
+      "affected_entities": [
+        "ENT-012"
+      ],
+      "postconditions": [
+        "email_templates_managed",
+        "changes_logged"
+      ],
+      "constraints": [
+        "admin_only"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-053",
+      "category": "Marketing",
+      "name": "View Outreach Data",
+      "description": "View email campaign and outreach metrics",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin"
+      ],
+      "workflow": [
+        "admin_navigates_to_outreach_data",
+        "fetch_campaign_metrics",
+        "display_open_rates",
+        "display_click_rates",
+        "display_conversion_rates"
+      ],
+      "affected_entities": [
+        "ENT-012"
+      ],
+      "postconditions": [
+        "outreach_data_displayed"
+      ],
+      "constraints": [
+        "admin_only"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "ACN-054",
+      "category": "Marketing",
+      "name": "View Setup Checklist",
+      "description": "View platform setup and configuration checklist",
+      "actors_involved": [
+        "ACT-003"
+      ],
+      "preconditions": [
+        "user_is_admin"
+      ],
+      "workflow": [
+        "admin_navigates_to_setup_checklist",
+        "retrieve_setup_tasks",
+        "display_completion_status",
+        "allow_task_completion_marking"
+      ],
+      "affected_entities": [
+        "ENT-012"
+      ],
+      "postconditions": [
+        "setup_checklist_displayed",
+        "progress_visible"
+      ],
+      "constraints": [
+        "admin_only"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    }
+  ],
+  "states": [
+    {
+      "id": "STA-001",
+      "entity": "ENT-005",
+      "name": "Ownership Claim Status",
+      "description": "The lifecycle state of an ownership claim",
+      "values": [
+        {
+          "name": "pending",
+          "description": "Claim submitted and awaiting admin review"
+        },
+        {
+          "name": "approved",
+          "description": "Claim approved, ownership transferred"
+        },
+        {
+          "name": "rejected",
+          "description": "Claim rejected by admin"
+        }
+      ],
+      "transitions": [
+        {
+          "from": "pending",
+          "to": "approved",
+          "triggered_by": "ACN-014"
+        },
+        {
+          "from": "pending",
+          "to": "rejected",
+          "triggered_by": "ACN-015"
+        }
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "STA-002",
+      "entity": "ENT-006",
+      "name": "Transfer Status",
+      "description": "The lifecycle state of an instrument transfer",
+      "values": [
+        {
+          "name": "pending",
+          "description": "Transfer initiated, awaiting recipient acceptance"
+        },
+        {
+          "name": "accepted",
+          "description": "Recipient accepted transfer, awaiting admin completion"
+        },
+        {
+          "name": "completed",
+          "description": "Transfer completed, ownership updated"
+        },
+        {
+          "name": "rejected",
+          "description": "Transfer rejected by recipient or admin"
+        }
+      ],
+      "transitions": [
+        {
+          "from": "pending",
+          "to": "accepted",
+          "triggered_by": "ACN-017"
+        },
+        {
+          "from": "pending",
+          "to": "rejected",
+          "triggered_by": "ACN-018"
+        },
+        {
+          "from": "accepted",
+          "to": "completed",
+          "triggered_by": "ACN-019"
+        }
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "STA-003",
+      "entity": "ENT-002",
+      "name": "Article Status",
+      "description": "The publication state of an article",
+      "values": [
+        {
+          "name": "draft",
+          "description": "Article saved as draft, not publicly visible"
+        },
+        {
+          "name": "published",
+          "description": "Article published and publicly visible"
+        }
+      ],
+      "transitions": [
+        {
+          "from": "draft",
+          "to": "published",
+          "triggered_by": "ACN-027"
+        }
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "STA-004",
+      "entity": "ENT-011",
+      "name": "Instrument Attribute Change Status",
+      "description": "The review state of an instrument attribute change",
+      "values": [
+        {
+          "name": "pending",
+          "description": "Change submitted, awaiting admin review"
+        },
+        {
+          "name": "approved",
+          "description": "Change approved and applied to instrument"
+        },
+        {
+          "name": "rejected",
+          "description": "Change rejected by admin"
+        }
+      ],
+      "transitions": [
+        {
+          "from": "pending",
+          "to": "approved",
+          "triggered_by": "ACN-047"
+        },
+        {
+          "from": "pending",
+          "to": "rejected",
+          "triggered_by": "ACN-047"
+        }
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "STA-005",
+      "entity": "ENT-004",
+      "name": "User Account Status",
+      "description": "The account state of a user",
+      "values": [
+        {
+          "name": "active",
+          "description": "User account active and in good standing"
+        },
+        {
+          "name": "suspended",
+          "description": "User account suspended by admin"
+        }
+      ],
+      "transitions": [
+        {
+          "from": "active",
+          "to": "suspended",
+          "triggered_by": "ACN-044"
+        },
+        {
+          "from": "suspended",
+          "to": "active",
+          "triggered_by": "ACN-044"
+        }
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "CON-001",
+      "name": "Ownership Transfer Initiation",
+      "description": "Only the current owner of an instrument can initiate a transfer",
+      "affected_action": "ACN-016",
+      "severity": "HIGH",
+      "enforcement": "application_logic",
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-002",
+      "name": "Claim Management Access",
+      "description": "Only the claim originator or an admin can view and manage ownership claims",
+      "affected_actions": [
+        "ACN-013",
+        "ACN-014",
+        "ACN-015"
+      ],
+      "severity": "HIGH",
+      "enforcement": "application_logic",
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-003",
+      "name": "Admin Role Requirement",
+      "description": "Access to admin console and all admin actions requires admin role",
+      "affected_actions": [
+        "ACN-043",
+        "ACN-044",
+        "ACN-045",
+        "ACN-046",
+        "ACN-047",
+        "ACN-048",
+        "ACN-049",
+        "ACN-050",
+        "ACN-051",
+        "ACN-052",
+        "ACN-053",
+        "ACN-054"
+      ],
+      "severity": "CRITICAL",
+      "enforcement": "authentication_authorization",
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-004",
+      "name": "Article Content Requirements",
+      "description": "Articles must have both title and content before creation",
+      "affected_action": "ACN-026",
+      "severity": "MEDIUM",
+      "enforcement": "form_validation",
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-005",
+      "name": "Instrument Minimum Data",
+      "description": "Instruments must have make and model as minimum required fields",
+      "affected_action": "ACN-006",
+      "severity": "MEDIUM",
+      "enforcement": "form_validation",
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-006",
+      "name": "Google OAuth Configuration",
+      "description": "Google OAuth requires proper Supabase configuration and valid redirect URLs",
+      "affected_action": "ACN-003",
+      "severity": "HIGH",
+      "enforcement": "environment_configuration",
+      "integrations": [
+        "INT-002"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-007",
+      "name": "Collection Visibility Constraint",
+      "description": "Collections can be public or private; private collections are visible only to owner",
+      "affected_actions": [
+        "ACN-020",
+        "ACN-025"
+      ],
+      "severity": "MEDIUM",
+      "enforcement": "application_logic",
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-008",
+      "name": "Forum Thread Lock Constraint",
+      "description": "Locked forum threads cannot receive new replies; only admins can lock threads",
+      "affected_actions": [
+        "ACN-032",
+        "ACN-034"
+      ],
+      "severity": "MEDIUM",
+      "enforcement": "application_logic",
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-009",
+      "name": "Soft Delete Preservation",
+      "description": "Soft-deleted instruments maintain data integrity and are hidden from public view but not permanently removed",
+      "affected_action": "ACN-009",
+      "severity": "MEDIUM",
+      "enforcement": "database_trigger",
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "CON-010",
+      "name": "Grace Period for Attribute Changes",
+      "description": "Instrument attribute changes may be subject to a grace period before admin review is required",
+      "affected_actions": [
+        "ACN-008",
+        "ACN-047"
+      ],
+      "severity": "LOW",
+      "enforcement": "application_logic",
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    }
+  ],
+  "integrations": [
+    {
+      "id": "INT-001",
+      "name": "Supabase",
+      "description": "Backend-as-a-service providing authentication, database, storage, and realtime capabilities",
+      "type": "database_auth_storage",
+      "used_by": [
+        "ACN-001",
+        "ACN-002",
+        "ACN-003",
+        "ACN-004",
+        "ACN-005",
+        "ACN-006",
+        "ACN-041"
+      ],
+      "capabilities": [
+        "user_authentication",
+        "email_password_auth",
+        "oauth_integration",
+        "database_operations",
+        "file_storage",
+        "realtime_subscriptions"
+      ],
+      "configuration_needed": [
+        "supabase_project_url",
+        "supabase_public_anon_key",
+        "oauth_redirect_urls",
+        "database_schema"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "INT-002",
+      "name": "Google OAuth",
+      "description": "OAuth 2.0 provider for Google account authentication",
+      "type": "authentication_provider",
+      "used_by": [
+        "ACN-003"
+      ],
+      "capabilities": [
+        "user_authentication",
+        "account_linking",
+        "user_profile_info"
+      ],
+      "configuration_needed": [
+        "google_client_id",
+        "google_client_secret",
+        "redirect_urls",
+        "oauth_scopes"
+      ],
+      "constraints": [
+        "requires_valid_redirect_urls"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "INT-003",
+      "name": "Netlify",
+      "description": "Hosting platform for deployment and hosting of React frontend",
+      "type": "hosting_deployment",
+      "used_by": [
+        "application"
+      ],
+      "capabilities": [
+        "static_hosting",
+        "continuous_deployment",
+        "environment_variables",
+        "serverless_functions"
+      ],
+      "configuration_needed": [
+        "netlify_project_setup",
+        "environment_variables",
+        "build_configuration",
+        "redirect_rules"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    },
+    {
+      "id": "INT-004",
+      "name": "Unsplash",
+      "description": "Image hosting service for article cover images",
+      "type": "media_service",
+      "used_by": [
+        "ACN-026"
+      ],
+      "capabilities": [
+        "image_hosting",
+        "image_search"
+      ],
+      "configuration_needed": [
+        "unsplash_api_key"
+      ],
+      "source": "TEXT",
+      "confidence": "CONFIRMED"
+    }
+  ],
+  "open_questions": [
+    {
+      "id": "OQ-001",
+      "question": "How is serial number decoding implemented? Is there a built-in database of manufacturer serial formats, or does it integrate with an external API?",
+      "related_action": "ACN-011",
+      "severity": "MEDIUM",
+      "source": "TEXT"
+    },
+    {
+      "id": "OQ-002",
+      "question": "What is the grace period mechanism for instrument attribute changes? How long is the grace period and is it configurable per attribute?",
+      "related_entity": "ENT-011",
+      "severity": "MEDIUM",
+      "source": "TEXT"
+    },
+    {
+      "id": "OQ-003",
+      "question": "Are there specific luthier categories or classifications? How is luthier information linked to instruments?",
+      "related_action": "ACN-049",
+      "severity": "LOW",
+      "source": "TEXT"
+    },
+    {
+      "id": "OQ-004",
+      "question": "What are the specific forum categories available? Are they configurable?",
+      "related_entity": "ENT-007",
+      "severity": "LOW",
+      "source": "TEXT"
+    },
+    {
+      "id": "OQ-005",
+      "question": "How does the email notification system work? What events trigger notifications and can users customize notification preferences?",
+      "related_action": "ACN-042",
+      "severity": "MEDIUM",
+      "source": "TEXT"
+    },
+    {
+      "id": "OQ-006",
+      "question": "What is the scope and scale of the KPI dashboard? What specific metrics are tracked (user count, instrument count, articles, etc.)?",
+      "related_action": "ACN-051",
+      "severity": "LOW",
+      "source": "TEXT"
+    },
+    {
+      "id": "OQ-007",
+      "question": "Are there any rate limiting or abuse prevention mechanisms in place for actions like claiming ownership or initiating transfers?",
+      "related_actions": [
+        "ACN-012",
+        "ACN-016"
+      ],
+      "severity": "MEDIUM",
+      "source": "TEXT"
+    },
+    {
+      "id": "OQ-008",
+      "question": "How are deleted instruments handled in relation to collections and favorites? Are they automatically removed or marked as deleted?",
+      "related_actions": [
+        "ACN-009",
+        "ACN-021",
+        "ACN-038"
+      ],
+      "severity": "MEDIUM",
+      "source": "TEXT"
+    },
+    {
+      "id": "OQ-009",
+      "question": "Is there a notification or audit log system that tracks all user actions beyond the Instrument Attributes History table?",
+      "related_action": "ACN-048",
+      "severity": "LOW",
+      "source": "TEXT"
+    },
+    {
+      "id": "OQ-010",
+      "question": "What happens to ownership claims if an instrument is transferred? Are claims automatically cancelled or do they persist?",
+      "related_entities": [
+        "ENT-005",
+        "ENT-006"
+      ],
+      "severity": "MEDIUM",
+      "source": "TEXT"
+    }
+  ]
+}
