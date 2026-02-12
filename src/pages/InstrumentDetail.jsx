@@ -567,14 +567,14 @@ export default function InstrumentDetail() {
           getTimelineEvents(id).catch(() => []),
           getComments('instrument', id).catch(() => []),
           getOccForInstrument(id).catch(() => []),
-          user ? getUserFavorites(user.id).catch(() => []) : Promise.resolve([]),
+          user ? getUserFavorites(user.id, 'instrument').catch(() => []) : Promise.resolve([]),
         ]);
 
         setTimeline(timelineData);
         setComments(commentsData);
         setOcc(occData);
 
-        if (user && favoritesData.some(fav => fav.instrument_id === id)) {
+        if (user && favoritesData.some(fav => fav.favorite_id === id)) {
           setLoved(true);
         }
 
@@ -597,9 +597,9 @@ export default function InstrumentDetail() {
 
     try {
       if (loved) {
-        await removeFavorite(user.id, instrument.id);
+        await removeFavorite(user.id, instrument.id, 'instrument');
       } else {
-        await addFavorite(user.id, instrument.id);
+        await addFavorite(user.id, instrument.id, 'instrument');
       }
       setLoved(!loved);
     } catch (err) {

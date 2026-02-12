@@ -23,6 +23,7 @@ import {
   getFollowerCount,
   getFollowingCount,
 } from "../lib/supabase/follows";
+import { addFavorite, removeFavorite, isFavorited } from "../lib/supabase/userFavorites";
 
 // UTILITY: Format relative time
 function formatTime(date) {
@@ -82,12 +83,32 @@ function Badge({ children, variant = "default" }) {
 
 // GuitarCard Component
 function GuitarCard({ guitar, onLove }) {
+  const { user } = useAuth();
   const [loved, setLoved] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
 
-  const handleLove = () => {
-    setLoved(!loved);
-    if (onLove) onLove(guitar.id, !loved);
+  useEffect(() => {
+    if (user && guitar?.id) {
+      isFavorited(user.id, guitar.id, 'instrument')
+        .then(setLoved)
+        .catch(() => {});
+    }
+  }, [user, guitar?.id]);
+
+  const handleLove = async (e) => {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    if (!user) return;
+    try {
+      if (loved) {
+        await removeFavorite(user.id, guitar.id, 'instrument');
+      } else {
+        await addFavorite(user.id, guitar.id, 'instrument');
+      }
+      setLoved(!loved);
+      if (onLove) onLove(guitar.id, !loved);
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+    }
   };
 
   const guitarImage = guitar.main_image_url ||

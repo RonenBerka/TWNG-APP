@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { T } from "../theme/tokens";
 import { getInstruments } from "../lib/supabase/instruments";
+import { useAuth } from "../context/AuthContext";
+import { addFavorite, removeFavorite, isFavorited } from "../lib/supabase/userFavorites";
 
 /* ─── Makes (manufacturers) pulled from the actual data ────────────────────────── */
 const MAKES = [
@@ -158,8 +160,33 @@ function YearRangeSlider({ min, max, onChange }) {
 
 /* ─── Instrument Card (matches original design) ──────────────────────── */
 function ExploreInstrumentCard({ instrument, view }) {
+  const { user } = useAuth();
   const [loved, setLoved] = useState(false);
   const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    if (user && instrument?.id) {
+      isFavorited(user.id, instrument.id, 'instrument')
+        .then(setLoved)
+        .catch(() => {});
+    }
+  }, [user, instrument?.id]);
+
+  const handleLoveToggle = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) return;
+    try {
+      if (loved) {
+        await removeFavorite(user.id, instrument.id, 'instrument');
+      } else {
+        await addFavorite(user.id, instrument.id, 'instrument');
+      }
+      setLoved(!loved);
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+    }
+  };
 
   if (view === "list") {
     return (
@@ -219,7 +246,7 @@ function ExploreInstrumentCard({ instrument, view }) {
             </div>
           </div>
           <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLoved(!loved); }}
+            onClick={handleLoveToggle}
             style={{
               alignSelf: "center", padding: "8px", background: "none",
               border: "none", cursor: "pointer",
@@ -277,7 +304,7 @@ function ExploreInstrumentCard({ instrument, view }) {
 
           {/* Heart button */}
           <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLoved(!loved); }}
+            onClick={handleLoveToggle}
             style={{
               position: "absolute", top: "14px", right: "14px",
               width: "36px", height: "36px", borderRadius: "50%",
