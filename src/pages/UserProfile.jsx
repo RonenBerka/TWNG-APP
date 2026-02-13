@@ -268,8 +268,9 @@ function ActivityItem({ activity }) {
   const getIcon = () => {
     switch (activity.type) {
       case "instrument_added": return <Guitar {...iconProps} />;
-      case "favorite": return <Heart {...iconProps} />;
+      case "favorite": return <Heart {...iconProps} color="#EF4444" />;
       case "follow": return <Users {...iconProps} />;
+      case "collection": return <Star {...iconProps} />;
       case "comment": return <MessageSquare {...iconProps} />;
       default: return <Star {...iconProps} />;
     }
@@ -409,26 +410,30 @@ export default function TWNGProfile() {
     if (username) loadProfileData();
   }, [username, user?.id]);
 
-  // Load follow data
+  // Load follow data (counts for any profile, follow state for other users)
   useEffect(() => {
     const loadFollowData = async () => {
-      if (!user?.id || !profileUser?.id || isOwnProfile) {
+      if (!profileUser?.id) {
         setFollowState((prev) => ({ ...prev, loading: false }));
         return;
       }
       try {
-        const [following, followerCount, followingCount] = await Promise.all([
-          isFollowing(user.id, profileUser.id),
+        const [followerCount, followingCount] = await Promise.all([
           getFollowerCount(profileUser.id),
           getFollowingCount(profileUser.id),
         ]);
+        // Only check follow state when viewing someone else's profile
+        let following = false;
+        if (user?.id && !isOwnProfile) {
+          following = await isFollowing(user.id, profileUser.id);
+        }
         setFollowState({ isFollowing: following, followerCount, followingCount, loading: false, error: null, isAvailable: true });
       } catch (err) {
         console.warn("Follows feature not available:", err.message);
-        setFollowState({ isFollowing: false, followerCount: "—", followingCount: "—", loading: false, error: err.message, isAvailable: false });
+        setFollowState({ isFollowing: false, followerCount: 0, followingCount: 0, loading: false, error: err.message, isAvailable: false });
       }
     };
-    if (profileUser?.id && user?.id) loadFollowData();
+    if (profileUser?.id) loadFollowData();
   }, [user?.id, profileUser?.id, isOwnProfile]);
 
   // Load activity feed when tab is selected
@@ -438,10 +443,9 @@ export default function TWNGProfile() {
     const loadActivity = async () => {
       setLoadingActivity(true);
       try {
-        // Build activity from real data: instruments added + favorites made
         const activityList = [];
 
-        // Add instrument additions as activities
+        // 1. Instruments added
         instruments.forEach((inst) => {
           activityList.push({
             id: `inst-${inst.id}`,
@@ -451,19 +455,61 @@ export default function TWNGProfile() {
           });
         });
 
-        // Try to load favorites as activity too
+        // 2. Collections created
+        collections.forEach((col) => {
+          activityList.push({
+            id: `col-${col.id}`,
+            type: "collection",
+            description: `Created collection "${col.name}"`,
+            timestamp: col.created_at,
+          });
+        });
+
+        // 3. Favorites — fetch with instrument details
         try {
-          const favs = await getUserFavorites(profileUser.id, "instrument", { limit: 20 });
-          favs.forEach((fav) => {
+          const favs = await getUserFavorites(profileUser.id, "instrument", { limit: 30 });
+          if (favs.length > 0) {
+            const favIds = favs.map((f) => f.favorite_id);
+            const { data: favInstruments } = await supabase
+              .from("instruments")
+              .select("id, make, model, year")
+              .in("id", favIds);
+            const instMap = {};
+            (favInstruments || []).forEach((i) => { instMap[i.id] = i; });
+            favs.forEach((fav) => {
+              const inst = instMap[fav.favorite_id];
+              const name = inst ? `${inst.year || ""} ${inst.make || ""} ${inst.model || ""}`.trim() : "a guitar";
+              activityList.push({
+                id: `fav-${fav.id}`,
+                type: "favorite",
+                description: `Loved ${name}`,
+                timestamp: fav.created_at,
+              });
+            });
+          }
+        } catch {
+          // Silently skip if favorites table has issues
+        }
+
+        // 4. Follows — who this user followed
+        try {
+          const { data: followData } = await supabase
+            .from("user_follows")
+            .select("id, following_id, created_at, user:following_id(username, display_name)")
+            .eq("follower_id", profileUser.id)
+            .order("created_at", { ascending: false })
+            .limit(20);
+          (followData || []).forEach((f) => {
+            const name = f.user?.display_name || f.user?.username || "a user";
             activityList.push({
-              id: `fav-${fav.id}`,
-              type: "favorite",
-              description: "Loved a guitar",
-              timestamp: fav.created_at,
+              id: `follow-${f.id}`,
+              type: "follow",
+              description: `Followed ${name}`,
+              timestamp: f.created_at,
             });
           });
         } catch {
-          // Silently skip if favorites table has issues
+          // Silently skip if follows table has issues
         }
 
         // Sort by most recent first
@@ -477,7 +523,7 @@ export default function TWNGProfile() {
     };
 
     loadActivity();
-  }, [activeTab, profileUser?.id, instruments]);
+  }, [activeTab, profileUser?.id, instruments, collections]);
 
   // Load loved guitars when tab is selected
   useEffect(() => {
@@ -591,12 +637,25 @@ export default function TWNGProfile() {
               )}
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", color: T.txtM, fontSize: "13px" }}>
-              <Calendar size={14} />
-              <span>
-                Member since{" "}
-                {new Date(profileUser?.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long" })}
-              </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px", fontSize: "13px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: T.txtM }}>
+                <Calendar size={14} />
+                <span>
+                  Member since{" "}
+                  {new Date(profileUser?.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long" })}
+                </span>
+              </div>
+              {followState.isAvailable && !followState.loading && (
+                <>
+                  <span style={{ color: T.border }}>|</span>
+                  <span style={{ color: T.txt2 }}>
+                    <strong style={{ color: T.txt, fontWeight: 600 }}>{followState.followerCount}</strong> {followState.followerCount === 1 ? 'follower' : 'followers'}
+                  </span>
+                  <span style={{ color: T.txt2 }}>
+                    <strong style={{ color: T.txt, fontWeight: 600 }}>{followState.followingCount}</strong> following
+                  </span>
+                </>
+              )}
             </div>
           </div>
 

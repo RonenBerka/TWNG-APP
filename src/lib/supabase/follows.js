@@ -23,7 +23,7 @@ export async function isFollowing(followerId, followingId) {
     .select('id')
     .eq('follower_id', followerId)
     .eq('following_id', followingId)
-    .single();
+    .maybeSingle();
   return !!data;
 }
 
@@ -38,7 +38,7 @@ export async function toggleFollow(followerId, followingId) {
     .select('id')
     .eq('follower_id', followerId)
     .eq('following_id', followingId)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     // Already following — unfollow
@@ -121,7 +121,7 @@ export async function getBlockStatus(blockerId, blockedId) {
     .select('*')
     .eq('blocker_id', blockerId)
     .eq('blocked_id', blockedId)
-    .single();
+    .maybeSingle();
   return data || null;
 }
 

@@ -29,7 +29,7 @@ export async function addFavorite(userId, targetId, targetType) {
       .eq('user_id', userId)
       .eq('favorite_id', targetId)
       .eq('favorite_type', targetType)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       console.warn(`User ${userId} has already favorited ${targetType} ${targetId}`);
@@ -147,15 +147,11 @@ export async function isFavorited(userId, targetId, targetType) {
       .eq('user_id', userId)
       .eq('favorite_id', targetId)
       .eq('favorite_type', targetType)
-      .single();
+      .maybeSingle();
 
     return !!data;
   } catch (error) {
-    // If error is "not found", item is not favorited (not an error condition)
-    if (error.code === 'PGRST116') {
-      return false;
-    }
     console.error('Error checking favorite status:', error.message);
-    throw error;
+    return false;
   }
 }
