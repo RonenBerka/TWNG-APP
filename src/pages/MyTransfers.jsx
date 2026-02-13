@@ -10,6 +10,7 @@ import {
   getMyTransfers, acceptTransfer, declineTransfer,
   cancelTransfer, completeTransfer, expireOverdueTransfers
 } from '../lib/supabase/transfers';
+import { createNotification } from '../lib/supabase/notifications';
 import { ROUTES, instrumentPath } from '../lib/routes';
 
 const STATUS_STYLES = {
@@ -17,6 +18,7 @@ const STATUS_STYLES = {
   accepted:  { bg: '#3B82F615', color: '#3B82F6', border: '#3B82F630', label: 'Accepted' },
   completed: { bg: '#34D39915', color: '#34D399', border: '#34D39930', label: 'Completed' },
   declined:  { bg: '#EF444415', color: '#EF4444', border: '#EF444430', label: 'Declined' },
+  rejected:  { bg: '#EF444415', color: '#EF4444', border: '#EF444430', label: 'Declined' },
   cancelled: { bg: '#6B728015', color: '#6B7280', border: '#6B728030', label: 'Cancelled' },
   expired:   { bg: '#6B728015', color: '#6B7280', border: '#6B728030', label: 'Expired' },
 };
@@ -192,22 +194,12 @@ function TransferCard({ transfer, direction, onAction }) {
                 opacity: acting ? 0.6 : 1,
               }}>
                 {acting ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={14} />}
-                Accept Transfer
+                Accept
               </button>
             </>
           )}
 
-          {/* Incoming accepted — Complete (take ownership) */}
-          {direction === 'incoming' && isAccepted && (
-            <button onClick={() => handleAction('complete')} disabled={acting} style={{
-              padding: '8px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-              background: '#34D399', border: '1px solid #34D399', color: T.bgDeep,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-              opacity: acting ? 0.6 : 1,
-            }}>
-              {acting ? 'Completing...' : 'Complete Transfer'}
-            </button>
-          )}
+          {/* Incoming accepted — already completed automatically */}
 
           {/* Outgoing pending — Cancel */}
           {direction === 'outgoing' && isPending && (
@@ -227,7 +219,7 @@ function TransferCard({ transfer, direction, onAction }) {
 }
 
 export default function MyTransfers() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [transfers, setTransfers] = useState({ incoming: [], outgoing: [] });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('incoming');
@@ -255,10 +247,52 @@ export default function MyTransfers() {
   useEffect(() => { fetchTransfers(); }, []);
 
   const handleAction = async (transferId, action, reason) => {
-    if (action === 'accept') await acceptTransfer(transferId);
-    else if (action === 'decline') await declineTransfer(transferId, reason);
-    else if (action === 'cancel') await cancelTransfer(transferId, reason);
-    else if (action === 'complete') await completeTransfer(transferId);
+    // Find the transfer to get instrument/user info for notifications
+    const allTransfers = [...transfers.incoming, ...transfers.outgoing];
+    const transfer = allTransfers.find(t => t.id === transferId);
+    const instrumentName = transfer?.instrument
+      ? [transfer.instrument.make, transfer.instrument.model].filter(Boolean).join(' ')
+      : 'an instrument';
+
+    if (action === 'accept') {
+      // Accept and immediately complete (transfer ownership in one step)
+      await acceptTransfer(transferId);
+      await completeTransfer(transferId);
+      // Notify the sender that the transfer was accepted
+      if (transfer?.from_owner?.id) {
+        await createNotification({
+          userId: transfer.from_owner.id,
+          type: 'transfer_completed',
+          title: 'Transfer accepted',
+          message: `Your transfer of ${instrumentName} has been accepted and completed.`,
+          data: {
+            link: instrumentPath(transfer.instrument?.id),
+            instrument_id: transfer.instrument?.id,
+            actor_name: profile?.display_name || 'The recipient',
+          },
+        }).catch(() => {}); // Don't block on notification failure
+      }
+    } else if (action === 'decline') {
+      await declineTransfer(transferId, reason);
+      // Notify the sender that the transfer was declined
+      if (transfer?.from_owner?.id) {
+        await createNotification({
+          userId: transfer.from_owner.id,
+          type: 'transfer_declined',
+          title: 'Transfer declined',
+          message: `Your transfer of ${instrumentName} was declined.${reason ? ` Reason: ${reason}` : ''}`,
+          data: {
+            link: instrumentPath(transfer.instrument?.id),
+            instrument_id: transfer.instrument?.id,
+            actor_name: profile?.display_name || 'The recipient',
+          },
+        }).catch(() => {});
+      }
+    } else if (action === 'cancel') {
+      await cancelTransfer(transferId, reason);
+    } else if (action === 'complete') {
+      await completeTransfer(transferId);
+    }
     await fetchTransfers();
   };
 
