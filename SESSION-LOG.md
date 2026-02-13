@@ -102,7 +102,13 @@
 - ✅ Added follower/following counts to profile header (inline with "Member since")
 - ✅ Enhanced activity feed: now includes instrument additions, collection creations, favorites (with instrument names), and follows (with user names)
 - ✅ Build passes (3.26s, no errors)
-- Branch: `fix/social-features-round2` (not deployed, awaiting confirmation)
+- ✅ Merged `fix/social-features-round2` → `main` (fast-forward), built, deployed to Netlify
+- ✅ Pushed branch to GitHub: `origin/fix/social-features-round2`
+- ✅ Live site verified via Playwright:
+  - Collections page: all 5 collections show correct item counts + owner display names, 0 console errors
+  - Explore page: 20 instruments loaded, 0 console errors
+  - Instrument detail (Les Paul Standard 1959): Love button renders, 0 console errors (previously had HTTP 406 errors)
+  - `/user/ronenberka` redirects to `/settings` (own-profile redirect — not a bug, existing behavior)
 - Files: `userFavorites.js`, `follows.js`, `UserProfile.jsx`
 
 ### Session 7 — Collections & Admin Bug Verification

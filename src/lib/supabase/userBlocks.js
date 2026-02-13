@@ -26,7 +26,7 @@ export async function blockUser(blockerId, blockedId, blockType = 'block') {
       .select('id')
       .eq('blocker_id', blockerId)
       .eq('blocked_id', blockedId)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       console.warn(`User ${blockedId} is already blocked by user ${blockerId}`);
@@ -109,18 +109,16 @@ export async function isUserBlocked(blockerId, blockedId) {
   try {
     const { data } = await supabase
       .from('user_blocks')
-      .select('id')
+      .select('id, block_type')
       .eq('blocker_id', blockerId)
       .eq('blocked_id', blockedId)
-      .single();
+      .maybeSingle();
 
-    return !!data;
+    return data
+      ? { blocked: true, blockType: data.block_type }
+      : { blocked: false, blockType: null };
   } catch (error) {
-    // If error is "not found", user is not blocked (not an error condition)
-    if (error.code === 'PGRST116') {
-      return false;
-    }
     console.error('Error checking block status:', error.message);
-    throw error;
+    return { blocked: false, blockType: null };
   }
 }

@@ -208,7 +208,10 @@ function ProfileSettings() {
       const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
       const filePath = `${profile.id}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
       if (uploadError) throw uploadError;
 
       const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
@@ -219,9 +222,13 @@ function ProfileSettings() {
       showToast("Avatar updated successfully", "success");
     } catch (err) {
       console.error("Avatar upload error:", err);
-      setSaveError("Failed to upload avatar. Please try again.");
-      setTimeout(() => setSaveError(null), 3000);
-      showToast("Failed to upload avatar", "error");
+      const isBucketMissing = err.message?.includes('Bucket not found') || err.statusCode === 400;
+      const errorMsg = isBucketMissing
+        ? "Avatar storage is not configured. Please contact support."
+        : "Failed to upload avatar. Please try again.";
+      setSaveError(errorMsg);
+      setTimeout(() => setSaveError(null), 5000);
+      showToast(errorMsg, "error");
     } finally {
       setAvatarLoading(false);
     }

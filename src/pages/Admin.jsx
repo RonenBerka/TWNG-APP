@@ -1583,6 +1583,7 @@ const HomepageManagementPage = () => {
       await saveHomepageBlocks(updated, user?.id);
     } catch (e) {
       console.error("Save error:", e);
+      alert(`Failed to save homepage blocks: ${e.message}. You may need to run migration 018 in the Supabase Dashboard.`);
     }
     setSaving(false);
   };

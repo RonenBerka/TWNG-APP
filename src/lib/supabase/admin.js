@@ -442,26 +442,41 @@ export { toggleThreadLocked as toggleDiscussionHidden };
 export async function saveHomepageBlocks(blocks, userId) {
   try {
     const rows = blocks.map((b, i) => ({
-      type: mapFrontendTypeToDb(b.type),  // convert frontend name → DB enum value
+      type: mapFrontendTypeToDb(b.type),
       title: b.title,
       is_active: b.status === 'active',
       display_order: i + 1,
       updated_at: new Date().toISOString(),
     }));
 
-    // Delete all existing blocks, then insert the full new set
-    const { error: delError } = await supabase
-      .from('homepage_blocks')
-      .delete()
-      .gte('display_order', 0); // match all rows (Supabase requires a filter on delete)
+    // Per-row upsert: find existing by type, update or insert
+    // Safer than delete+insert — if one row fails, others still persist
+    for (const row of rows) {
+      const { data: existing } = await supabase
+        .from('homepage_blocks')
+        .select('id')
+        .eq('type', row.type)
+        .maybeSingle();
 
-    if (delError) throw delError;
+      if (existing) {
+        const { error } = await supabase
+          .from('homepage_blocks')
+          .update({
+            title: row.title,
+            is_active: row.is_active,
+            display_order: row.display_order,
+            updated_at: row.updated_at,
+          })
+          .eq('id', existing.id);
+        if (error) console.warn(`Failed to update block type="${row.type}":`, error.message);
+      } else {
+        const { error } = await supabase
+          .from('homepage_blocks')
+          .insert(row);
+        if (error) console.warn(`Failed to insert block type="${row.type}":`, error.message);
+      }
+    }
 
-    const { error: insError } = await supabase
-      .from('homepage_blocks')
-      .insert(rows);
-
-    if (insError) throw insError;
     return rows;
   } catch (err) {
     console.error('saveHomepageBlocks error:', err);

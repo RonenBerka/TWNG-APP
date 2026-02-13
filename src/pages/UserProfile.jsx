@@ -14,6 +14,9 @@ import {
   Loader,
   Clock,
   PlusCircle,
+  MoreVertical,
+  Ban,
+  VolumeX,
 } from "lucide-react";
 import { T } from "../theme/tokens";
 import { useAuth } from "../context/AuthContext";
@@ -25,6 +28,7 @@ import {
   getFollowingCount,
 } from "../lib/supabase/follows";
 import { getUserFavorites, getFavoriteCount, isFavorited, addFavorite, removeFavorite } from "../lib/supabase/userFavorites";
+import { blockUser, unblockUser, isUserBlocked } from "../lib/supabase/userBlocks";
 
 // UTILITY: Format relative time
 function formatTime(date) {
@@ -345,6 +349,14 @@ export default function TWNGProfile() {
     isAvailable: true,
   });
 
+  // Block state
+  const [blockState, setBlockState] = useState({
+    isBlocked: false,
+    blockType: null,
+    loading: true,
+  });
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+
   const tabs = [
     { id: "guitars", label: "Guitars", count: instruments.length },
     { id: "collections", label: "Collections", count: collections.length },
@@ -435,6 +447,32 @@ export default function TWNGProfile() {
     };
     if (profileUser?.id) loadFollowData();
   }, [user?.id, profileUser?.id, isOwnProfile]);
+
+  // Load block status for other users' profiles
+  useEffect(() => {
+    const checkBlockStatus = async () => {
+      if (!user?.id || !profileUser?.id || isOwnProfile) {
+        setBlockState({ isBlocked: false, blockType: null, loading: false });
+        return;
+      }
+      try {
+        const result = await isUserBlocked(user.id, profileUser.id);
+        setBlockState({ isBlocked: result.blocked, blockType: result.blockType, loading: false });
+      } catch (err) {
+        console.warn("Block check failed:", err.message);
+        setBlockState({ isBlocked: false, blockType: null, loading: false });
+      }
+    };
+    if (user?.id && profileUser?.id) checkBlockStatus();
+  }, [user?.id, profileUser?.id, isOwnProfile]);
+
+  // Close more menu on outside click
+  useEffect(() => {
+    if (!showMoreMenu) return;
+    const handleClickOutside = () => setShowMoreMenu(false);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showMoreMenu]);
 
   // Load activity feed when tab is selected
   useEffect(() => {
@@ -573,6 +611,36 @@ export default function TWNGProfile() {
     }
   };
 
+  const handleBlock = async (type = 'block') => {
+    if (!user?.id || !profileUser?.id) return;
+    try {
+      await blockUser(user.id, profileUser.id, type);
+      setBlockState({ isBlocked: true, blockType: type, loading: false });
+      setShowMoreMenu(false);
+      // If blocking (not muting), also unfollow
+      if (type === 'block' && followState.isFollowing) {
+        try {
+          const { unfollowUser } = await import("../lib/supabase/follows");
+          await unfollowUser(user.id, profileUser.id);
+          setFollowState(prev => ({ ...prev, isFollowing: false, followerCount: Math.max(0, prev.followerCount - 1) }));
+        } catch { /* ignore unfollow error */ }
+      }
+    } catch (err) {
+      console.error("Failed to block user:", err);
+    }
+  };
+
+  const handleUnblock = async () => {
+    if (!user?.id || !profileUser?.id) return;
+    try {
+      await unblockUser(user.id, profileUser.id);
+      setBlockState({ isBlocked: false, blockType: null, loading: false });
+      setShowMoreMenu(false);
+    } catch (err) {
+      console.error("Failed to unblock user:", err);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ backgroundColor: T.bgDeep, color: T.txt, minHeight: "100vh", fontFamily: "DM Sans, sans-serif", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -687,58 +755,191 @@ export default function TWNGProfile() {
               </button>
             ) : (
               <>
-                <button
-                  onClick={handleToggleFollow}
-                  disabled={!followState.isAvailable || followState.loading}
-                  title={!followState.isAvailable ? "Follow feature coming soon" : undefined}
-                  style={{
-                    backgroundColor: followState.isFollowing ? T.bgCard : T.amber,
-                    color: followState.isFollowing ? T.amber : T.bgDeep,
-                    border: `1px solid ${followState.isFollowing ? T.borderAcc : "transparent"}`,
-                    padding: "10px 20px",
+                {/* Show Follow + Message when NOT hard-blocked */}
+                {!(blockState.isBlocked && blockState.blockType === 'block') && (
+                  <>
+                    <button
+                      onClick={handleToggleFollow}
+                      disabled={!followState.isAvailable || followState.loading}
+                      title={!followState.isAvailable ? "Follow feature coming soon" : undefined}
+                      style={{
+                        backgroundColor: followState.isFollowing ? T.bgCard : T.amber,
+                        color: followState.isFollowing ? T.amber : T.bgDeep,
+                        border: `1px solid ${followState.isFollowing ? T.borderAcc : "transparent"}`,
+                        padding: "10px 20px",
+                        borderRadius: "8px",
+                        cursor: followState.isAvailable && !followState.loading ? "pointer" : "not-allowed",
+                        fontFamily: "DM Sans",
+                        fontWeight: 600,
+                        fontSize: "14px",
+                        transition: "all 0.2s",
+                        opacity: followState.loading ? 0.7 : 1,
+                      }}
+                    >
+                      {followState.loading ? "..." : followState.isFollowing ? "Following" : "Follow"}
+                    </button>
+                    {user && (
+                      <button
+                        onClick={() => navigate("/messages")}
+                        style={{
+                          backgroundColor: T.bgCard,
+                          color: T.txt,
+                          border: `1px solid ${T.border}`,
+                          padding: "10px 20px",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          fontFamily: "DM Sans",
+                          fontWeight: 600,
+                          fontSize: "14px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          transition: "all 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = T.bgElev;
+                          e.currentTarget.style.borderColor = T.warm;
+                          e.currentTarget.style.color = T.warm;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = T.bgCard;
+                          e.currentTarget.style.borderColor = T.border;
+                          e.currentTarget.style.color = T.txt;
+                        }}
+                      >
+                        <MessageSquare size={16} />
+                        Message
+                      </button>
+                    )}
+                  </>
+                )}
+                {/* Blocked badge */}
+                {blockState.isBlocked && blockState.blockType === 'block' && (
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "10px 16px",
                     borderRadius: "8px",
-                    cursor: followState.isAvailable && !followState.loading ? "pointer" : "not-allowed",
-                    fontFamily: "DM Sans",
-                    fontWeight: 600,
-                    fontSize: "14px",
-                    transition: "all 0.2s",
-                    opacity: followState.loading ? 0.7 : 1,
-                  }}
-                >
-                  {followState.loading ? "..." : followState.isFollowing ? "Following" : "Follow"}
-                </button>
+                    backgroundColor: "rgba(239, 68, 68, 0.08)",
+                    border: "1px solid rgba(239, 68, 68, 0.2)",
+                    color: "#EF4444",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                  }}>
+                    <Ban size={14} />
+                    User Blocked
+                  </div>
+                )}
+                {/* More menu (Block/Mute/Unblock) */}
                 {user && (
-                  <button
-                    onClick={() => navigate("/messages")}
-                    style={{
-                      backgroundColor: T.bgCard,
-                      color: T.txt,
-                      border: `1px solid ${T.border}`,
-                      padding: "10px 20px",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                      fontFamily: "DM Sans",
-                      fontWeight: 600,
-                      fontSize: "14px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      transition: "all 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = T.bgElev;
-                      e.currentTarget.style.borderColor = T.warm;
-                      e.currentTarget.style.color = T.warm;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = T.bgCard;
-                      e.currentTarget.style.borderColor = T.border;
-                      e.currentTarget.style.color = T.txt;
-                    }}
-                  >
-                    <MessageSquare size={16} />
-                    Message
-                  </button>
+                  <div style={{ position: "relative" }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowMoreMenu(!showMoreMenu); }}
+                      style={{
+                        backgroundColor: T.bgCard,
+                        color: T.txt2,
+                        border: `1px solid ${T.border}`,
+                        padding: "10px",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "all 0.2s",
+                      }}
+                      aria-label="More options"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                    {showMoreMenu && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          position: "absolute",
+                          top: "100%",
+                          right: 0,
+                          marginTop: "8px",
+                          backgroundColor: T.bgCard,
+                          border: `1px solid ${T.border}`,
+                          borderRadius: "10px",
+                          padding: "4px",
+                          minWidth: "180px",
+                          zIndex: 50,
+                          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+                        }}
+                      >
+                        {blockState.isBlocked ? (
+                          <button
+                            onClick={handleUnblock}
+                            style={{
+                              width: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "10px",
+                              padding: "10px 12px",
+                              background: "none",
+                              border: "none",
+                              color: T.txt,
+                              cursor: "pointer",
+                              fontSize: "14px",
+                              borderRadius: "6px",
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = T.bgElev}
+                            onMouseLeave={e => e.currentTarget.style.background = "none"}
+                          >
+                            <Ban size={14} />
+                            {blockState.blockType === 'mute' ? 'Unmute User' : 'Unblock User'}
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleBlock('block')}
+                              style={{
+                                width: "100%",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                                padding: "10px 12px",
+                                background: "none",
+                                border: "none",
+                                color: "#EF4444",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                borderRadius: "6px",
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.08)"}
+                              onMouseLeave={e => e.currentTarget.style.background = "none"}
+                            >
+                              <Ban size={14} />
+                              Block User
+                            </button>
+                            <button
+                              onClick={() => handleBlock('mute')}
+                              style={{
+                                width: "100%",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                                padding: "10px 12px",
+                                background: "none",
+                                border: "none",
+                                color: T.txt2,
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                borderRadius: "6px",
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = T.bgElev}
+                              onMouseLeave={e => e.currentTarget.style.background = "none"}
+                            >
+                              <VolumeX size={14} />
+                              Mute User
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
               </>
             )}

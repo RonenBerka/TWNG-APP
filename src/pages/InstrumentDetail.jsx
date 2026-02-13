@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, Share2, Shield, ChevronDown, ChevronUp, Calendar, Clock, Eye, EyeOff, Users, Flag, AlertTriangle, Check, Loader2, Pencil } from "lucide-react";
+import { ArrowLeft, Heart, Share2, Shield, ChevronDown, ChevronUp, Calendar, Clock, Eye, EyeOff, Users, Flag, AlertTriangle, Check, Loader2, Pencil, Archive, ArchiveRestore } from "lucide-react";
 import { T } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
-import { getInstrument, updateInstrument } from '../lib/supabase/instruments';
+import { getInstrument, updateInstrument, archiveInstrument, restoreInstrument } from '../lib/supabase/instruments';
 import { getTimelineEvents } from '../lib/supabase/timeline';
 import { getComments } from '../lib/supabase/comments';
 import { getOccForInstrument } from '../lib/supabase/occ';
@@ -158,7 +158,7 @@ function ImageGallery({ images }) {
 // ============================================================
 // Instrument Header Component
 // ============================================================
-function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
+function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner, onArchiveToggle }) {
   const navigate = useNavigate();
   const [publishing, setPublishing] = useState(false);
   const [shared, setShared] = useState(false);
@@ -324,6 +324,28 @@ function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
             >
               <Pencil size={14} />
               Edit
+            </button>
+          )}
+          {isOwner && (
+            <button
+              onClick={onArchiveToggle}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 14px",
+                borderRadius: "8px",
+                border: `1px solid ${instrument.is_archived ? '#34D399' : T.border}`,
+                backgroundColor: instrument.is_archived ? 'rgba(52,211,153,0.1)' : T.bgCard,
+                color: instrument.is_archived ? '#34D399' : T.txt2,
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: 600,
+                transition: "all 0.2s",
+              }}
+            >
+              {instrument.is_archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+              {instrument.is_archived ? "Restore" : "Archive"}
             </button>
           )}
         </div>
@@ -645,6 +667,26 @@ export default function InstrumentDetail() {
     }
   }, [id, user]);
 
+  const handleArchiveToggle = async () => {
+    if (!instrument) return;
+    const isArchived = instrument.is_archived;
+    const confirmMsg = isArchived
+      ? "Restore this instrument? It will be visible again."
+      : "Archive this instrument? It will be hidden from public view.";
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      if (isArchived) {
+        await restoreInstrument(instrument.id);
+      } else {
+        await archiveInstrument(instrument.id);
+      }
+      const refreshed = await getInstrument(id);
+      setInstrument(refreshed);
+    } catch (err) {
+      console.error('Failed to archive/restore instrument:', err);
+    }
+  };
+
   const handleLoveToggle = async () => {
     if (!user || !instrument) return;
 
@@ -716,6 +758,24 @@ export default function InstrumentDetail() {
 
   return (
     <div style={{ backgroundColor: T.bgDeep, minHeight: "100vh" }}>
+      {/* Archived Banner */}
+      {instrument.is_archived && (
+        <div style={{
+          padding: "12px 24px",
+          backgroundColor: "rgba(245, 158, 11, 0.1)",
+          borderBottom: "1px solid rgba(245, 158, 11, 0.3)",
+          textAlign: "center",
+        }}>
+          <span style={{
+            color: "#F59E0B",
+            fontSize: "14px",
+            fontWeight: 600,
+            fontFamily: "'DM Sans', sans-serif",
+          }}>
+            This instrument is archived and not visible to the public.
+          </span>
+        </div>
+      )}
       {/* Back Button */}
       <div style={{
         padding: "24px",
@@ -759,6 +819,7 @@ export default function InstrumentDetail() {
             loved={loved}
             onLoveToggle={handleLoveToggle}
             isOwner={isOwner}
+            onArchiveToggle={handleArchiveToggle}
           />
         </div>
       </div>

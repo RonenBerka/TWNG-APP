@@ -211,6 +211,21 @@ export async function archiveInstrument(id) {
 }
 
 /**
+ * Restore an archived instrument
+ */
+export async function restoreInstrument(id) {
+  const { error } = await supabase
+    .from('instruments')
+    .update({
+      is_archived: false,
+      archived_at: null,
+    })
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+/**
  * Get serial number for an instrument (from sensitive_details table)
  */
 export async function getInstrumentSerialNumber(instrumentId) {
