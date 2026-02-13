@@ -22,6 +22,7 @@ import {
   removeFavorite,
   isFavorited,
 } from "../lib/supabase/userFavorites";
+import { ROUTES, instrumentPath, collectionEditPath } from "../lib/routes";
 
 /* ─── Instrument Card Component ────────────────────────────────────── */
 function InstrumentCard({ instrument }) {
@@ -29,7 +30,7 @@ function InstrumentCard({ instrument }) {
 
   return (
     <Link
-      to={`/instrument/${instrument.id}`}
+      to={instrumentPath(instrument.id)}
       style={{
         textDecoration: "none",
       }}
@@ -196,7 +197,7 @@ export default function CollectionDetail() {
 
   const handleFavoriteToggle = async () => {
     if (!user?.id) {
-      navigate("/auth");
+      navigate(ROUTES.AUTH);
       return;
     }
 
@@ -222,7 +223,7 @@ export default function CollectionDetail() {
     try {
       setDeleting(true);
       await deleteCollection(id);
-      navigate("/my-collections");
+      navigate(ROUTES.MY_COLLECTIONS);
     } catch (err) {
       console.error("Failed to delete collection:", err);
       alert("Failed to delete collection");
@@ -575,7 +576,7 @@ export default function CollectionDetail() {
               {isOwner && (
                 <>
                   <Link
-                    to={`/collections/${id}/edit`}
+                    to={collectionEditPath(id)}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -698,7 +699,7 @@ export default function CollectionDetail() {
             </p>
             {isOwner && (
               <Link
-                to={`/collections/${id}/edit`}
+                to={collectionEditPath(id)}
                 style={{
                   display: "inline-block",
                   marginTop: "16px",

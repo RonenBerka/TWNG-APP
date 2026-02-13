@@ -10,6 +10,7 @@ import {
   getMyTransfers, acceptTransfer, declineTransfer,
   cancelTransfer, completeTransfer, expireOverdueTransfers
 } from '../lib/supabase/transfers';
+import { ROUTES, instrumentPath } from '../lib/routes';
 
 const STATUS_STYLES = {
   pending:   { bg: '#F59E0B15', color: '#F59E0B', border: '#F59E0B30', label: 'Pending' },
@@ -81,7 +82,7 @@ function TransferCard({ transfer, direction, onAction }) {
             <p style={{ fontSize: '12px', color: T.txt2, fontFamily: "'JetBrains Mono', monospace", margin: '0 0 4px' }}>
               {instrument?.make} · {instrument?.year}
             </p>
-            <Link to={`/instrument/${instrument?.id}`} style={{
+            <Link to={instrumentPath(instrument?.id)} style={{
               fontSize: '15px', fontWeight: 600, color: T.txt, textDecoration: 'none',
             }}>
               {instrument?.model || 'Unknown Instrument'}
@@ -270,7 +271,7 @@ export default function MyTransfers() {
       <div style={{ maxWidth: '700px', margin: '0 auto', padding: '32px 24px 64px' }}>
 
         {/* Back link */}
-        <Link to="/settings" style={{
+        <Link to={ROUTES.SETTINGS} style={{
           display: 'inline-flex', alignItems: 'center', gap: '8px', color: T.txt2,
           textDecoration: 'none', fontSize: '14px', fontWeight: 500, marginBottom: '32px',
         }}>

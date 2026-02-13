@@ -13,6 +13,7 @@ import {
   getForumCategories,
   createForumThread
 } from "../lib/supabase/forum";
+import { ROUTES, forumThreadPath } from "../lib/routes";
 
 // Main Component
 export default function NewThread() {
@@ -52,7 +53,7 @@ export default function NewThread() {
   // Redirect if not logged in
   useEffect(() => {
     if (!user && !isLoadingCategories) {
-      navigate("/auth");
+      navigate(ROUTES.AUTH);
     }
   }, [user, isLoadingCategories, navigate]);
 
@@ -83,7 +84,7 @@ export default function NewThread() {
         title.trim(),
         content.trim()
       );
-      navigate(`/forum/thread/${newThread.id}`);
+      navigate(forumThreadPath(newThread.id));
     } catch (err) {
       console.error("Error creating thread:", err);
       setError(err.message || "Failed to create thread. Please try again.");

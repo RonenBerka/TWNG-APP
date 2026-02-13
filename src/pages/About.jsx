@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Guitar, Users, Shield, BookOpen, Heart, ArrowRight, Sparkles, Quote, MapPin, Calendar } from 'lucide-react';
 import { T } from '../theme/tokens';
 import { IMG } from '../utils/placeholders';
+import { ROUTES } from '../lib/routes';
 
 export default function About() {
   const [hoveredFounder, setHoveredFounder] = useState(null);
@@ -423,7 +424,7 @@ export default function About() {
             Start exploring the TWNG community. Document your collection. Connect with other collectors, musicians, and luthiers. Your guitars deserve more than a closet — they deserve a home.
           </p>
           <Link
-            to="/explore"
+            to={ROUTES.EXPLORE}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

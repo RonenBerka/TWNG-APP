@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRole } from '../hooks/useRole';
 import { T } from '../theme/tokens';
+import { ROUTES } from '../lib/routes';
 import { ShieldX, Loader2 } from 'lucide-react';
 
 /**
@@ -37,7 +38,7 @@ export default function AdminRoute({ children }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to={ROUTES.AUTH} replace />;
   }
 
   if (!isStaff) {

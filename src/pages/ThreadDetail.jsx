@@ -22,6 +22,7 @@ import {
   markPostAsSolution,
   incrementThreadView
 } from "../lib/supabase/forum";
+import { ROUTES } from "../lib/routes";
 
 // Utility: Generate avatar initials from username
 function getInitials(username) {
@@ -231,7 +232,7 @@ export default function ThreadDetail() {
       >
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           <button
-            onClick={() => navigate("/forum")}
+            onClick={() => navigate(ROUTES.FORUM)}
             style={{
               display: "flex",
               alignItems: "center",

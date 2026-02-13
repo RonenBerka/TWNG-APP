@@ -2,6 +2,7 @@ import { MessageCircle, Eye, Lock, Pin } from 'lucide-react';
 import { T } from '../../theme/tokens';
 import Badge from '../ui/Badge';
 import { Link } from 'react-router-dom';
+import { forumThreadPath } from '../../lib/routes';
 
 function getTimeAgo(timestamp) {
   if (!timestamp) return '';
@@ -30,7 +31,7 @@ export default function ForumThreadCard({ thread }) {
   } = thread;
 
   return (
-    <Link to={`/forum/thread/${id}`} style={{ textDecoration: "none", color: "inherit" }}>
+    <Link to={forumThreadPath(id)} style={{ textDecoration: "none", color: "inherit" }}>
       <div style={{
         backgroundColor: T.bgCard,
         borderRadius: "12px",

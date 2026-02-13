@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase/client';
 import { T } from '../../theme/tokens';
+import { ROUTES } from '../../lib/routes';
 import {
   ArrowLeft, Save, Eye, Send, Plus, Trash2, ChevronUp, ChevronDown,
   Image, Type, AlignLeft, Quote, Link, Minus, Hash, User, Tag,
@@ -292,7 +293,7 @@ const ArticleComposer = () => {
       setStatus('published');
       setLastSaved(new Date().toISOString());
       setSaveStatus('saved');
-      setTimeout(() => navigate('/admin'), 1500);
+      setTimeout(() => navigate(ROUTES.ADMIN), 1500);
     } catch (err) {
       console.error('Publish error:', err);
       alert('Failed to publish article');
@@ -439,7 +440,7 @@ const ArticleComposer = () => {
         gap: '16px',
       }}>
         <button
-          onClick={() => navigate('/admin')}
+          onClick={() => navigate(ROUTES.ADMIN)}
           style={{
             background: 'none',
             border: 'none',

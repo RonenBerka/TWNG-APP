@@ -2,38 +2,39 @@ import { Link } from 'react-router-dom';
 import { Instagram, Twitter, Youtube } from 'lucide-react';
 import { T } from '../../theme/tokens';
 import Logo from '../ui/Logo';
+import { ROUTES } from '../../lib/routes';
 
 const footerColumns = [
   {
     title: "Platform",
     links: [
-      { label: "Explore Guitars", path: "/explore" },
-      { label: "Collections", path: "/collections" },
-      { label: "Magic Add", path: "/instrument/new" },
-      { label: "Serial Decoder", path: "/decoder" },
-      { label: "Luthier Directory", path: "/community" },
-      { label: "Community Forum", path: "/community" },
-      { label: "Founding Members", path: "/founding-members" },
+      { label: "Explore Guitars", path: ROUTES.EXPLORE },
+      { label: "Collections", path: ROUTES.COLLECTIONS },
+      { label: "Magic Add", path: ROUTES.INSTRUMENT_NEW },
+      { label: "Serial Decoder", path: ROUTES.DECODER },
+      { label: "Luthier Directory", path: ROUTES.COMMUNITY },
+      { label: "Community Forum", path: ROUTES.COMMUNITY },
+      { label: "Founding Members", path: ROUTES.FOUNDING_MEMBERS },
     ],
   },
   {
     title: "Content",
     links: [
-      { label: "Articles", path: "/articles" },
-      { label: "Guides", path: "/articles" },
-      { label: "Interviews", path: "/articles" },
-      { label: "Brand Histories", path: "/articles" },
-      { label: "FAQ", path: "/faq" },
+      { label: "Articles", path: ROUTES.ARTICLES },
+      { label: "Guides", path: ROUTES.ARTICLES },
+      { label: "Interviews", path: ROUTES.ARTICLES },
+      { label: "Brand Histories", path: ROUTES.ARTICLES },
+      { label: "FAQ", path: ROUTES.FAQ },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "About TWNG", path: "/about" },
-      { label: "Careers", path: "/about" },
-      { label: "Press", path: "/about" },
-      { label: "Contact", path: "/about" },
-      { label: "API (Coming Soon)", path: "/about" },
+      { label: "About TWNG", path: ROUTES.ABOUT },
+      { label: "Careers", path: ROUTES.ABOUT },
+      { label: "Press", path: ROUTES.ABOUT },
+      { label: "Contact", path: ROUTES.ABOUT },
+      { label: "API (Coming Soon)", path: ROUTES.ABOUT },
     ],
   },
   {

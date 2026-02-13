@@ -16,6 +16,7 @@ import {
 import { T } from "../theme/tokens";
 import { getInstruments } from "../lib/supabase/instruments";
 import { useAuth } from "../context/AuthContext";
+import { ROUTES, instrumentPath } from "../lib/routes";
 
 const filterOptions = [
   { label: "All", value: "all" },
@@ -32,7 +33,7 @@ function CollectionCard({ instrument, view }) {
 
   if (view === "list") {
     return (
-      <Link to={`/instrument/${instrument.id}`} style={{ textDecoration: "none" }}>
+      <Link to={instrumentPath(instrument.id)} style={{ textDecoration: "none" }}>
         <div
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
@@ -93,7 +94,7 @@ function CollectionCard({ instrument, view }) {
 
   /* ── Grid Card ───────────────────────────────────────────────── */
   return (
-    <Link to={`/instrument/${instrument.id}`} style={{ textDecoration: "none" }}>
+    <Link to={instrumentPath(instrument.id)} style={{ textDecoration: "none" }}>
       <div
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -463,7 +464,7 @@ export default function MyCollection() {
         {/* ── Add Instrument CTA ──────────────────────────────────── */}
         <div style={{ marginTop: "48px", textAlign: "center" }}>
           <Link
-            to="/instrument/new"
+            to={ROUTES.INSTRUMENT_NEW}
             style={{
               display: "inline-flex", alignItems: "center", gap: "8px",
               padding: "14px 28px", borderRadius: "12px",

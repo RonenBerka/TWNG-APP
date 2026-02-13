@@ -24,6 +24,7 @@ import {
 import { IMG } from '../utils/placeholders';
 import { T } from '../theme/tokens';
 import { useTheme } from '../context/ThemeContext';
+import { ROUTES, instrumentPath, articlePath } from '../lib/routes';
 import {
   getHomepageBlocks,
   getFeaturedInstruments,
@@ -553,7 +554,7 @@ function HeroSection({ badgeText, miniInstruments, heroConfig, stats }) {
             </p>
 
             <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-              <Link to="/instrument/new" style={{ textDecoration: "none" }}>
+              <Link to={ROUTES.INSTRUMENT_NEW} style={{ textDecoration: "none" }}>
               <button
                 style={{
                   paddingLeft: "32px",
@@ -577,7 +578,7 @@ function HeroSection({ badgeText, miniInstruments, heroConfig, stats }) {
                 <Sparkles size={18} /> {hc.primaryBtn || "Start Your Collection"}
               </button>
               </Link>
-              <Link to="/explore" style={{ textDecoration: "none" }}>
+              <Link to={ROUTES.EXPLORE} style={{ textDecoration: "none" }}>
               <button
                 style={{
                   paddingLeft: "32px",
@@ -841,7 +842,7 @@ function InstrumentCard({ instrument, compact = false }) {
 
   if (compact) {
     return (
-      <Link to={`/instrument/${instrument.id}`} style={{ textDecoration: "none" }}>
+      <Link to={instrumentPath(instrument.id)} style={{ textDecoration: "none" }}>
       <div
         style={{
           minWidth: "220px",
@@ -909,7 +910,7 @@ function InstrumentCard({ instrument, compact = false }) {
   }
 
   return (
-    <Link to={`/instrument/${instrument.id}`} style={{ textDecoration: "none" }}>
+    <Link to={instrumentPath(instrument.id)} style={{ textDecoration: "none" }}>
     <div
       style={{
         borderRadius: "8px",
@@ -1197,7 +1198,7 @@ function FeaturedInstrumentsSection({ altBg, instruments: liveInstruments, secti
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "48px" }}>
             {sorted.map((g) => (
-              <Link key={g.id} to={`/instrument/${g.id}`} style={{ textDecoration: "none" }}>
+              <Link key={g.id} to={instrumentPath(g.id)} style={{ textDecoration: "none" }}>
                 <div style={{
                   display: "flex", alignItems: "center", gap: "16px",
                   padding: "12px", borderRadius: "8px",
@@ -1248,7 +1249,7 @@ function FeaturedInstrumentsSection({ altBg, instruments: liveInstruments, secti
         `}</style>
 
         <div style={{ textAlign: "center" }}>
-          <Link to="/explore" style={{ textDecoration: "none" }}>
+          <Link to={ROUTES.EXPLORE} style={{ textDecoration: "none" }}>
           <button
             style={{
               paddingLeft: "28px",
@@ -1451,7 +1452,7 @@ function ArticlesSection({ altBg, articles: liveArticles, sectionConfig }) {
           gap: "20px"
         }}>
           {displayArticles.map((a) => (
-            <Link key={a.id} to={`/articles/${a.id}`} style={{ textDecoration: "none" }}>
+            <Link key={a.id} to={articlePath(a.id)} style={{ textDecoration: "none" }}>
             <article
               style={{
                 borderRadius: "8px",
@@ -1693,7 +1694,7 @@ function CTASection({ ctaContent }) {
             {cta.subtitle || "Join thousands of collectors preserving instrument history. Free to start, powerful enough for serious archives."}
           </p>
           <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-            <Link to="/instrument/new" style={{ textDecoration: "none" }}>
+            <Link to={ROUTES.INSTRUMENT_NEW} style={{ textDecoration: "none" }}>
             <button
               style={{
                 paddingLeft: "32px",
@@ -1714,7 +1715,7 @@ function CTASection({ ctaContent }) {
               {cta.primaryBtn || "Create Free Account"}
             </button>
             </Link>
-            <Link to="/instrument/new" style={{ textDecoration: "none" }}>
+            <Link to={ROUTES.INSTRUMENT_NEW} style={{ textDecoration: "none" }}>
             <button
               style={{
                 paddingLeft: "32px",

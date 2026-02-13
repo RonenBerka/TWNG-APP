@@ -12,6 +12,7 @@ import { T } from "../theme/tokens";
 import { useAuth } from "../context/AuthContext";
 import { getCollections } from "../lib/supabase/collections";
 import { isFavorited } from "../lib/supabase/userFavorites";
+import { ROUTES, collectionPath } from "../lib/routes";
 
 const SORT_OPTIONS = [
   { label: "Newest", value: "newest" },
@@ -49,7 +50,7 @@ function CollectionCard({ collection, onFavoriteToggle, isFav }) {
     >
       {/* Cover Image */}
       <Link
-        to={`/collections/${collection.id}`}
+        to={collectionPath(collection.id)}
         style={{
           position: "relative",
           aspectRatio: "4/3",
@@ -144,7 +145,7 @@ function CollectionCard({ collection, onFavoriteToggle, isFav }) {
 
       {/* Collection Info */}
       <Link
-        to={`/collections/${collection.id}`}
+        to={collectionPath(collection.id)}
         style={{
           flex: 1,
           display: "flex",
@@ -476,7 +477,7 @@ export default function CollectionsBrowse() {
             {/* Create Collection Button (if logged in) */}
             {user && (
               <Link
-                to="/collections/new"
+                to={ROUTES.COLLECTIONS_NEW}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -586,7 +587,7 @@ export default function CollectionsBrowse() {
                 </p>
                 {user && (
                   <Link
-                    to="/collections/new"
+                    to={ROUTES.COLLECTIONS_NEW}
                     style={{
                       display: "inline-block",
                       marginTop: "16px",

@@ -8,6 +8,7 @@ import { T } from "../theme/tokens";
 import { useAuth } from "../context/AuthContext";
 import { getInstrument, updateInstrument } from "../lib/supabase/instruments";
 import { supabase } from "../lib/supabase/client";
+import { ROUTES, instrumentPath } from "../lib/routes";
 
 const INSTRUMENT_TYPES = [
   "Electric Guitar", "Acoustic Guitar", "Classical Guitar",
@@ -170,7 +171,7 @@ export default function EditInstrument() {
 
       await updateInstrument(id, updates);
       setSuccess(true);
-      setTimeout(() => navigate(`/instrument/${id}`), 1500);
+      setTimeout(() => navigate(instrumentPath(id)), 1500);
     } catch (err) {
       console.error("Failed to update instrument:", err);
       setError(err.message || "Failed to save changes");
@@ -195,7 +196,7 @@ export default function EditInstrument() {
       <div style={{ backgroundColor: T.bgDeep, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px" }}>
         <AlertTriangle size={48} style={{ color: T.warm, opacity: 0.6 }} />
         <p style={{ color: T.txt, fontSize: "18px", fontWeight: 600 }}>{error}</p>
-        <Link to="/explore" style={{ color: T.warm, textDecoration: "none", fontSize: "14px" }}>Back to Explore</Link>
+        <Link to={ROUTES.EXPLORE} style={{ color: T.warm, textDecoration: "none", fontSize: "14px" }}>Back to Explore</Link>
       </div>
     );
   }
@@ -225,7 +226,7 @@ export default function EditInstrument() {
       <div style={{ padding: "24px", borderBottom: `1px solid ${T.border}`, backgroundColor: T.bgCard }}>
         <div style={{ maxWidth: "42rem", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Link
-            to={`/instrument/${id}`}
+            to={instrumentPath(id)}
             style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: T.txt2, textDecoration: "none", fontSize: "14px" }}
           >
             <ArrowLeft size={16} /> Back
@@ -415,7 +416,7 @@ export default function EditInstrument() {
         </button>
 
         <Link
-          to={`/instrument/${id}`}
+          to={instrumentPath(id)}
           style={{
             display: "block", textAlign: "center", marginTop: "16px",
             color: T.txtM, fontSize: "13px", textDecoration: "none",

@@ -9,6 +9,7 @@ import { getComments } from '../lib/supabase/comments';
 import { getOccForInstrument } from '../lib/supabase/occ';
 import { addFavorite, removeFavorite, getUserFavorites } from '../lib/supabase/userFavorites';
 import { IMG } from '../utils/placeholders';
+import { ROUTES, userPath } from '../lib/routes';
 
 // ============================================================
 // Badge Component
@@ -200,26 +201,34 @@ function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner, onArchiveT
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      {/* Make & Year & Type Badges */}
+      {/* Make & Year & Type Badges — clickable, link to Explore with filters */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-        <Badge variant="default">
-          <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            {instrument.make}
-          </span>
-        </Badge>
-        <Badge variant="default">
-          <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            {instrument.year}
-          </span>
-        </Badge>
-        <Badge variant="default">
-          <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            {instrument.custom_fields?.instrument_type || 'Instrument'}
-          </span>
-        </Badge>
+        <Link to={`/explore?make=${encodeURIComponent(instrument.make)}`} style={{ textDecoration: "none" }}>
+          <Badge variant="default">
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", cursor: "pointer" }}>
+              {instrument.make}
+            </span>
+          </Badge>
+        </Link>
+        {instrument.year > 0 && (
+          <Link to={`/explore?yearMin=${instrument.year}&yearMax=${instrument.year}`} style={{ textDecoration: "none" }}>
+            <Badge variant="default">
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", cursor: "pointer" }}>
+                {instrument.year}
+              </span>
+            </Badge>
+          </Link>
+        )}
+        <Link to={`/explore?type=${encodeURIComponent(instrument.custom_fields?.instrument_type || 'Instrument')}`} style={{ textDecoration: "none" }}>
+          <Badge variant="default">
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", cursor: "pointer" }}>
+              {instrument.custom_fields?.instrument_type || 'Instrument'}
+            </span>
+          </Badge>
+        </Link>
       </div>
 
-      {/* Model Name & Nickname */}
+      {/* Make + Model Name & Nickname */}
       <div>
         <h1
           style={{
@@ -231,7 +240,7 @@ function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner, onArchiveT
             margin: 0,
           }}
         >
-          {instrument.model}
+          {[instrument.make, instrument.model].filter(Boolean).join(' ')}
         </h1>
         {instrument.nickname && (
           <p
@@ -261,7 +270,7 @@ function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner, onArchiveT
         }}
       >
         <Link
-          to={`/user/${instrument.current_owner?.username}`}
+          to={userPath(instrument.current_owner?.username)}
           style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: "12px" }}
         >
           <div
@@ -737,7 +746,7 @@ export default function InstrumentDetail() {
           <p style={{ color: T.txt2, marginBottom: "24px" }}>
             {error || 'This instrument could not be found or has been removed.'}
           </p>
-          <Link to="/explore" style={{
+          <Link to={ROUTES.EXPLORE} style={{
             display: "inline-flex",
             alignItems: "center",
             gap: "8px",
@@ -783,7 +792,7 @@ export default function InstrumentDetail() {
         marginLeft: "auto",
         marginRight: "auto",
       }}>
-        <Link to="/explore" style={{
+        <Link to={ROUTES.EXPLORE} style={{
           display: "inline-flex",
           alignItems: "center",
           gap: "8px",

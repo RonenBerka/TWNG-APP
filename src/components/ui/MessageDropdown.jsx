@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { MessageSquare, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { T } from '../../theme/tokens';
+import { ROUTES } from '../../lib/routes';
 import { useAuth } from '../../context/AuthContext';
 import { getConversations, getUnreadMessageCount } from '../../lib/supabase/messaging';
 import { supabase } from '../../lib/supabase/client';
@@ -380,7 +381,7 @@ export default function MessageDropdown() {
           >
             <button
               onClick={() => {
-                navigate('/messages');
+                navigate(ROUTES.MESSAGES);
                 setIsOpen(false);
               }}
               style={{

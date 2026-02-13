@@ -5,6 +5,7 @@ import { T } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase/client';
 import { submitClaim, hasPendingClaim } from '../lib/supabase/claims';
+import { ROUTES } from '../lib/routes';
 
 export default function ClaimGuitar() {
   const { guitarId } = useParams();
@@ -152,7 +153,7 @@ export default function ClaimGuitar() {
     return (
       <div style={{ backgroundColor: T.bgDeep, minHeight: '100vh', padding: '40px 20px' }}>
         <div className="max-w-2xl mx-auto">
-          <Link to="/" style={{ color: T.warm, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '30px' }}>
+          <Link to={ROUTES.HOME} style={{ color: T.warm, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '30px' }}>
             <ArrowLeft size={20} />
             Back to Home
           </Link>
@@ -170,7 +171,7 @@ export default function ClaimGuitar() {
     return (
       <div style={{ backgroundColor: T.bgDeep, minHeight: '100vh', padding: '40px 20px' }}>
         <div className="max-w-2xl mx-auto">
-          <Link to="/" style={{ color: T.warm, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '30px' }}>
+          <Link to={ROUTES.HOME} style={{ color: T.warm, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '30px' }}>
             <ArrowLeft size={20} />
             Back to Home
           </Link>
@@ -189,7 +190,7 @@ export default function ClaimGuitar() {
     return (
       <div style={{ backgroundColor: T.bgDeep, minHeight: '100vh', padding: '40px 20px' }}>
         <div className="max-w-2xl mx-auto">
-          <Link to="/" style={{ color: T.warm, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '30px' }}>
+          <Link to={ROUTES.HOME} style={{ color: T.warm, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '30px' }}>
             <ArrowLeft size={20} />
             Back
           </Link>
@@ -229,7 +230,7 @@ export default function ClaimGuitar() {
                     <AlertCircle size={20} style={{ color: '#3B82F6', flexShrink: 0 }} />
                     <div>
                       <p style={{ color: '#3B82F6', fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>Sign in to claim this guitar</p>
-                      <Link to="/auth" style={{ color: T.warm, textDecoration: 'underline', fontSize: '14px' }}>
+                      <Link to={ROUTES.AUTH} style={{ color: T.warm, textDecoration: 'underline', fontSize: '14px' }}>
                         Log in or create an account →
                       </Link>
                     </div>
@@ -555,7 +556,7 @@ export default function ClaimGuitar() {
 
             <div className="space-y-3">
               <Link
-                to="/collection"
+                to={ROUTES.MY_INSTRUMENTS}
                 style={{
                   backgroundColor: T.warm,
                   color: T.bgDeep,

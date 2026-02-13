@@ -16,6 +16,7 @@ import {
   getForumCategories,
   getForumThreads
 } from "../lib/supabase/forum";
+import { ROUTES, forumThreadPath } from "../lib/routes";
 
 // Utility: Generate avatar initials from username
 function getInitials(username) {
@@ -45,7 +46,7 @@ function ThreadCard({ thread }) {
 
   return (
     <div
-      onClick={() => navigate(`/forum/thread/${thread.id}`)}
+      onClick={() => navigate(forumThreadPath(thread.id))}
       style={{
         padding: "12px",
         borderRadius: "8px",
@@ -232,7 +233,7 @@ export default function ForumCategory() {
       >
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           <button
-            onClick={() => navigate("/forum")}
+            onClick={() => navigate(ROUTES.FORUM)}
             style={{
               display: "flex",
               alignItems: "center",
@@ -297,7 +298,7 @@ export default function ForumCategory() {
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           {/* Back Button */}
           <button
-            onClick={() => navigate("/forum")}
+            onClick={() => navigate(ROUTES.FORUM)}
             style={{
               display: "flex",
               alignItems: "center",
@@ -384,7 +385,7 @@ export default function ForumCategory() {
                 fontSize: "13px"
               }}
             >
-              <Link to="/auth" style={{ color: T.amber, textDecoration: "none", fontWeight: 500 }}>
+              <Link to={ROUTES.AUTH} style={{ color: T.amber, textDecoration: "none", fontWeight: 500 }}>
                 Sign in
               </Link>
               {" "}to create a thread

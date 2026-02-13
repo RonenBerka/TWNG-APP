@@ -5,6 +5,7 @@ import { T } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
 import { getInstrument } from '../lib/supabase/instruments';
 import { initiateTransfer, searchUsers } from '../lib/supabase/transfers';
+import { ROUTES, instrumentPath } from '../lib/routes';
 
 /**
  * Transfer Instrument page — 3-step flow (renamed from TransferGuitar)
@@ -166,7 +167,7 @@ export default function TransferInstrument() {
         <p style={{ fontSize: '18px', fontWeight: 600, color: T.txt }}>
           {!instrument ? 'Instrument not found' : 'Only the owner can transfer this instrument'}
         </p>
-        <Link to={instrument ? `/instrument/${instrumentId}` : '/my-instruments'} style={{ color: T.warm, fontSize: '14px' }}>
+        <Link to={instrument ? instrumentPath(instrumentId) : ROUTES.MY_INSTRUMENTS} style={{ color: T.warm, fontSize: '14px' }}>
           Go back
         </Link>
       </div>
@@ -192,8 +193,8 @@ export default function TransferInstrument() {
             : 'The instrument has been marked as transferred. You have 24 hours to cancel if needed.'}
         </p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <Link to="/my-instruments" style={{ ...btnSecondary, textDecoration: 'none' }}>My Instruments</Link>
-          <Link to={`/instrument/${instrumentId}`} style={{ ...btnPrimary, textDecoration: 'none' }}>View Instrument</Link>
+          <Link to={ROUTES.MY_INSTRUMENTS} style={{ ...btnSecondary, textDecoration: 'none' }}>My Instruments</Link>
+          <Link to={instrumentPath(instrumentId)} style={{ ...btnPrimary, textDecoration: 'none' }}>View Instrument</Link>
         </div>
       </div>
     );
@@ -203,7 +204,7 @@ export default function TransferInstrument() {
     <div style={{ backgroundColor: T.bgDeep, color: T.txt, minHeight: '100vh' }}>
       <div style={{ maxWidth: '700px', margin: '0 auto', padding: '32px 24px 64px' }}>
         {/* Back link */}
-        <Link to={`/instrument/${instrumentId}`} style={{
+        <Link to={instrumentPath(instrumentId)} style={{
           display: 'inline-flex', alignItems: 'center', gap: '8px', color: T.txt2,
           textDecoration: 'none', fontSize: '14px', fontWeight: 500, marginBottom: '32px',
         }}>

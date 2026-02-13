@@ -9,6 +9,7 @@ import { T } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
 import { createInstrument } from '../lib/supabase/instruments';
 import { supabase } from '../lib/supabase/client';
+import { ROUTES, instrumentPath } from '../lib/routes';
 
 // ============================================================
 // CONSTANTS
@@ -302,7 +303,7 @@ export default function AddInstrument() {
       setStep('success');
 
       // Delayed navigation
-      setTimeout(() => navigate(`/instrument/${result.id}`), 3000);
+      setTimeout(() => navigate(instrumentPath(result.id)), 3000);
     } catch (err) {
       console.error('Failed to create instrument:', err);
       setError(err.message || 'Failed to save instrument');
@@ -333,7 +334,7 @@ export default function AddInstrument() {
             maxWidth: "42rem", margin: "0 auto",
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
-            <Link to="/explore" style={{
+            <Link to={ROUTES.EXPLORE} style={{
               display: "inline-flex", alignItems: "center", gap: "8px",
               color: T.txt2, textDecoration: "none", fontSize: "14px",
             }}>
@@ -1108,7 +1109,7 @@ export default function AddInstrument() {
 
         {/* Action buttons */}
         <div style={{ display: "flex", gap: "12px" }}>
-          <button onClick={() => navigate('/my-collection')} style={{
+          <button onClick={() => navigate(ROUTES.MY_INSTRUMENTS)} style={{
             padding: "12px 24px", borderRadius: "10px", border: "none",
             backgroundColor: T.warm, color: T.bgDeep,
             fontWeight: 600, fontSize: "14px", cursor: "pointer",

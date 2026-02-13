@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { T } from '../theme/tokens';
+import { ROUTES } from '../lib/routes';
 
 /**
  * Route guard that redirects unauthenticated users to /auth.
@@ -27,7 +28,7 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to={ROUTES.AUTH} replace />;
   }
 
   return children;

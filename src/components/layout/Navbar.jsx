@@ -4,6 +4,7 @@ import { Search, Menu, X, User, Plus, Settings, LogOut, Shield, Sun, Moon, Messa
 import { T } from '../../theme/tokens';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { ROUTES, userPath } from '../../lib/routes';
 import Logo from '../ui/Logo';
 import NotificationDropdown from '../ui/NotificationDropdown';
 import MessageDropdown from '../ui/MessageDropdown';
@@ -78,7 +79,7 @@ export default function Navbar({ transparent = false }) {
           height: "64px",
         }}>
           {/* Logo */}
-          <Link to="/" style={{ textDecoration: "none" }}>
+          <Link to={ROUTES.HOME} style={{ textDecoration: "none" }}>
             <Logo size={28} showBeta />
           </Link>
 
@@ -138,7 +139,7 @@ export default function Navbar({ transparent = false }) {
 
             {!isAuthenticated ? (
               <>
-                <Link to="/auth" style={{
+                <Link to={ROUTES.AUTH} style={{
                   padding: "8px 16px", borderRadius: "8px",
                   fontSize: "14px", fontWeight: "500",
                   color: T.txt2, border: `1px solid ${T.border}`,
@@ -146,7 +147,7 @@ export default function Navbar({ transparent = false }) {
                 }}>
                   Sign In
                 </Link>
-                <Link to="/auth" style={{
+                <Link to={ROUTES.AUTH} style={{
                   padding: "8px 16px", borderRadius: "8px",
                   fontSize: "14px", fontWeight: "600",
                   backgroundColor: T.warm, color: T.bgDeep,
@@ -165,7 +166,7 @@ export default function Navbar({ transparent = false }) {
                 <MessageDropdown />
 
                 {/* Add Instrument */}
-                <Link to="/instrument/new" style={{
+                <Link to={ROUTES.INSTRUMENT_NEW} style={{
                   padding: "8px 16px", borderRadius: "8px",
                   fontSize: "14px", fontWeight: "600",
                   backgroundColor: T.warm, color: T.bgDeep,
@@ -219,7 +220,7 @@ export default function Navbar({ transparent = false }) {
 
                       {/* Menu items */}
                       <div style={{ padding: "6px" }}>
-                        <button onClick={() => navigate(`/user/${profile?.username || profile?.email?.split('@')[0] || 'me'}`)} style={{
+                        <button onClick={() => navigate(userPath(profile?.username || profile?.email?.split('@')[0] || 'me'))} style={{
                           width: "100%", display: "flex", alignItems: "center", gap: "10px",
                           padding: "10px 12px", borderRadius: "8px", border: "none",
                           background: "transparent", color: T.txt, fontSize: "13px",
@@ -229,7 +230,7 @@ export default function Navbar({ transparent = false }) {
                           <User size={15} color={T.txtM} /> My Profile
                         </button>
 
-                        <button onClick={() => navigate("/my-instruments")} style={{
+                        <button onClick={() => navigate(ROUTES.MY_INSTRUMENTS)} style={{
                           width: "100%", display: "flex", alignItems: "center", gap: "10px",
                           padding: "10px 12px", borderRadius: "8px", border: "none",
                           background: "transparent", color: T.txt, fontSize: "13px",
@@ -239,7 +240,7 @@ export default function Navbar({ transparent = false }) {
                           🎸 My Instruments
                         </button>
 
-                        <button onClick={() => navigate("/my-collections")} style={{
+                        <button onClick={() => navigate(ROUTES.MY_COLLECTIONS)} style={{
                           width: "100%", display: "flex", alignItems: "center", gap: "10px",
                           padding: "10px 12px", borderRadius: "8px", border: "none",
                           background: "transparent", color: T.txt, fontSize: "13px",
@@ -249,7 +250,7 @@ export default function Navbar({ transparent = false }) {
                           📁 My Collections
                         </button>
 
-                        <button onClick={() => navigate("/my-favorites")} style={{
+                        <button onClick={() => navigate(ROUTES.MY_FAVORITES)} style={{
                           width: "100%", display: "flex", alignItems: "center", gap: "10px",
                           padding: "10px 12px", borderRadius: "8px", border: "none",
                           background: "transparent", color: T.txt, fontSize: "13px",
@@ -259,7 +260,7 @@ export default function Navbar({ transparent = false }) {
                           ❤️ Favorites
                         </button>
 
-                        <button onClick={() => navigate("/settings")} style={{
+                        <button onClick={() => navigate(ROUTES.SETTINGS)} style={{
                           width: "100%", display: "flex", alignItems: "center", gap: "10px",
                           padding: "10px 12px", borderRadius: "8px", border: "none",
                           background: "transparent", color: T.txt, fontSize: "13px",
@@ -270,7 +271,7 @@ export default function Navbar({ transparent = false }) {
                         </button>
 
                         {isStaff && (
-                          <button onClick={() => navigate("/admin")} style={{
+                          <button onClick={() => navigate(ROUTES.ADMIN)} style={{
                             width: "100%", display: "flex", alignItems: "center", gap: "10px",
                             padding: "10px 12px", borderRadius: "8px", border: "none",
                             background: "transparent", color: T.txt, fontSize: "13px",
@@ -287,7 +288,7 @@ export default function Navbar({ transparent = false }) {
                         <button onClick={async () => {
                           setUserMenuOpen(false);
                           await logout();
-                          navigate("/");
+                          navigate(ROUTES.HOME);
                         }} style={{
                           width: "100%", display: "flex", alignItems: "center", gap: "10px",
                           padding: "10px 12px", borderRadius: "8px", border: "none",
@@ -390,12 +391,12 @@ export default function Navbar({ transparent = false }) {
           ))}
           {!isAuthenticated ? (
             <div style={{ display: "flex", gap: "12px", marginTop: "16px" }}>
-              <Link to="/auth" onClick={() => setMenuOpen(false)} style={{
+              <Link to={ROUTES.AUTH} onClick={() => setMenuOpen(false)} style={{
                 padding: "12px 24px", borderRadius: "8px", fontSize: "16px",
                 border: `1px solid ${T.border}`, backgroundColor: "transparent",
                 color: T.txt2, textDecoration: "none",
               }}>Sign In</Link>
-              <Link to="/auth" onClick={() => setMenuOpen(false)} style={{
+              <Link to={ROUTES.AUTH} onClick={() => setMenuOpen(false)} style={{
                 padding: "12px 24px", borderRadius: "8px", fontSize: "16px",
                 fontWeight: "600", backgroundColor: T.warm,
                 color: T.bgDeep, textDecoration: "none", border: "none",
@@ -403,24 +404,24 @@ export default function Navbar({ transparent = false }) {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "16px", width: "100%", maxWidth: "300px" }}>
-              <Link to="/my-instruments" onClick={() => setMenuOpen(false)} style={{
+              <Link to={ROUTES.MY_INSTRUMENTS} onClick={() => setMenuOpen(false)} style={{
                 padding: "12px 24px", borderRadius: "8px", fontSize: "16px",
                 textDecoration: "none", color: T.txt, textAlign: "center",
               }}>My Instruments</Link>
-              <Link to="/my-collections" onClick={() => setMenuOpen(false)} style={{
+              <Link to={ROUTES.MY_COLLECTIONS} onClick={() => setMenuOpen(false)} style={{
                 padding: "12px 24px", borderRadius: "8px", fontSize: "16px",
                 textDecoration: "none", color: T.txt, textAlign: "center",
               }}>My Collections</Link>
-              <Link to="/instrument/new" onClick={() => setMenuOpen(false)} style={{
+              <Link to={ROUTES.INSTRUMENT_NEW} onClick={() => setMenuOpen(false)} style={{
                 padding: "12px 24px", borderRadius: "8px", fontSize: "16px",
                 fontWeight: "600", backgroundColor: T.warm,
                 color: T.bgDeep, textDecoration: "none", border: "none", textAlign: "center",
               }}>Add Instrument</Link>
-              <Link to="/messages" onClick={() => setMenuOpen(false)} style={{
+              <Link to={ROUTES.MESSAGES} onClick={() => setMenuOpen(false)} style={{
                 padding: "12px 24px", borderRadius: "8px", fontSize: "16px",
                 textDecoration: "none", color: T.txt, textAlign: "center",
               }}>Messages</Link>
-              <Link to="/settings" onClick={() => setMenuOpen(false)} style={{
+              <Link to={ROUTES.SETTINGS} onClick={() => setMenuOpen(false)} style={{
                 padding: "12px 24px", borderRadius: "8px", fontSize: "16px",
                 textDecoration: "none", color: T.txt, textAlign: "center",
               }}>Settings</Link>

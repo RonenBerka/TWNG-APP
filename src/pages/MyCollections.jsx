@@ -14,6 +14,7 @@ import {
   getUserCollections,
   deleteCollection,
 } from "../lib/supabase/collections";
+import { ROUTES, collectionPath, collectionEditPath } from "../lib/routes";
 
 /* ─── Collection Card Component ────────────────────────────────────── */
 function CollectionCard({ collection, onDelete, isDeleting }) {
@@ -37,7 +38,7 @@ function CollectionCard({ collection, onDelete, isDeleting }) {
     >
       {/* Cover Image */}
       <Link
-        to={`/collections/${collection.id}`}
+        to={collectionPath(collection.id)}
         style={{
           position: "relative",
           aspectRatio: "4/3",
@@ -107,7 +108,7 @@ function CollectionCard({ collection, onDelete, isDeleting }) {
 
       {/* Collection Info */}
       <Link
-        to={`/collections/${collection.id}`}
+        to={collectionPath(collection.id)}
         style={{
           flex: 1,
           display: "flex",
@@ -170,7 +171,7 @@ function CollectionCard({ collection, onDelete, isDeleting }) {
         }}
       >
         <Link
-          to={`/collections/${collection.id}/edit`}
+          to={collectionEditPath(collection.id)}
           style={{
             flex: 1,
             padding: "8px 12px",
@@ -238,7 +239,7 @@ export default function MyCollections() {
   // Redirect if not logged in
   useEffect(() => {
     if (!user) {
-      navigate("/auth");
+      navigate(ROUTES.AUTH);
     }
   }, [user, navigate]);
 
@@ -334,7 +335,7 @@ export default function MyCollections() {
 
           {/* Create Button */}
           <Link
-            to="/collections/new"
+            to={ROUTES.COLLECTIONS_NEW}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -588,7 +589,7 @@ export default function MyCollections() {
                   instruments
                 </p>
                 <Link
-                  to="/collections/new"
+                  to={ROUTES.COLLECTIONS_NEW}
                   style={{
                     display: "inline-block",
                     padding: "12px 24px",

@@ -14,6 +14,7 @@ import {
   Tag,
 } from "lucide-react";
 import { T } from "../theme/tokens";
+import { ROUTES, articlePath } from "../lib/routes";
 import { GUITAR_IMAGES, ARTIST_IMAGES, HERO_IMAGES } from "../utils/placeholders";
 
 // ===== MOCK DATA =====
@@ -263,7 +264,7 @@ function ArticleCard({ article, onClick, size = "default" }) {
   if (size === "featured") {
     return (
       <Link
-        to={`/articles/${article.id}`}
+        to={articlePath(article.id)}
         style={{
           display: "grid",
           gridTemplateColumns: "1.2fr 1fr",
@@ -367,7 +368,7 @@ function ArticleCard({ article, onClick, size = "default" }) {
 
   return (
     <Link
-      to={`/articles/${article.id}`}
+      to={articlePath(article.id)}
       style={{
         background: T.bgCard,
         borderRadius: "12px",
@@ -1128,7 +1129,7 @@ export default function TWNGArticles() {
         <ArticleList
           articles={articles}
           onSelectArticle={(id) => {
-            navigate(`/articles/${id}`);
+            navigate(articlePath(id));
           }}
           selectedCategory={selectedCategory}
           onCategoryChange={setSelectedCategory}
@@ -1143,9 +1144,9 @@ export default function TWNGArticles() {
           onBack={() => {
             setView("list");
             setSelectedArticleId(null);
-            navigate("/articles");
+            navigate(ROUTES.ARTICLES);
           }}
-          onSelectArticle={(id) => navigate(`/articles/${id}`)}
+          onSelectArticle={(id) => navigate(articlePath(id))}
         />
       ) : null}
     </div>

@@ -14,6 +14,7 @@ import {
   Star,
 } from "lucide-react";
 import { T } from "../theme/tokens";
+import { ROUTES, instrumentPath, userPath, articlePath, forumThreadPath } from "../lib/routes";
 import { supabase } from "../lib/supabase/client";
 
 // Result Card Component
@@ -60,7 +61,7 @@ function ResultCard({ item, onAction }) {
           </p>
         </div>
         <Link
-          to={`/instrument/${item.id}`}
+          to={instrumentPath(item.id)}
           style={{
             background: "none",
             border: "none",
@@ -126,7 +127,7 @@ function ResultCard({ item, onAction }) {
           </div>
         </div>
         <Link
-          to={`/user/${item.username}`}
+          to={userPath(item.username)}
           style={{
             padding: "8px 16px",
             backgroundColor: T.warm,
@@ -267,7 +268,7 @@ function ResultCard({ item, onAction }) {
               )}
             </div>
             <Link
-              to={`/articles/${item.id}`}
+              to={articlePath(item.id)}
               style={{
                 background: "none",
                 border: "none",
@@ -330,7 +331,7 @@ function ResultCard({ item, onAction }) {
             </div>
           </div>
           <Link
-            to={`/forum/thread/${item.id}`}
+            to={forumThreadPath(item.id)}
             style={{
               background: "none",
               border: "none",
@@ -851,7 +852,7 @@ export default function TWNGSearchResults() {
               <p style={{ fontSize: "13px", color: T.txt2, margin: "12px 0 0 0" }}>
                 Can't find your guitar?{" "}
                 <Link
-                  to="/instrument/new"
+                  to={ROUTES.INSTRUMENT_NEW}
                   style={{
                     background: "none",
                     border: "none",

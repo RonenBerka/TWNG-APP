@@ -29,6 +29,7 @@ import {
 } from "../lib/supabase/follows";
 import { getUserFavorites, getFavoriteCount, isFavorited, addFavorite, removeFavorite } from "../lib/supabase/userFavorites";
 import { blockUser, unblockUser, isUserBlocked } from "../lib/supabase/userBlocks";
+import { ROUTES, instrumentPath } from "../lib/routes";
 
 // UTILITY: Format relative time
 function formatTime(date) {
@@ -118,7 +119,7 @@ function GuitarCard({ guitar }) {
   const guitarName = `${guitar.year || ""} ${guitar.make || ""} ${guitar.model || ""}`.trim();
 
   return (
-    <Link to={`/instrument/${guitar.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+    <Link to={instrumentPath(guitar.id)} style={{ textDecoration: "none", color: "inherit" }}>
       <div
         style={{
           backgroundColor: T.bgCard,
@@ -655,7 +656,7 @@ export default function TWNGProfile() {
         <div style={{ textAlign: "center" }}>
           <h1 style={{ fontSize: "28px", fontWeight: 700, marginBottom: "12px" }}>User Not Found</h1>
           <p style={{ fontSize: "14px", color: T.txtM, marginBottom: "20px" }}>The user "{username}" does not exist.</p>
-          <Link to="/" style={{ color: T.amber, textDecoration: "none", fontWeight: 600 }}>Go Home</Link>
+          <Link to={ROUTES.HOME} style={{ color: T.amber, textDecoration: "none", fontWeight: 600 }}>Go Home</Link>
         </div>
       </div>
     );
@@ -731,7 +732,7 @@ export default function TWNGProfile() {
           <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
             {isOwnProfile ? (
               <button
-                onClick={() => navigate("/settings")}
+                onClick={() => navigate(ROUTES.SETTINGS)}
                 style={{
                   backgroundColor: T.amber,
                   color: T.bgDeep,
@@ -780,7 +781,7 @@ export default function TWNGProfile() {
                     </button>
                     {user && (
                       <button
-                        onClick={() => navigate("/messages")}
+                        onClick={() => navigate(ROUTES.MESSAGES)}
                         style={{
                           backgroundColor: T.bgCard,
                           color: T.txt,
@@ -997,7 +998,7 @@ export default function TWNGProfile() {
                 <p style={{ color: T.txtM, fontSize: "14px" }}>No guitars yet</p>
                 {isOwnProfile && (
                   <button
-                    onClick={() => navigate("/add-instrument")}
+                    onClick={() => navigate(ROUTES.INSTRUMENT_NEW)}
                     style={{
                       marginTop: 16,
                       backgroundColor: T.warm,

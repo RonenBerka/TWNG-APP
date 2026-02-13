@@ -2,6 +2,7 @@ import { Lock, Globe } from 'lucide-react';
 import { T } from '../theme/tokens';
 import Badge from './ui/Badge';
 import { Link } from 'react-router-dom';
+import { collectionPath } from '../lib/routes';
 
 export default function CollectionCard({ collection }) {
   const {
@@ -15,7 +16,7 @@ export default function CollectionCard({ collection }) {
   } = collection;
 
   return (
-    <Link to={`/collections/${id}`} style={{ textDecoration: "none", color: "inherit" }}>
+    <Link to={collectionPath(id)} style={{ textDecoration: "none", color: "inherit" }}>
       <div style={{
         backgroundColor: T.bgCard,
         borderRadius: "12px",

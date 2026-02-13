@@ -3,6 +3,7 @@ import { Mail, Send, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { T } from '../theme/tokens';
 import { supabase } from '../lib/supabase/client';
+import { ROUTES } from '../lib/routes';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -104,7 +105,7 @@ export default function Contact() {
         }}
       >
         <Link
-          to="/"
+          to={ROUTES.HOME}
           style={{
             display: 'inline-flex',
             alignItems: 'center',

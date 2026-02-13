@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { T } from '../theme/tokens';
 import { ArrowLeft } from 'lucide-react';
+import { ROUTES } from '../lib/routes';
 
 /* ─── Legal content for each page ─── */
 const PAGES = {
@@ -186,7 +187,7 @@ export default function Legal() {
     return (
       <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "16px" }}>
         <h1 style={{ fontSize: "24px", fontWeight: 700, color: T.txt }}>Page Not Found</h1>
-        <Link to="/" style={{ color: T.warm, textDecoration: "none" }}>← Back to Home</Link>
+        <Link to={ROUTES.HOME} style={{ color: T.warm, textDecoration: "none" }}>← Back to Home</Link>
       </div>
     );
   }
@@ -194,7 +195,7 @@ export default function Legal() {
   return (
     <div style={{ maxWidth: "720px", margin: "0 auto", padding: "48px 24px 80px" }}>
       {/* Back link */}
-      <Link to="/" style={{
+      <Link to={ROUTES.HOME} style={{
         display: "inline-flex", alignItems: "center", gap: "6px",
         color: T.txt2, textDecoration: "none", fontSize: "13px",
         marginBottom: "32px",

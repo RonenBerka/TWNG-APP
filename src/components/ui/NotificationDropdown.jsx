@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Bell, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { T } from '../../theme/tokens';
+import { ROUTES } from '../../lib/routes';
 import { useAuth } from '../../context/AuthContext';
 import { getNotifications, markAsRead, getUnreadCount } from '../../lib/supabase/notifications';
 import { supabase } from '../../lib/supabase/client';
@@ -335,7 +336,7 @@ export default function NotificationDropdown() {
           >
             <button
               onClick={() => {
-                navigate('/notifications');
+                navigate(ROUTES.NOTIFICATIONS);
                 setIsOpen(false);
               }}
               style={{

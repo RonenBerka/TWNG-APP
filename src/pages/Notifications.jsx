@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   getNotifications, markAsRead, markAllAsRead, deleteNotification
 } from '../lib/supabase/notifications';
+import { ROUTES } from '../lib/routes';
 
 // Notification type config
 const TYPE_CONFIG = {
@@ -232,7 +233,7 @@ export default function Notifications() {
       <div style={{ maxWidth: '700px', margin: '0 auto', padding: '32px 24px 64px' }}>
 
         {/* Back link */}
-        <Link to="/settings" style={{
+        <Link to={ROUTES.SETTINGS} style={{
           display: 'inline-flex', alignItems: 'center', gap: '8px', color: T.txt2,
           textDecoration: 'none', fontSize: '14px', fontWeight: 500, marginBottom: '32px',
         }}>

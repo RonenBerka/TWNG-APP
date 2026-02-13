@@ -18,6 +18,7 @@ import {
   removeInstrumentFromCollection,
   addInstrumentToCollection,
 } from "../lib/supabase/collections";
+import { ROUTES, collectionPath } from "../lib/routes";
 
 /* ─── Instrument Search Modal ──────────────────────────────────────── */
 function InstrumentPickerModal({ isOpen, onClose, onAdd, selectedIds }) {
@@ -464,7 +465,7 @@ export default function EditCollection() {
     if (user?.id) {
       fetchCollection();
     } else {
-      navigate("/auth");
+      navigate(ROUTES.AUTH);
     }
   }, [id, user?.id, navigate]);
 
@@ -535,7 +536,7 @@ export default function EditCollection() {
         is_public: formData.isPublic,
       });
 
-      navigate(`/collections/${id}`);
+      navigate(collectionPath(id));
     } catch (err) {
       console.error("Failed to update collection:", err);
       setError("Failed to update collection. Please try again.");

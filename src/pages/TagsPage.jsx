@@ -3,6 +3,7 @@ import { Loader, AlertCircle, ArrowLeft, Search, Grid3x3, List, Tag } from 'luci
 import { Link, useNavigate } from 'react-router-dom';
 import { T } from '../theme/tokens';
 import { getTags } from '../lib/supabase/tags';
+import { ROUTES } from '../lib/routes';
 
 export default function TagsPage() {
   const navigate = useNavigate();
@@ -93,7 +94,7 @@ export default function TagsPage() {
         }}
       >
         <Link
-          to="/"
+          to={ROUTES.HOME}
           style={{
             display: 'inline-flex',
             alignItems: 'center',

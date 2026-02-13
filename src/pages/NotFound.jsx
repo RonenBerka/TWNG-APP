@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { T } from '../theme/tokens';
 import { Home, ArrowLeft } from 'lucide-react';
+import { ROUTES } from '../lib/routes';
 
 export default function NotFound() {
   return (
@@ -27,7 +28,7 @@ export default function NotFound() {
         This guitar must have been moved to a different collection. Let's get you back on track.
       </p>
       <div style={{ display: "flex", gap: "12px" }}>
-        <Link to="/" style={{
+        <Link to={ROUTES.HOME} style={{
           display: "inline-flex", alignItems: "center", gap: "8px",
           padding: "12px 24px", borderRadius: "8px",
           backgroundColor: T.warm, color: T.bgDeep,
@@ -36,7 +37,7 @@ export default function NotFound() {
         }}>
           <Home size={16} /> Home
         </Link>
-        <Link to="/explore" style={{
+        <Link to={ROUTES.EXPLORE} style={{
           display: "inline-flex", alignItems: "center", gap: "8px",
           padding: "12px 24px", borderRadius: "8px",
           border: `1px solid ${T.border}`, color: T.txt2,

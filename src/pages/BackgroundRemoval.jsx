@@ -5,6 +5,7 @@ import { T } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase/client';
 import ProtectedRoute from '../components/ProtectedRoute';
+import { ROUTES } from '../lib/routes';
 
 function BackgroundRemovalContent() {
   const { isAuthenticated } = useAuth();
@@ -148,7 +149,7 @@ function BackgroundRemovalContent() {
         }}
       >
         <Link
-          to="/"
+          to={ROUTES.HOME}
           style={{
             display: 'inline-flex',
             alignItems: 'center',

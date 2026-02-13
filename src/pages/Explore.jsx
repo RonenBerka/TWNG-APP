@@ -17,6 +17,7 @@ import { T } from "../theme/tokens";
 import { getInstruments } from "../lib/supabase/instruments";
 import { useAuth } from "../context/AuthContext";
 import { addFavorite, removeFavorite, isFavorited } from "../lib/supabase/userFavorites";
+import { instrumentPath } from "../lib/routes";
 
 /* ─── Makes (manufacturers) pulled from the actual data ────────────────────────── */
 const MAKES = [
@@ -193,7 +194,7 @@ function ExploreInstrumentCard({ instrument, view }) {
   if (view === "list") {
     return (
       <Link
-        to={`/instrument/${instrument.id}`}
+        to={instrumentPath(instrument.id)}
         style={{ textDecoration: "none", display: "block" }}
       >
         <div
@@ -268,7 +269,7 @@ function ExploreInstrumentCard({ instrument, view }) {
   /* ── Grid Card ─────────────────────────────────────────────────── */
   return (
     <Link
-      to={`/instrument/${instrument.id}`}
+      to={instrumentPath(instrument.id)}
       style={{ textDecoration: "none", display: "block" }}
     >
       <div
@@ -376,10 +377,21 @@ export default function Explore() {
     const makeParam = new URLSearchParams(window.location.search).get("make");
     return makeParam ? [decodeURIComponent(makeParam)] : [];
   });
-  const [selectedInstrumentTypes, setSelectedInstrumentTypes] = useState([]);
+  const [selectedInstrumentTypes, setSelectedInstrumentTypes] = useState(() => {
+    const typeParam = new URLSearchParams(window.location.search).get("type");
+    return typeParam ? [decodeURIComponent(typeParam)] : [];
+  });
   const [selectedCondition, setSelectedCondition] = useState("All");
-  const [yearMin, setYearMin] = useState(1900);
-  const [yearMax, setYearMax] = useState(2026);
+  const [yearMin, setYearMin] = useState(() => {
+    const v = new URLSearchParams(window.location.search).get("yearMin");
+    return v ? parseInt(v, 10) : 1900;
+  });
+  const [yearMax, setYearMax] = useState(() => {
+    const v = new URLSearchParams(window.location.search).get("yearMax");
+    return v ? parseInt(v, 10) : 2026;
+  });
+  const [forSale, setForSale] = useState(false);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   // Debounce search input

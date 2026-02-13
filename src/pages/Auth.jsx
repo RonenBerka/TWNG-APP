@@ -20,6 +20,7 @@ import {
 import { T } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase/client';
+import { ROUTES } from '../lib/routes';
 
 // ============================================================
 // SVG LOGO (Self-contained, no base64)
@@ -1936,7 +1937,7 @@ export default function TWNGAuth() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !loading) {
-      navigate("/");
+      navigate(ROUTES.HOME);
     }
   }, [isAuthenticated, loading, navigate]);
 
@@ -1969,7 +1970,7 @@ export default function TWNGAuth() {
         if (error) throw error;
         // Page will show success state
       } else if (type === "complete") {
-        navigate("/");
+        navigate(ROUTES.HOME);
       }
     } catch (err) {
       setError(err.message || "An error occurred. Please try again.");

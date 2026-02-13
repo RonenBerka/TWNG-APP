@@ -7,6 +7,7 @@ import {
   getUserFavorites,
   removeFavorite,
 } from "../lib/supabase/userFavorites";
+import { ROUTES, instrumentPath, collectionPath, articlePath } from "../lib/routes";
 
 const TABS = [
   { id: "instruments", label: "Instruments", icon: "🎸" },
@@ -32,7 +33,7 @@ function InstrumentCard({ instrument, onUnfavorite, isUnfavoriting }) {
     >
       {/* Image */}
       <Link
-        to={`/instrument/${instrument.id}`}
+        to={instrumentPath(instrument.id)}
         style={{
           position: "relative",
           aspectRatio: "4/5",
@@ -129,7 +130,7 @@ function InstrumentCard({ instrument, onUnfavorite, isUnfavoriting }) {
 
       {/* Info */}
       <Link
-        to={`/instrument/${instrument.id}`}
+        to={instrumentPath(instrument.id)}
         style={{
           display: "block",
           padding: "14px",
@@ -185,7 +186,7 @@ function CollectionCard({ collection, onUnfavorite, isUnfavoriting }) {
     >
       {/* Cover Image */}
       <Link
-        to={`/collections/${collection.id}`}
+        to={collectionPath(collection.id)}
         style={{
           position: "relative",
           aspectRatio: "4/3",
@@ -260,7 +261,7 @@ function CollectionCard({ collection, onUnfavorite, isUnfavoriting }) {
 
       {/* Collection Info */}
       <Link
-        to={`/collections/${collection.id}`}
+        to={collectionPath(collection.id)}
         style={{
           flex: 1,
           display: "flex",
@@ -336,7 +337,7 @@ function ArticleCard({ article, onUnfavorite, isUnfavoriting }) {
     >
       {/* Image */}
       <Link
-        to={`/article/${article.id}`}
+        to={articlePath(article.id)}
         style={{
           position: "relative",
           aspectRatio: "16/9",
@@ -411,7 +412,7 @@ function ArticleCard({ article, onUnfavorite, isUnfavoriting }) {
 
       {/* Article Info */}
       <Link
-        to={`/article/${article.id}`}
+        to={articlePath(article.id)}
         style={{
           flex: 1,
           display: "flex",
@@ -486,7 +487,7 @@ export default function MyFavorites() {
   // Redirect if not logged in
   useEffect(() => {
     if (!user) {
-      navigate("/auth");
+      navigate(ROUTES.AUTH);
     }
   }, [user, navigate]);
 
@@ -794,7 +795,7 @@ export default function MyFavorites() {
                 </p>
                 {activeTab === "instruments" && (
                   <Link
-                    to="/explore"
+                    to={ROUTES.EXPLORE}
                     style={{
                       display: "inline-block",
                       padding: "12px 24px",
@@ -810,7 +811,7 @@ export default function MyFavorites() {
                 )}
                 {activeTab === "collections" && (
                   <Link
-                    to="/collections"
+                    to={ROUTES.COLLECTIONS}
                     style={{
                       display: "inline-block",
                       padding: "12px 24px",
@@ -826,7 +827,7 @@ export default function MyFavorites() {
                 )}
                 {activeTab === "articles" && (
                   <Link
-                    to="/articles"
+                    to={ROUTES.ARTICLES}
                     style={{
                       display: "inline-block",
                       padding: "12px 24px",

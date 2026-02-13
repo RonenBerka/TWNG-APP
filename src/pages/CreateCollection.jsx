@@ -12,6 +12,7 @@ import {
 import { T } from "../theme/tokens";
 import { useAuth } from "../context/AuthContext";
 import { createCollection, addInstrumentToCollection } from "../lib/supabase/collections";
+import { ROUTES, collectionPath } from "../lib/routes";
 
 /* ─── Instrument Search Modal ──────────────────────────────────────── */
 function InstrumentPickerModal({ isOpen, onClose, onAdd, selectedIds }) {
@@ -370,7 +371,7 @@ export default function CreateCollection() {
   // Redirect if not logged in
   useEffect(() => {
     if (!user) {
-      navigate("/auth");
+      navigate(ROUTES.AUTH);
     }
   }, [user, navigate]);
 
@@ -435,7 +436,7 @@ export default function CreateCollection() {
         await addInstrumentToCollection(newCollection.id, instrumentId);
       }
 
-      navigate(`/collections/${newCollection.id}`);
+      navigate(collectionPath(newCollection.id));
     } catch (err) {
       console.error("Failed to create collection:", err);
       setError("Failed to create collection. Please try again.");

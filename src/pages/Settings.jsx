@@ -8,6 +8,7 @@ import { T } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase/client';
+import { ROUTES } from '../lib/routes';
 
 const IMG = {
   logo: "/images/twng-logo.svg",
@@ -832,7 +833,7 @@ function DataSettings() {
       }
 
       showToast("Account deleted successfully", "success");
-      setTimeout(() => navigate('/'), 1500);
+      setTimeout(() => navigate(ROUTES.HOME), 1500);
     } catch (err) {
       console.error("Delete error:", err);
       setSaveError("Failed to delete account. Please try again.");

@@ -2,6 +2,7 @@ import { Star } from 'lucide-react';
 import { T } from '../../theme/tokens';
 import Badge from './Badge';
 import { Link } from 'react-router-dom';
+import { instrumentPath } from '../../lib/routes';
 
 export default function InstrumentCard({ instrument, compact = false }) {
   const {
@@ -19,7 +20,7 @@ export default function InstrumentCard({ instrument, compact = false }) {
   const instrument_type = custom_fields.instrument_type;
 
   return (
-    <Link to={`/instrument/${id}`} style={{ textDecoration: "none", color: "inherit" }}>
+    <Link to={instrumentPath(id)} style={{ textDecoration: "none", color: "inherit" }}>
       <div style={{
         backgroundColor: T.bgCard,
         borderRadius: "12px",
