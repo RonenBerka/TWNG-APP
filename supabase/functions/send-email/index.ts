@@ -64,7 +64,7 @@ serve(async (req: Request) => {
 
     // Prepare email payload for Resend
     const emailPayload = {
-      from: "TWNG <hello@twng.com>",
+      from: body.from || "TWNG <onboarding@resend.dev>",
       to: body.to,
       subject: body.subject,
       ...(body.html && { html: body.html }),

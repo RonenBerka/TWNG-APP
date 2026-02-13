@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, Share2, Shield, ChevronDown, ChevronUp, Calendar, Clock, Eye, EyeOff, Users, Flag, AlertTriangle, Check, Loader2, Pencil, Archive, ArchiveRestore } from "lucide-react";
+import { ArrowLeft, Heart, Share2, Shield, ChevronDown, ChevronUp, Calendar, Clock, Eye, EyeOff, Users, Flag, AlertTriangle, Check, Loader2, Pencil, Archive, ArchiveRestore, ArrowRightLeft, Search, X, User } from "lucide-react";
 import { T } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
 import { getInstrument, updateInstrument, archiveInstrument, restoreInstrument } from '../lib/supabase/instruments';
@@ -12,6 +12,8 @@ import { IMG } from '../utils/placeholders';
 import { ROUTES, userPath } from '../lib/routes';
 import { getInstrumentSerialNumber } from '../lib/supabase/instruments';
 import { decodeSerial, SUPPORTED_BRANDS } from '../lib/serialDecoder';
+import { initiateTransfer, searchUsers as searchTransferUsers } from '../lib/supabase/transfers';
+import { createNotification } from '../lib/supabase/notifications';
 
 // ============================================================
 // Badge Component
@@ -161,7 +163,7 @@ function ImageGallery({ images }) {
 // ============================================================
 // Instrument Header Component
 // ============================================================
-function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner, onArchiveToggle }) {
+function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner, onArchiveToggle, onTransferClick }) {
   const navigate = useNavigate();
   const [publishing, setPublishing] = useState(false);
   const [shared, setShared] = useState(false);
@@ -335,6 +337,28 @@ function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner, onArchiveT
             >
               <Pencil size={14} />
               Edit
+            </button>
+          )}
+          {isOwner && (
+            <button
+              onClick={onTransferClick}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 14px",
+                borderRadius: "8px",
+                border: `1px solid ${T.border}`,
+                backgroundColor: T.bgCard,
+                color: T.txt2,
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: 600,
+                transition: "all 0.2s",
+              }}
+            >
+              <ArrowRightLeft size={14} />
+              Transfer
             </button>
           )}
           {isOwner && (
@@ -819,6 +843,315 @@ function SerialDecoderPanel({ instrumentId, make }) {
 }
 
 // ============================================================
+// Transfer Ownership Modal
+// ============================================================
+function TransferOwnershipModal({ instrument, userId, onClose, onTransferComplete }) {
+  const [step, setStep] = useState('search'); // search | confirm | done
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Debounced user search
+  useEffect(() => {
+    if (query.length < 2) { setResults([]); return; }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const data = await searchTransferUsers(query);
+        setResults(data.filter(u => u.id !== userId));
+      } catch { setResults([]); }
+      finally { setSearching(false); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, userId]);
+
+  const handleSelectUser = (user) => {
+    setSelectedUser(user);
+    setResults([]);
+    setQuery('');
+    setStep('confirm');
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedUser || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await initiateTransfer({
+        instrumentId: instrument.id,
+        fromOwnerId: userId,
+        toOwnerId: selectedUser.id,
+      });
+
+      // Create in-app notification for the recipient
+      const instrumentName = [instrument.make, instrument.model].filter(Boolean).join(' ');
+      await createNotification({
+        userId: selectedUser.id,
+        type: 'transfer_incoming',
+        title: `Ownership transfer request`,
+        message: `You have a pending transfer for ${instrumentName}. Go to Transfers to accept or decline.`,
+        data: {
+          link: ROUTES.TRANSFERS,
+          instrument_id: instrument.id,
+          actor_name: instrument.current_owner?.display_name || 'Someone',
+        },
+      });
+
+      setStep('done');
+    } catch (err) {
+      setError(err.message || 'Transfer failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const instrumentName = [instrument.make, instrument.model].filter(Boolean).join(' ');
+
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 100,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        backgroundColor: "rgba(0,0,0,0.7)", padding: "24px",
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{
+        width: "100%", maxWidth: "480px", maxHeight: "80vh",
+        backgroundColor: T.bgDeep, borderRadius: "16px",
+        border: `1px solid ${T.border}`, overflow: "hidden",
+        display: "flex", flexDirection: "column",
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: "20px 24px", borderBottom: `1px solid ${T.border}`,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          <h2 style={{
+            fontFamily: "'Playfair Display', serif", fontSize: "20px",
+            fontWeight: 600, color: T.txt, margin: 0,
+          }}>
+            {step === 'done' ? 'Transfer Initiated' : 'Transfer Ownership'}
+          </h2>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: T.txt2, padding: "4px",
+          }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: "24px", overflowY: "auto", flex: 1 }}>
+
+          {/* ── Step: Search ── */}
+          {step === 'search' && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <p style={{ color: T.txt2, fontSize: "14px", lineHeight: 1.5, margin: 0 }}>
+                Search for a TWNG member to transfer <strong style={{ color: T.txt }}>{instrumentName}</strong> to.
+              </p>
+
+              {/* Search input */}
+              <div style={{ position: "relative" }}>
+                <Search size={16} color={T.txtM} style={{
+                  position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)",
+                }} />
+                <input
+                  autoFocus
+                  placeholder="Search by username..."
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  style={{
+                    width: "100%", padding: "12px 14px 12px 40px",
+                    borderRadius: "10px", fontSize: "14px",
+                    backgroundColor: T.bgCard, border: `1px solid ${T.border}`,
+                    color: T.txt, outline: "none", boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              {/* Loading */}
+              {searching && (
+                <p style={{ fontSize: "13px", color: T.txtM, margin: 0 }}>Searching...</p>
+              )}
+
+              {/* Results */}
+              {results.length > 0 && (
+                <div style={{
+                  borderRadius: "10px", border: `1px solid ${T.border}`,
+                  overflow: "hidden",
+                }}>
+                  {results.map(u => (
+                    <button
+                      key={u.id}
+                      onClick={() => handleSelectUser(u)}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", gap: "12px",
+                        padding: "12px 16px", background: "transparent", border: "none",
+                        borderBottom: `1px solid ${T.border}`, cursor: "pointer", textAlign: "left",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = T.bgCard}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <div style={{
+                        width: "36px", height: "36px", borderRadius: "50%",
+                        backgroundColor: T.warm, color: T.bgDeep,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: "13px", fontWeight: 700, flexShrink: 0,
+                      }}>
+                        {(u.display_name || u.username || '?').charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p style={{ fontSize: "14px", fontWeight: 500, color: T.txt, margin: 0 }}>
+                          {u.display_name || u.username}
+                        </p>
+                        <p style={{
+                          fontSize: "12px", color: T.txtM, margin: 0,
+                          fontFamily: "'JetBrains Mono', monospace",
+                        }}>
+                          @{u.username}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* No results */}
+              {!searching && query.length >= 2 && results.length === 0 && (
+                <p style={{ fontSize: "13px", color: T.txtM, margin: 0, textAlign: "center", padding: "16px 0" }}>
+                  No users found matching "{query}"
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* ── Step: Confirm ── */}
+          {step === 'confirm' && selectedUser && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              {/* Warning */}
+              <div style={{
+                display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px 16px",
+                borderRadius: "10px", backgroundColor: "#92400E12", border: `1px solid ${T.warm}30`,
+              }}>
+                <AlertTriangle size={18} color={T.warm} style={{ flexShrink: 0, marginTop: "2px" }} />
+                <p style={{ fontSize: "13px", color: T.txt2, lineHeight: 1.5, margin: 0 }}>
+                  This will send a transfer request. The recipient must accept before ownership changes.
+                </p>
+              </div>
+
+              {/* Summary */}
+              <div style={{
+                padding: "16px", borderRadius: "10px",
+                backgroundColor: T.bgCard, border: `1px solid ${T.border}`,
+                display: "flex", flexDirection: "column", gap: "14px",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "13px", color: T.txtM }}>Instrument</span>
+                  <span style={{ fontSize: "13px", color: T.txt, fontWeight: 500 }}>{instrumentName}</span>
+                </div>
+                <div style={{ height: "1px", backgroundColor: T.border }} />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "13px", color: T.txtM }}>Transfer to</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{
+                      width: "28px", height: "28px", borderRadius: "50%",
+                      backgroundColor: T.warm, color: T.bgDeep,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: "11px", fontWeight: 700,
+                    }}>
+                      {(selectedUser.display_name || selectedUser.username || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p style={{ fontSize: "13px", color: T.txt, fontWeight: 500, margin: 0 }}>
+                        {selectedUser.display_name || selectedUser.username}
+                      </p>
+                      <p style={{
+                        fontSize: "11px", color: T.txtM, margin: 0,
+                        fontFamily: "'JetBrains Mono', monospace",
+                      }}>
+                        @{selectedUser.username}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <p style={{ color: '#EF4444', fontSize: "13px", margin: 0 }}>{error}</p>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  onClick={() => { setSelectedUser(null); setStep('search'); }}
+                  style={{
+                    flex: 1, padding: "12px", borderRadius: "10px", fontSize: "13px",
+                    fontWeight: 600, background: "transparent",
+                    border: `1px solid ${T.border}`, color: T.txt2, cursor: "pointer",
+                  }}
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  style={{
+                    flex: 1, padding: "12px", borderRadius: "10px", fontSize: "13px",
+                    fontWeight: 600, background: T.warm,
+                    border: `1px solid ${T.warm}`, color: T.bgDeep, cursor: "pointer",
+                    opacity: submitting ? 0.6 : 1,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                  }}
+                >
+                  {submitting ? (
+                    <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Sending...</>
+                  ) : (
+                    'Confirm Transfer'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step: Done ── */}
+          {step === 'done' && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", padding: "16px 0" }}>
+              <div style={{
+                width: "56px", height: "56px", borderRadius: "50%",
+                backgroundColor: "#34D39920", display: "flex",
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <Check size={28} color="#34D399" />
+              </div>
+              <p style={{ fontSize: "15px", fontWeight: 600, color: T.txt, margin: 0, textAlign: "center" }}>
+                Transfer request sent!
+              </p>
+              <p style={{ fontSize: "13px", color: T.txt2, lineHeight: 1.5, margin: 0, textAlign: "center" }}>
+                @{selectedUser?.username} will be notified and can accept or decline from their Transfers page.
+              </p>
+              <button
+                onClick={() => { onClose(); if (onTransferComplete) onTransferComplete(); }}
+                style={{
+                  marginTop: "8px", padding: "12px 32px", borderRadius: "10px",
+                  fontSize: "13px", fontWeight: 600, background: T.warm,
+                  border: `1px solid ${T.warm}`, color: T.bgDeep, cursor: "pointer",
+                }}
+              >
+                Done
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // Main InstrumentDetail Component
 // ============================================================
 export default function InstrumentDetail() {
@@ -832,6 +1165,7 @@ export default function InstrumentDetail() {
   const [timeline, setTimeline] = useState([]);
   const [comments, setComments] = useState([]);
   const [occ, setOcc] = useState([]);
+  const [showTransferModal, setShowTransferModal] = useState(false);
 
   const isOwner = user && instrument && user.id === instrument.current_owner_id;
 
@@ -1033,6 +1367,7 @@ export default function InstrumentDetail() {
             onLoveToggle={handleLoveToggle}
             isOwner={isOwner}
             onArchiveToggle={handleArchiveToggle}
+            onTransferClick={() => setShowTransferModal(true)}
           />
         </div>
       </div>
@@ -1130,6 +1465,19 @@ export default function InstrumentDetail() {
             <CommentsComponent comments={comments} />
           </div>
         </div>
+      )}
+
+      {/* Transfer Ownership Modal */}
+      {showTransferModal && (
+        <TransferOwnershipModal
+          instrument={instrument}
+          userId={user.id}
+          onClose={() => setShowTransferModal(false)}
+          onTransferComplete={async () => {
+            const refreshed = await getInstrument(id);
+            setInstrument(refreshed);
+          }}
+        />
       )}
     </div>
   );

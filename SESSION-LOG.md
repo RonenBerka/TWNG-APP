@@ -266,3 +266,132 @@
 #### Status
 - ✅ Task 2 committed on feature branch
 - ⏳ NOT merged or deployed (as instructed)
+
+### Session 14 — Username Availability Check + Serial Decoder on Instrument Detail
+
+**Branch:** `feature/username-check-serial-decoder`
+
+#### Task 1: Username Availability Check (commit `f75d0cb`)
+- ✅ Added `checkUsernameAvailability()` to `users.js` — queries `users` table, excludes own user ID on settings page
+- ✅ Added username field to signup form (Auth.jsx) with debounced 500ms availability check
+- ✅ Green checkmark when available, red X when taken, "..." while checking
+- ✅ Input sanitizes to lowercase alphanumeric + underscores only
+- ✅ Settings page (ProfileSettings) — same debounced check, skips if unchanged from saved value
+- ✅ AuthContext `signup()` now passes username to Supabase user metadata
+- ✅ Visual feedback only — does not block form submission
+- ✅ Exported `checkUsernameAvailability` from barrel `index.js`
+- Files: `src/lib/supabase/users.js`, `src/lib/supabase/index.js`, `src/pages/Auth.jsx`, `src/pages/Settings.jsx`, `src/context/AuthContext.jsx`
+
+#### Task 2: Serial Decoder on InstrumentDetail (commit `6affb36`)
+- ✅ `serialDecoder.js` already exists — full engine for 10 brands (Fender, Gibson, PRS, Martin, Taylor, Ibanez, Epiphone, Rickenbacker, Gretsch, Squier)
+- ✅ Added `SerialDecoderPanel` component to InstrumentDetail.jsx (owner-only section)
+- ✅ "Decode Serial" button loads serial from `instrument_sensitive_details` table via `getInstrumentSerialNumber()`
+- ✅ Decoded info shown in grid: brand, year/range, factory, country, series, production number
+- ✅ Confidence indicator (high/medium/low) with color coding
+- ✅ Collapsible panel with explanation and tips
+- ✅ Graceful error handling (no serial recorded, access denied)
+- ✅ Uses `make` field as brand hint for more accurate decoding
+- Files: `src/pages/InstrumentDetail.jsx`
+
+#### Status
+- ✅ Both tasks committed separately on feature branch
+- ✅ Build passes (3.48s, 0 errors)
+- ⏳ NOT merged or deployed (as instructed)
+
+### Session 15 — Ownership Transfer Flow
+
+**Branch:** `feature/ownership-transfer-flow`
+
+#### What was built
+- ✅ **Transfer button on InstrumentDetail** — owner-only "Transfer" button in header (next to Edit and Archive), uses `ArrowRightLeft` icon
+- ✅ **TransferOwnershipModal** — in-page modal with 3 steps:
+  1. **Search**: debounced username search (300ms), excludes self, shows avatar + display name + @username
+  2. **Confirm**: summary card showing instrument + recipient, warning about the process
+  3. **Done**: success screen with link to recipient's Transfers page
+- ✅ **Notification on initiate** — creates `transfer_incoming` notification for recipient with link to `/transfers`
+- ✅ **Accept = Accept + Complete** — simplified MyTransfers so "Accept" does both `acceptTransfer()` + `completeTransfer()` (updates `instrument.current_owner_id`) in one click
+- ✅ **Notifications on Accept/Decline** — sends `transfer_completed` or `transfer_declined` notification back to sender
+- ✅ **Status badge fix** — added `rejected` alias in STATUS_STYLES (DB uses `rejected`, UI showed `declined`)
+- ✅ Removed separate "Complete Transfer" button (no longer needed since accept auto-completes)
+
+#### Architecture decisions
+- Modal instead of separate page — simpler UX, no extra route needed
+- Used existing `searchUsers` from transfers.js (returns `id, username, display_name, avatar_url`)
+- Used existing `createNotification` for in-app notifications (no email)
+- Notification `data.link` points to `/transfers` for incoming, instrument detail for accept/decline
+
+#### Files changed
+- `src/pages/InstrumentDetail.jsx` — TransferOwnershipModal component + Transfer button + imports
+- `src/pages/MyTransfers.jsx` — combined accept+complete, added notifications, added `rejected` status style
+
+#### Status
+- ✅ Committed on feature branch (commit `54d1aba`)
+- ✅ Build passes (3.52s, 0 errors)
+- ⏳ NOT merged or deployed (as instructed)
+
+### Session 16 — Email Service Infrastructure Audit
+
+**Branch:** `feature/ownership-transfer-flow` (no changes made — audit only)
+
+#### What exists (code)
+- ✅ **Edge Function `send-email`** — deployed, ACTIVE, uses Resend API (`supabase/functions/send-email/index.ts`, 115 lines)
+- ✅ **Frontend email service** — `src/lib/email/emailService.js` (412 lines) — sends via `supabase.functions.invoke('send-email')`
+- ✅ **Email templates** — `src/lib/email/templates.js` (1,034 lines) + `auth-templates.js` (614 lines) — welcome, claim, re-engagement, auth sequences
+- ✅ **DB tables exist** — `email_log`, `email_queue`, `email_preferences` (all 3 in public schema)
+- ✅ **Welcome sequence wired** — `AuthContext.jsx:258` calls `triggerWelcomeSequence()` on signup (non-blocking, fire-and-forget)
+- ✅ **Edge Function also exists:** `send-contact-email` (separate function for contact form)
+
+#### What doesn't work / gaps found
+- ❌ **RESEND_API_KEY likely not set** — Edge Function logs show zero invocations of `send-email` ever (only `analyze-guitar` and `verify-guitar` appear in logs)
+- ❌ **`twng.com` domain not verified** — Edge Function hardcodes `from: "TWNG <hello@twng.com>"` but Resend requires domain verification via DNS records
+- ❌ **email_log table empty** — 0 rows. No email has ever been sent or attempted
+- ❌ **email_queue table empty** — 0 rows. Welcome sequence inserts would land here but never have
+- ❌ **DB schema mismatch (email_log)** — table has `(id, to_email, subject, template_key, status, error, created_at)` but code INSERTs `(user_id, provider, message_id, tags, sent_at)` — 5 columns don't exist, INSERT fails silently via `.catch(() => {})`
+- ❌ **DB schema mismatch (email_queue)** — table has `(id, to_email, subject, html_body, template_key, status, scheduled_for, sent_at, error, created_at)` but code INSERTs `(user_id, html, text_content, send_at, sequence_key, email_key, variables)` — multiple missing columns
+- ❌ **No queue processor** — `processEmailQueue()` exists in code but no cron job or Edge Function calls it
+- ❌ **Notification emails not wired** — messaging, transfers, notifications only create in-app notifications. No email sent for any event
+- ❌ **Settings email prefs disconnected** — toggles in Settings.jsx are local state, not connected to `email_preferences` table
+
+#### Summary: email system is INERT
+Code is comprehensive (~2,200 lines) but **nothing works end-to-end**:
+1. `RESEND_API_KEY` missing → Edge Function would return 500
+2. `twng.com` not verified in Resend → even with key, sends would be rejected
+3. DB schemas don't match code → all logging/queuing fails silently
+4. No queue processor → even if queue worked, nothing sends scheduled emails
+5. No transactional emails wired → new message, transfer request etc. have no email path
+
+#### To make it work (DO NOT BUILD — documenting only)
+1. Create Resend account + verify `twng.com` domain (DNS records)
+2. Set `RESEND_API_KEY` as Supabase secret
+3. Fix `email_log` and `email_queue` table schemas to match code (or vice versa)
+4. Create queue processor (pg_cron or scheduled Edge Function)
+5. Wire `sendEmail()` into messaging, transfer, and notification flows
+6. Connect Settings toggles to `email_preferences` table
+
+- Files: none changed (audit only)
+
+### Session 16b — Email Pipeline Activation
+
+**Branch:** `feature/ownership-transfer-flow`
+
+#### Fixes applied
+- ✅ **Edge Function `send-email` updated** — changed hardcoded `from: "TWNG <hello@twng.com>"` to `body.from || "TWNG <onboarding@resend.dev>"` (Resend test sender, no domain verification needed). Redeployed as v11.
+- ✅ **Frontend config updated** — `emailService.js` default `from` changed to `onboarding@resend.dev`
+- ✅ **RESEND_API_KEY set** — added as Supabase project secret via Dashboard (Settings > Edge Functions > Secrets)
+- ✅ **DB schema mismatches fixed** — migration `fix_email_table_schemas`:
+  - `email_log`: added `user_id`, `provider`, `message_id`, `tags`, `sent_at`
+  - `email_queue`: added `user_id`, `html`, `text_content`, `send_at`, `sequence_key`, `email_key`, `variables`
+  - `email_preferences`: added `sequence_emails`, `notification_emails`
+
+#### Test results
+- ✅ **Direct Resend API test** — `curl` to `api.resend.com/emails` → success, returned messageId `a39c48cd`
+- ✅ **Full pipeline test** — `curl` to Edge Function `send-email` → success, returned messageId `74969609`
+- ✅ **Both emails delivered** to ronenberka@gmail.com via `onboarding@resend.dev`
+
+#### Remaining gaps (not fixed — documenting only)
+- ⚠️ **Resend test sender limitation** — `onboarding@resend.dev` can only send to the Resend account owner's email. For production, need to verify `twng.com` domain in Resend
+- ⚠️ **No queue processor** — scheduled emails (welcome sequence) will queue but never send without a cron/Edge Function worker
+- ⚠️ **Notification emails not wired** — messaging, transfers, notifications still only create in-app notifications
+- ⚠️ **Settings email prefs disconnected** — UI toggles not connected to `email_preferences` table
+
+- Files: `supabase/functions/send-email/index.ts`, `src/lib/email/emailService.js`

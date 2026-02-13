@@ -1558,7 +1558,6 @@ const HomepageManagementPage = () => {
           (b) => !canonTypes.has(b.type),
         );
         setBlocks([...merged, ...customBlocks]);
-        if (config) setSectionConfig(config);
       } catch {
         setBlocks(CANONICAL_BLOCKS.map((b) => ({ ...b })));
       }

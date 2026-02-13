@@ -12,7 +12,7 @@ import { emailTemplates } from './templates';
 
 // Frontend-safe config (no secrets)
 const EMAIL_CONFIG = {
-  from: import.meta.env.VITE_EMAIL_FROM || 'TWNG <hello@twng.com>',
+  from: import.meta.env.VITE_EMAIL_FROM || 'TWNG <onboarding@resend.dev>',
   replyTo: import.meta.env.VITE_EMAIL_REPLY_TO || 'support@twng.com',
   baseUrl: typeof window !== 'undefined' ? window.location.origin : (import.meta.env.VITE_BASE_URL || 'https://twng.com'),
 };
