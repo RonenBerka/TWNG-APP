@@ -104,7 +104,8 @@ export async function updateTimelineEvent(eventId, updates) {
     .eq('id', eventId)
     .eq('is_locked', false)
     .select()
-    .single();
+    // UPDATE with condition — may match 0 rows if locked
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -120,7 +121,8 @@ export async function publishTimelineEvent(eventId, publish = true) {
     .eq('id', eventId)
     .eq('is_locked', false)
     .select()
-    .single();
+    // UPDATE with condition — may match 0 rows if locked
+    .maybeSingle();
 
   if (error) throw error;
   return data;

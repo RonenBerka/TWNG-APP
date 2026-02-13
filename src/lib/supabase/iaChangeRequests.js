@@ -147,12 +147,12 @@ export async function updateAttributeChange(changeId, updates) {
  * This should typically be called after grace period expires or admin approval.
  */
 export async function applyAttributeChange(changeId) {
-  // Get the change record
+  // READ by ID — row may not exist
   const { data: change, error: fetchErr } = await supabase
     .from('instrument_attributes_history')
     .select('*')
     .eq('id', changeId)
-    .single();
+    .maybeSingle();
 
   if (fetchErr) throw fetchErr;
 
@@ -162,11 +162,12 @@ export async function applyAttributeChange(changeId) {
 
   if (specFields.includes(change.field_name)) {
     // Spec field — need to update specs JSONB
+    // READ by ID — row may not exist
     const { data: instrument } = await supabase
       .from('instruments')
       .select('specs')
       .eq('id', change.instrument_id)
-      .single();
+      .maybeSingle();
 
     const specs = instrument?.specs || {};
     specs[change.field_name] = change.new_value;

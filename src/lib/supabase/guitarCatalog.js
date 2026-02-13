@@ -85,11 +85,10 @@ export async function getModelSpecs(brand, model) {
     .ilike('make', brand)
     .ilike('model', model)
     .limit(1)
-    .single();
+    // READ — catalog entry may not exist
+    .maybeSingle();
 
   if (error) {
-    // Could be no match — not an error
-    if (error.code === 'PGRST116') return null;
     console.error('Error fetching model specs:', error);
     return null;
   }

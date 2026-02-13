@@ -43,11 +43,12 @@ export async function getArticles(options = {}) {
  */
 export async function getArticle(articleId) {
   try {
+    // READ by ID — article may not exist
     const { data, error } = await supabase
       .from('articles')
       .select('*')
       .eq('id', articleId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -69,7 +70,8 @@ export async function getArticleBySlug(slug) {
       .select('*')
       .eq('slug', slug)
       .eq('status', 'published')
-      .single();
+      // READ by slug — article may not exist
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -223,11 +225,12 @@ export async function getArticlesByCategory(category, options = {}) {
 export async function incrementArticleView(articleId) {
   try {
     // Fetch current view count
+    // READ by ID — article may not exist
     const { data: article, error: fetchError } = await supabase
       .from('articles')
       .select('view_count')
       .eq('id', articleId)
-      .single();
+      .maybeSingle();
 
     if (fetchError) throw fetchError;
 

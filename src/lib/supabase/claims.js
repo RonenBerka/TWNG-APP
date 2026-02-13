@@ -65,11 +65,12 @@ export async function getAdminClaims({
  */
 export async function approveClaim(claimId, adminId) {
   try {
+    // READ by ID — claim may not exist
     const { data: claim, error: fetchError } = await supabase
       .from('ownership_claims')
       .select('id, instrument_id, claimer_id')
       .eq('id', claimId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !claim) throw fetchError || new Error('Claim not found');
 
@@ -118,11 +119,12 @@ export async function approveClaim(claimId, adminId) {
  */
 export async function rejectClaim(claimId, adminId, reason) {
   try {
+    // READ by ID — claim may not exist
     const { data: claim, error: fetchError } = await supabase
       .from('ownership_claims')
       .select('id, claimer_id, instrument_id')
       .eq('id', claimId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !claim) throw fetchError || new Error('Claim not found');
 

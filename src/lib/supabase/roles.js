@@ -14,11 +14,12 @@ import { supabase } from './client.js';
  */
 export async function getUserRoles(userId) {
   try {
+    // READ by ID — user may not exist
     const { data, error } = await supabase
       .from('users')
       .select('id, role')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data ? [{ id: data.id, role: data.role }] : [];
@@ -36,11 +37,12 @@ export async function getUserRoles(userId) {
  */
 export async function hasRole(userId, role) {
   try {
+    // READ by ID — user may not exist
     const { data } = await supabase
       .from('users')
       .select('id, role')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     return data && data.role === role;
   } catch (error) {

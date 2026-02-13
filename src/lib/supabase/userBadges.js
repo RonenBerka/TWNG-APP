@@ -40,12 +40,13 @@ export async function getUserBadges(userId) {
 export async function awardBadge(userId, badgeData) {
   try {
     // Check if user already has this badge type
+    // READ — badge may not exist yet
     const { data: existing } = await supabase
       .from('user_badges')
       .select('id')
       .eq('user_id', userId)
       .eq('badge_type', badgeData.badge_type)
-      .single();
+      .maybeSingle();
 
     // Don't award duplicate badges
     if (existing) {

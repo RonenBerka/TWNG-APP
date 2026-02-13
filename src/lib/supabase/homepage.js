@@ -41,9 +41,10 @@ export async function getHomepageBlock(blockId) {
       .from('homepage_blocks')
       .select('*')
       .eq('id', blockId)
-      .single();
+      // READ by ID — block may not exist
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+    if (error) throw error;
     return data || null;
   } catch (err) {
     console.error('getHomepageBlock error:', err);

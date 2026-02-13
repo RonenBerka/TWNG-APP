@@ -74,7 +74,8 @@ export async function getBlock(blockId) {
         )
       `)
       .eq('id', blockId)
-      .single();
+      // READ by ID — block may not exist
+      .maybeSingle();
 
     if (error) throw error;
     return data;

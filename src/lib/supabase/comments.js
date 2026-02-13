@@ -57,13 +57,14 @@ export async function getComments(targetType, targetId, options = {}) {
 export async function getCommentThread(commentId) {
   try {
     // Get parent comment
+    // READ by ID — comment may not exist
     const { data: parent, error: parentErr } = await supabase
       .from('comments')
       .select('*, author:user_id (id, username, display_name, avatar_url, is_verified)')
       .eq('id', commentId)
-      .single();
+      .maybeSingle();
 
-    if (parentErr && parentErr.code !== 'PGRST116') throw parentErr;
+    if (parentErr) throw parentErr;
     if (!parent) return null;
 
     // Get all replies

@@ -233,9 +233,10 @@ export async function getInstrumentSerialNumber(instrumentId) {
     .from('instrument_sensitive_details')
     .select('serial_number, serial_number_is_locked, serial_number_grace_period_ends_at')
     .eq('instrument_id', instrumentId)
-    .single();
+    // READ by ID — sensitive details may not exist
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+  if (error) throw error;
   return data || null;
 }
 

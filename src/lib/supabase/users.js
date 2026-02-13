@@ -19,11 +19,12 @@ import { supabase } from './client';
  * Get a user profile by ID.
  */
 export async function getUserProfile(userId) {
+  // READ by ID — user may not exist
   const { data, error } = await supabase
     .from('users')
     .select('*')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -33,11 +34,12 @@ export async function getUserProfile(userId) {
  * Get a user profile by username.
  */
 export async function getUserByUsername(username) {
+  // READ by username — user may not exist
   const { data, error } = await supabase
     .from('users')
     .select('*')
     .eq('username', username)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -109,11 +111,12 @@ export async function searchUsers(query, limit = 20) {
  * Get all roles for a user.
  */
 export async function getUserRoles(userId) {
+  // READ by ID — user may not exist
   const { data, error } = await supabase
     .from('users')
     .select('role')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data?.role ? [data.role] : [];
@@ -123,11 +126,12 @@ export async function getUserRoles(userId) {
  * Check if user has a specific role.
  */
 export async function hasRole(userId, role) {
+  // READ by ID — user may not exist
   const { data, error } = await supabase
     .from('users')
     .select('role')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data?.role === role;
@@ -307,11 +311,12 @@ export async function getProfile(userId) {
  * Fetch a user's public profile (limited fields).
  */
 export async function getPublicProfile(userId) {
+  // READ by ID — user may not exist
   const { data, error } = await supabase
     .from('users')
     .select('id, username, avatar_url, bio, is_verified, is_luthier, created_at')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;

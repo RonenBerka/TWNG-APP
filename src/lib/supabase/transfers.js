@@ -65,7 +65,8 @@ export async function acceptTransfer(transferId) {
     .eq('id', transferId)
     .eq('status', 'pending')
     .select()
-    .single();
+    // UPDATE with status condition — may match 0 rows
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -88,7 +89,8 @@ export async function rejectTransfer(transferId, reason = null) {
     .eq('id', transferId)
     .eq('status', 'pending')
     .select()
-    .single();
+    // UPDATE with status condition — may match 0 rows
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -110,7 +112,8 @@ export async function cancelTransfer(transferId, reason = null) {
     .eq('id', transferId)
     .in('status', ['pending', 'accepted'])
     .select()
-    .single();
+    // UPDATE with status condition — may match 0 rows
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -122,11 +125,12 @@ export async function cancelTransfer(transferId, reason = null) {
  */
 export async function completeTransfer(transferId) {
   // Get the transfer details
+  // READ by ID — row may not exist
   const { data: transfer, error: fetchErr } = await supabase
     .from('ownership_transfers')
     .select('*')
     .eq('id', transferId)
-    .single();
+    .maybeSingle();
 
   if (fetchErr) throw fetchErr;
 
@@ -204,7 +208,8 @@ export async function getTransfer(transferId) {
       to_owner:to_owner_id ( id, username, display_name )
     `)
     .eq('id', transferId)
-    .single();
+    // READ by ID — row may not exist
+    .maybeSingle();
 
   if (error) throw error;
   return data;

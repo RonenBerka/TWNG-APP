@@ -161,13 +161,14 @@ export async function verifyLuthier(userId) {
 
 export async function getSystemSettings(key = null) {
   if (key) {
+    // READ by key — setting may not exist
     const { data, error } = await supabase
       .from('system_settings')
       .select('*')
       .eq('setting_key', key)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+    if (error) throw error;
     return data || null;
   }
 

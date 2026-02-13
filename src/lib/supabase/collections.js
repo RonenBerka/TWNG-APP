@@ -86,7 +86,8 @@ export async function getCollection(collectionId) {
         )
       `)
       .eq('id', collectionId)
-      .single();
+      // READ by ID — collection may not exist
+      .maybeSingle();
 
     if (error) throw error;
     return data;

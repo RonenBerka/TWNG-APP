@@ -15,16 +15,12 @@ import { supabase } from './client.js';
  */
 export async function getSetting(key, defaultValue = null) {
   try {
+    // READ by key — setting may not exist
     const { data, error } = await supabase
       .from('system_settings')
       .select('setting_value')
       .eq('setting_key', key)
-      .single();
-
-    if (error && error.code === 'PGRST116') {
-      // Not found, return default
-      return defaultValue;
-    }
+      .maybeSingle();
 
     if (error) throw error;
     return data ? data.setting_value : defaultValue;
@@ -44,15 +40,14 @@ export async function getSetting(key, defaultValue = null) {
 export async function setSetting(key, value, updatedBy = null) {
   try {
     // Check if setting exists
+    // READ by key — setting may not exist yet
     const { data: existing, error: fetchError } = await supabase
       .from('system_settings')
       .select('id')
       .eq('setting_key', key)
-      .single();
+      .maybeSingle();
 
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      throw fetchError;
-    }
+    if (fetchError) throw fetchError;
 
     if (existing) {
       // Update existing

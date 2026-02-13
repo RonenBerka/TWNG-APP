@@ -114,7 +114,8 @@ export async function getForumThread(threadId) {
     `
     )
     .eq('id', threadId)
-    .single();
+    // READ by ID — row may not exist
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -249,11 +250,12 @@ export async function createForumPost(threadId, content, parentPostId = null) {
     .eq('id', threadId);
 
   // Increment reply_count manually
+  // READ by ID — row may not exist
   const { data: thread } = await supabase
     .from('forum_threads')
     .select('reply_count')
     .eq('id', threadId)
-    .single();
+    .maybeSingle();
 
   if (thread) {
     await supabase
@@ -291,12 +293,12 @@ export async function togglePostLike(postId) {
       .delete()
       .eq('id', existing.id);
 
-    // Decrement like_count
+    // READ by ID — row may not exist
     const { data: post } = await supabase
       .from('forum_posts')
       .select('like_count')
       .eq('id', postId)
-      .single();
+      .maybeSingle();
 
     const newCount = Math.max(0, (post?.like_count || 1) - 1);
     await supabase
@@ -311,12 +313,12 @@ export async function togglePostLike(postId) {
       .from('post_likes')
       .insert({ post_id: postId, user_id: user.id });
 
-    // Increment like_count
+    // READ by ID — row may not exist
     const { data: post } = await supabase
       .from('forum_posts')
       .select('like_count')
       .eq('id', postId)
-      .single();
+      .maybeSingle();
 
     const newCount = (post?.like_count || 0) + 1;
     await supabase
@@ -394,11 +396,12 @@ export async function searchForumThreads(
  * Increment the view count for a forum thread.
  */
 export async function incrementThreadView(threadId) {
+  // READ by ID — row may not exist
   const { data: current } = await supabase
     .from('forum_threads')
     .select('view_count')
     .eq('id', threadId)
-    .single();
+    .maybeSingle();
 
   const { data, error } = await supabase
     .from('forum_threads')

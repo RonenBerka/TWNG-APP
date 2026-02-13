@@ -95,12 +95,13 @@ export async function createTag(tagData) {
 export async function addTagToInstrument(instrumentId, tagId) {
   try {
     // Check if tag-instrument relationship already exists
+    // READ — relationship may not exist
     const { data: existing } = await supabase
       .from('instrument_tags')
       .select('id')
       .eq('instrument_id', instrumentId)
       .eq('tag_id', tagId)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       console.warn(`Instrument ${instrumentId} already has tag ${tagId}`);
@@ -214,11 +215,12 @@ export async function getInstrumentsWithTag(tagId, options = {}) {
  */
 async function incrementTagUsage(tagId) {
   try {
+    // READ by ID — tag may not exist
     const { data: tag } = await supabase
       .from('tags')
       .select('usage_count')
       .eq('id', tagId)
-      .single();
+      .maybeSingle();
 
     if (tag) {
       await supabase
@@ -236,11 +238,12 @@ async function incrementTagUsage(tagId) {
  */
 async function decrementTagUsage(tagId) {
   try {
+    // READ by ID — tag may not exist
     const { data: tag } = await supabase
       .from('tags')
       .select('usage_count')
       .eq('id', tagId)
-      .single();
+      .maybeSingle();
 
     if (tag && tag.usage_count > 0) {
       await supabase
