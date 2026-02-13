@@ -11,6 +11,22 @@
 import { supabase } from './client';
 
 // ─────────────────────────────────────────────────────
+// HOMEPAGE BLOCK TYPE MAPPING
+// DB (Lovable schema) uses: featured, recently_added, explore_brands
+// Frontend uses: featured_instruments, recent_instruments, explore_makes
+// ─────────────────────────────────────────────────────
+const DB_TO_FRONTEND = {
+  featured: 'featured_instruments',
+  recently_added: 'recent_instruments',
+  explore_brands: 'explore_makes',
+};
+const FRONTEND_TO_DB = Object.fromEntries(
+  Object.entries(DB_TO_FRONTEND).map(([k, v]) => [v, k])
+);
+export const mapDbTypeToFrontend = (t) => DB_TO_FRONTEND[t] || t;
+export const mapFrontendTypeToDb = (t) => FRONTEND_TO_DB[t] || t;
+
+// ─────────────────────────────────────────────────────
 // DASHBOARD
 // ─────────────────────────────────────────────────────
 
@@ -324,14 +340,15 @@ export async function updateTransferStatus(transferId, newStatus) {
 // ─────────────────────────────────────────────────────
 
 export async function getHomepageBlocks() {
+  // Admin needs ALL blocks (including inactive) to show toggle states
   const { data, error } = await supabase
     .from('homepage_blocks')
     .select('*')
-    .eq('is_active', true)
     .order('display_order', { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  // Map DB enum types → frontend type names
+  return (data || []).map(b => ({ ...b, type: mapDbTypeToFrontend(b.type) }));
 }
 
 export async function createHomepageBlock(block, userId) {
@@ -416,7 +433,41 @@ export { getSystemSettings as getSystemConfig };
 export { updateSystemSetting as updateSystemConfig };
 export { getAdminForumThreads as getAdminDiscussions };
 export { toggleThreadLocked as toggleDiscussionHidden };
-export { getHomepageBlocks as saveHomepageBlocks }; // stub - save not yet impl
+/**
+ * Save homepage blocks — deletes existing rows then inserts fresh set.
+ * Uses delete+insert because homepage_blocks has no unique constraint on `type`.
+ * @param {Array} blocks - [{type, title, status, ...}, ...]
+ * @param {string} userId - current admin user id (for audit)
+ */
+export async function saveHomepageBlocks(blocks, userId) {
+  try {
+    const rows = blocks.map((b, i) => ({
+      type: mapFrontendTypeToDb(b.type),  // convert frontend name → DB enum value
+      title: b.title,
+      is_active: b.status === 'active',
+      display_order: i + 1,
+      updated_at: new Date().toISOString(),
+    }));
+
+    // Delete all existing blocks, then insert the full new set
+    const { error: delError } = await supabase
+      .from('homepage_blocks')
+      .delete()
+      .gte('display_order', 0); // match all rows (Supabase requires a filter on delete)
+
+    if (delError) throw delError;
+
+    const { error: insError } = await supabase
+      .from('homepage_blocks')
+      .insert(rows);
+
+    if (insError) throw insError;
+    return rows;
+  } catch (err) {
+    console.error('saveHomepageBlocks error:', err);
+    throw err;
+  }
+}
 
 export async function getRecentActivity(limit = 20) {
   try {

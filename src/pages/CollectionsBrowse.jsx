@@ -197,10 +197,10 @@ function CollectionCard({ collection, onFavoriteToggle, isFav }) {
             borderTop: `1px solid ${T.border}`,
           }}
         >
-          <span>{itemCount} items</span>
-          {collection.user_id && (
+          <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
+          {collection.owner && (
             <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <Users size={12} /> {collection.user_id.slice(0, 8)}
+              <Users size={12} /> {collection.owner.display_name || collection.owner.username || 'Unknown'}
             </span>
           )}
         </div>

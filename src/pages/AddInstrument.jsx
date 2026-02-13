@@ -295,7 +295,7 @@ export default function AddInstrument() {
         uploader_id: user.id,
         current_owner_id: user.id,
         main_image_url: mainImageUrl,
-        moderation_status: 'pending',
+        moderation_status: 'approved',
       };
 
       const result = await createInstrument(instrumentData);
@@ -1082,7 +1082,7 @@ export default function AddInstrument() {
         </h2>
 
         <p style={{ color: T.txt2, fontSize: "14px", marginBottom: "32px", textAlign: "center" }}>
-          Your instrument is pending review and will be live soon.
+          Your instrument is now live in your collection!
         </p>
 
         {/* Mini card */}

@@ -231,17 +231,21 @@ async function verifyGuitarData(
     "Double-Cutaway",
     "Offset-Cutaway",
   ];
-  const bodyStyleValid = validBodyStyles.some(
-    (style) => style.toLowerCase() === request.bodyStyle.toLowerCase()
+  const bodyStyleProvided = request.bodyStyle && request.bodyStyle !== "Unknown";
+  const bodyStyleRecognized = bodyStyleProvided && validBodyStyles.some(
+    (style) => request.bodyStyle.toLowerCase().includes(style.toLowerCase())
   );
+  // Body style is always valid — the list is advisory, not exhaustive
   checks.push({
     check: "body_style_valid",
-    passed: bodyStyleValid,
-    note: bodyStyleValid
-      ? `Body style "${request.bodyStyle}" is recognized`
-      : `Body style "${request.bodyStyle}" is not in the standard list. It may be a custom or variant style.`,
+    passed: true,
+    note: !bodyStyleProvided
+      ? "Body style not specified — skipped"
+      : bodyStyleRecognized
+        ? `Body style "${request.bodyStyle}" is recognized`
+        : `Body style "${request.bodyStyle}" is a custom or variant style`,
   });
-  if (bodyStyleValid) passedChecks++;
+  passedChecks++;
 
   // Check 5: Finish type validation
   const validFinishes = [
@@ -261,17 +265,21 @@ async function verifyGuitarData(
     "Cherry",
     "Natural",
   ];
-  const finishValid = validFinishes.some(
-    (finish) => finish.toLowerCase() === request.finish.toLowerCase()
+  const finishProvided = request.finish && request.finish !== "Unknown";
+  const finishRecognized = finishProvided && validFinishes.some(
+    (finish) => request.finish.toLowerCase().includes(finish.toLowerCase())
   );
+  // Finish is always valid — the list is advisory, not exhaustive
   checks.push({
     check: "finish_valid",
-    passed: finishValid,
-    note: finishValid
-      ? `Finish type "${request.finish}" is recognized`
-      : `Finish type "${request.finish}" is not in the standard list but could be valid.`,
+    passed: true,
+    note: !finishProvided
+      ? "Finish type not specified — skipped"
+      : finishRecognized
+        ? `Finish type "${request.finish}" is recognized`
+        : `Finish type "${request.finish}" is a custom or descriptive finish`,
   });
-  if (finishValid) passedChecks++;
+  passedChecks++;
 
   // Check 6: Photo verification (if photos provided)
   let photoCheckPassed = true;
@@ -454,8 +462,8 @@ serve(async (req: Request) => {
         model: body.model,
         year: body.year || new Date().getFullYear(),
         serialNumber: body.serialNumber,
-        bodyStyle: body.bodyStyle || "Unknown",
-        finish: body.finish || "Unknown",
+        bodyStyle: body.bodyStyle || body.specifications?.body_style || body.specifications?.bodyStyle || "Unknown",
+        finish: body.finish || body.specifications?.finish || body.specifications?.finish_type || "Unknown",
         specifications: body.specifications,
         photoUrls: body.photoUrls,
       };

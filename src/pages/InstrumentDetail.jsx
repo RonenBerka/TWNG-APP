@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Heart, Share2, Shield, ChevronDown, ChevronUp, Calendar, Clock, Eye, EyeOff, Users, Flag, AlertTriangle, Check, Loader2 } from "lucide-react";
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Heart, Share2, Shield, ChevronDown, ChevronUp, Calendar, Clock, Eye, EyeOff, Users, Flag, AlertTriangle, Check, Loader2, Pencil } from "lucide-react";
 import { T } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
 import { getInstrument, updateInstrument } from '../lib/supabase/instruments';
@@ -159,6 +159,7 @@ function ImageGallery({ images }) {
 // Instrument Header Component
 // ============================================================
 function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
+  const navigate = useNavigate();
   const [publishing, setPublishing] = useState(false);
   const [shared, setShared] = useState(false);
 
@@ -296,12 +297,36 @@ function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
             </p>
           </div>
         </Link>
-        {instrument.moderation_status === 'verified' && (
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <Shield size={14} color="#34D399" />
-            <span style={{ color: "#34D399", fontSize: "12px", fontWeight: 600 }}>Verified</span>
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {instrument.moderation_status === 'verified' && (
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <Shield size={14} color="#34D399" />
+              <span style={{ color: "#34D399", fontSize: "12px", fontWeight: 600 }}>Verified</span>
+            </div>
+          )}
+          {isOwner && (
+            <button
+              onClick={() => navigate(`/instrument/${instrument.id}/edit`)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 14px",
+                borderRadius: "8px",
+                border: `1px solid ${T.border}`,
+                backgroundColor: T.bgCard,
+                color: T.txt2,
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: 600,
+                transition: "all 0.2s",
+              }}
+            >
+              <Pencil size={14} />
+              Edit
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Action Buttons */}

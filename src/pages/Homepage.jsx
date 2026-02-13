@@ -30,6 +30,7 @@ import {
   getRecentlyAddedInstruments,
   getHomepageArticles,
   getHomepageStats,
+  mapDbTypeToFrontend,
 } from '../lib/supabase';
 
 // ============================================================
@@ -1778,7 +1779,7 @@ export default function TWNGHomepage() {
 
         if (blocks && blocks.length > 0) {
           const configMap = {};
-          blocks.forEach(b => { configMap[b.block_type] = b.is_active; });
+          blocks.forEach(b => { configMap[mapDbTypeToFrontend(b.type)] = b.is_active; });
           const active = DEFAULT_SECTIONS.filter(type => {
             const dbStatus = configMap[type];
             if (dbStatus === undefined) return true;

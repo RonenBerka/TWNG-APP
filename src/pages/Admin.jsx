@@ -910,28 +910,13 @@ const DashboardPage = () => {
 // HOMEPAGE MANAGEMENT
 // ─────────────────────────────────────────────────────
 
-// Canonical homepage sections — single source of truth
+// Canonical homepage sections — types MUST match Homepage.jsx DEFAULT_SECTIONS
 const CANONICAL_BLOCKS = [
   { id: "1", title: "Hero Section", type: "hero", status: "active" },
   { id: "2", title: "Stats Bar", type: "stats", status: "active" },
-  {
-    id: "3",
-    title: "Featured Instruments",
-    type: "featured",
-    status: "active",
-  },
-  {
-    id: "4",
-    title: "Recently Added",
-    type: "recently_added",
-    status: "active",
-  },
-  {
-    id: "5",
-    title: "Explore by Brand",
-    type: "explore_brands",
-    status: "active",
-  },
+  { id: "3", title: "Featured Instruments", type: "featured_instruments", status: "active" },
+  { id: "4", title: "Recently Added", type: "recent_instruments", status: "active" },
+  { id: "5", title: "Explore by Brand", type: "explore_makes", status: "active" },
   { id: "6", title: "Articles", type: "articles", status: "active" },
   { id: "7", title: "Testimonials", type: "testimonials", status: "active" },
   { id: "8", title: "Call to Action", type: "cta", status: "active" },
@@ -1239,7 +1224,7 @@ const SectionContentEditor = ({ type, config, onChange }) => {
           ))}
         </div>
       );
-    case "featured":
+    case "featured_instruments":
       return (
         <div className="space-y-3">
           <span style={sectionLabel}>Copywriting</span>
@@ -1248,18 +1233,18 @@ const SectionContentEditor = ({ type, config, onChange }) => {
               <label style={labelStyle}>Section Eyebrow</label>
               <input
                 style={inputStyle}
-                value={config?.featured?.eyebrow || ""}
+                value={config?.featured_instruments?.eyebrow || ""}
                 placeholder="Featured Collection"
-                onChange={(e) => set("featured", "eyebrow", e.target.value)}
+                onChange={(e) => set("featured_instruments", "eyebrow", e.target.value)}
               />
             </div>
             <div className="flex-1">
               <label style={labelStyle}>Section Title</label>
               <input
                 style={inputStyle}
-                value={config?.featured?.title || ""}
+                value={config?.featured_instruments?.title || ""}
                 placeholder="Guitars with Character"
-                onChange={(e) => set("featured", "title", e.target.value)}
+                onChange={(e) => set("featured_instruments", "title", e.target.value)}
               />
             </div>
           </div>
@@ -1267,9 +1252,9 @@ const SectionContentEditor = ({ type, config, onChange }) => {
             <label style={labelStyle}>Section Description</label>
             <textarea
               style={{ ...inputStyle, minHeight: "50px", resize: "vertical" }}
-              value={config?.featured?.description || ""}
+              value={config?.featured_instruments?.description || ""}
               placeholder="Hand-picked instruments with stories worth telling..."
-              onChange={(e) => set("featured", "description", e.target.value)}
+              onChange={(e) => set("featured_instruments", "description", e.target.value)}
             />
           </div>
           <div
@@ -1283,7 +1268,7 @@ const SectionContentEditor = ({ type, config, onChange }) => {
           </div>
         </div>
       );
-    case "recently_added":
+    case "recent_instruments":
       return (
         <div className="space-y-3">
           <span style={sectionLabel}>Copywriting</span>
@@ -1292,10 +1277,10 @@ const SectionContentEditor = ({ type, config, onChange }) => {
               <label style={labelStyle}>Section Eyebrow</label>
               <input
                 style={inputStyle}
-                value={config?.recently_added?.eyebrow || ""}
+                value={config?.recent_instruments?.eyebrow || ""}
                 placeholder="Just Added"
                 onChange={(e) =>
-                  set("recently_added", "eyebrow", e.target.value)
+                  set("recent_instruments", "eyebrow", e.target.value)
                 }
               />
             </div>
@@ -1303,9 +1288,9 @@ const SectionContentEditor = ({ type, config, onChange }) => {
               <label style={labelStyle}>Section Title</label>
               <input
                 style={inputStyle}
-                value={config?.recently_added?.title || ""}
+                value={config?.recent_instruments?.title || ""}
                 placeholder="Fresh Arrivals"
-                onChange={(e) => set("recently_added", "title", e.target.value)}
+                onChange={(e) => set("recent_instruments", "title", e.target.value)}
               />
             </div>
           </div>
@@ -1315,7 +1300,7 @@ const SectionContentEditor = ({ type, config, onChange }) => {
           </p>
         </div>
       );
-    case "explore_brands":
+    case "explore_makes":
       return (
         <div className="space-y-3">
           <span style={sectionLabel}>Copywriting</span>
@@ -1324,10 +1309,10 @@ const SectionContentEditor = ({ type, config, onChange }) => {
               <label style={labelStyle}>Section Eyebrow</label>
               <input
                 style={inputStyle}
-                value={config?.explore_brands?.eyebrow || ""}
+                value={config?.explore_makes?.eyebrow || ""}
                 placeholder="Browse"
                 onChange={(e) =>
-                  set("explore_brands", "eyebrow", e.target.value)
+                  set("explore_makes", "eyebrow", e.target.value)
                 }
               />
             </div>
@@ -1335,9 +1320,9 @@ const SectionContentEditor = ({ type, config, onChange }) => {
               <label style={labelStyle}>Section Title</label>
               <input
                 style={inputStyle}
-                value={config?.explore_brands?.title || ""}
+                value={config?.explore_makes?.title || ""}
                 placeholder="Explore by Brand"
-                onChange={(e) => set("explore_brands", "title", e.target.value)}
+                onChange={(e) => set("explore_makes", "title", e.target.value)}
               />
             </div>
           </div>
@@ -1345,10 +1330,10 @@ const SectionContentEditor = ({ type, config, onChange }) => {
             <label style={labelStyle}>Section Description</label>
             <input
               style={inputStyle}
-              value={config?.explore_brands?.description || ""}
+              value={config?.explore_makes?.description || ""}
               placeholder="Dive into collections organized by the world's most iconic guitar makers."
               onChange={(e) =>
-                set("explore_brands", "description", e.target.value)
+                set("explore_makes", "description", e.target.value)
               }
             />
           </div>
@@ -1569,6 +1554,7 @@ const HomepageManagementPage = () => {
                 ...canonical,
                 ...existing,
                 title: existing.title || canonical.title,
+                status: existing.is_active === false ? "inactive" : "active",
               }
             : { ...canonical };
         });
@@ -1687,9 +1673,9 @@ const HomepageManagementPage = () => {
     "stats",
     "testimonials",
     "cta",
-    "featured",
-    "recently_added",
-    "explore_brands",
+    "featured_instruments",
+    "recent_instruments",
+    "explore_makes",
     "articles",
   ]);
 
@@ -2486,6 +2472,8 @@ const InstrumentManagementPage = () => {
             model: guitar.model,
             year: guitar.year,
             serialNumber: guitar.serial_number,
+            bodyStyle: guitar.specs?.body_style || guitar.specs?.bodyStyle || "",
+            finish: guitar.specs?.finish || guitar.specs?.finish_type || "",
             specifications: guitar.specs || {},
             photoUrls,
           }),

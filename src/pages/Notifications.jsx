@@ -32,7 +32,7 @@ function NotificationItem({ notification, onMarkRead, onDelete }) {
   const [acting, setActing] = useState(false);
   const config = TYPE_CONFIG[notification.type] || TYPE_CONFIG.system;
   const Icon = config.icon;
-  const isUnread = !notification.is_read;
+  const isUnread = !notification.read;
   const timeAgo = getTimeAgo(notification.created_at);
 
   const handleMarkRead = async (e) => {
@@ -188,9 +188,10 @@ export default function Notifications() {
   const [filter, setFilter] = useState('all'); // all | unread
 
   const fetchNotifications = async () => {
+    if (!user?.id) return;
     setLoading(true);
     try {
-      const data = await getNotifications();
+      const data = await getNotifications(user.id);
       setNotifications(data);
     } catch (err) {
       console.error('[Notifications] Fetch failed:', err.message);
@@ -200,18 +201,19 @@ export default function Notifications() {
     }
   };
 
-  useEffect(() => { fetchNotifications(); }, []);
+  useEffect(() => { fetchNotifications(); }, [user?.id]);
 
   const handleMarkRead = async (id) => {
     await markAsRead(id);
     // Updated schema: is_read field (not read)
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n));
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true, read_at: new Date().toISOString() } : n));
   };
 
   const handleMarkAllRead = async () => {
-    await markAllAsRead();
+    if (!user?.id) return;
+    await markAllAsRead(user.id);
     // Updated schema: is_read field
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true, read_at: new Date().toISOString() })));
+    setNotifications(prev => prev.map(n => ({ ...n, read: true, read_at: new Date().toISOString() })));
   };
 
   const handleDelete = async (id) => {
@@ -219,9 +221,9 @@ export default function Notifications() {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unreadCount = notifications.filter(n => !n.read).length;
   const displayList = filter === 'unread'
-    ? notifications.filter(n => !n.is_read)
+    ? notifications.filter(n => !n.read)
     : notifications;
 
   return (

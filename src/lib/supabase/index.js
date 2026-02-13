@@ -52,6 +52,8 @@ export {
   updatePrivacyRequest,
   getDuplicateMatches,
   saveHomepageBlocks,
+  mapDbTypeToFrontend,
+  mapFrontendTypeToDb,
 } from './admin';
 
 // Instrument-related

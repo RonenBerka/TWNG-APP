@@ -21,11 +21,15 @@ import { supabase } from './client';
 export async function getForumCategories() {
   const { data, error } = await supabase
     .from('forum_categories')
-    .select('*')
+    .select('*, forum_threads(count)')
     .order('display_order', { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  // Flatten the thread count from the relation aggregate
+  return (data || []).map((cat) => ({
+    ...cat,
+    thread_count: cat.forum_threads?.[0]?.count ?? 0,
+  }));
 }
 
 /**

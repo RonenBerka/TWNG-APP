@@ -8,10 +8,10 @@ const footerColumns = [
     title: "Platform",
     links: [
       { label: "Explore Guitars", path: "/explore" },
-      { label: "Collections", path: "/collection" },
+      { label: "Collections", path: "/collections" },
       { label: "Magic Add", path: "/instrument/new" },
       { label: "Serial Decoder", path: "/decoder" },
-      { label: "Luthier Directory", path: "/luthiers" },
+      { label: "Luthier Directory", path: "/community" },
       { label: "Community Forum", path: "/community" },
       { label: "Founding Members", path: "/founding-members" },
     ],

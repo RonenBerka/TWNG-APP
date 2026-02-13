@@ -170,7 +170,7 @@ export async function createInstrument(instrumentData) {
     .from('instruments')
     .insert({
       ...instrumentData,
-      moderation_status: instrumentData.moderation_status || 'pending',
+      moderation_status: instrumentData.moderation_status || 'approved',
     })
     .select(INSTRUMENT_SELECT)
     .single();

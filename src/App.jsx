@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -221,6 +221,8 @@ function App() {
                 <ProtectedRoute><Messaging /></ProtectedRoute>
               </Layout>
             } />
+            {/* Legacy redirect: /messaging → /messages */}
+            <Route path="/messaging" element={<Navigate to="/messages" replace />} />
             <Route path="/notifications" element={
               <Layout>
                 <ProtectedRoute><Notifications /></ProtectedRoute>

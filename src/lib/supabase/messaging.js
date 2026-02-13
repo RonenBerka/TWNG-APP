@@ -82,6 +82,7 @@ export async function getConversations() {
     // Build final conversations array
     const conversations = Array.from(conversationMap.values())
       .map((conversation) => ({
+        thread_id: generateThreadId(user.id, conversation.otherUserId),
         other_user: userMap.get(conversation.otherUserId),
         last_message: conversation.lastMessage.content,
         last_message_at: conversation.lastMessage.created_at,
@@ -109,7 +110,9 @@ export async function getConversations() {
  */
 export async function getMessages(userId1, userId2) {
   try {
-    const { data: messages, error: messagesError } = await supabase
+    // Try fetching with attachment fields; fall back to without if columns don't exist yet
+    let messages, messagesError;
+    ({ data: messages, error: messagesError } = await supabase
       .from('messages')
       .select(
         `
@@ -119,11 +122,32 @@ export async function getMessages(userId1, userId2) {
         content,
         is_read,
         created_at,
+        attachment_url,
+        attachment_type,
         sender:sender_id(id, username, display_name, avatar_url)
         `
       )
       .or(`and(sender_id.eq.${userId1},recipient_id.eq.${userId2}),and(sender_id.eq.${userId2},recipient_id.eq.${userId1})`)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true }));
+
+    // Fallback: if attachment columns don't exist yet, retry without them
+    if (messagesError && messagesError.message?.includes('attachment')) {
+      ({ data: messages, error: messagesError } = await supabase
+        .from('messages')
+        .select(
+          `
+          id,
+          sender_id,
+          recipient_id,
+          content,
+          is_read,
+          created_at,
+          sender:sender_id(id, username, display_name, avatar_url)
+          `
+        )
+        .or(`and(sender_id.eq.${userId1},recipient_id.eq.${userId2}),and(sender_id.eq.${userId2},recipient_id.eq.${userId1})`)
+        .order('created_at', { ascending: true }));
+    }
 
     if (messagesError) throw messagesError;
     return messages || [];
@@ -135,26 +159,61 @@ export async function getMessages(userId1, userId2) {
 
 /**
  * Send a new message to a recipient.
- * Automatically determines the sender (current user).
+ * Supports optional file/image attachments via Supabase Storage.
  *
  * @param {Object} params - Message parameters
  * @param {string} params.recipientId - The recipient's user ID
  * @param {string} params.content - The message content
+ * @param {File} [params.attachment] - Optional file attachment
  * @returns {Promise<Object>} The created message object
  */
-export async function sendMessage({ recipientId, content }) {
+export async function sendMessage({ recipientId, content, attachment }) {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw userError || new Error('No authenticated user');
 
+    let attachmentUrl = null;
+    let attachmentType = null;
+
+    // Upload attachment if provided
+    if (attachment) {
+      const fileExt = attachment.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}_${attachment.name}`;
+      const isImage = attachment.type.startsWith('image/');
+      attachmentType = isImage ? 'image' : 'file';
+
+      const { error: uploadError } = await supabase.storage
+        .from('message-attachments')
+        .upload(fileName, attachment);
+
+      if (uploadError) {
+        console.warn('Attachment upload failed:', uploadError.message);
+        // Continue sending message without attachment
+      } else {
+        const { data: urlData } = supabase.storage
+          .from('message-attachments')
+          .getPublicUrl(fileName);
+        attachmentUrl = urlData.publicUrl;
+      }
+    }
+
+    const insertData = {
+      sender_id: user.id,
+      recipient_id: recipientId,
+      content: content || (attachmentUrl ? '📎 Attachment' : ''),
+      is_read: false,
+    };
+
+    // Only include attachment fields if we have an attachment
+    // (gracefully handles case where DB columns don't exist yet)
+    if (attachmentUrl) {
+      insertData.attachment_url = attachmentUrl;
+      insertData.attachment_type = attachmentType;
+    }
+
     const { data: message, error: insertError } = await supabase
       .from('messages')
-      .insert({
-        sender_id: user.id,
-        recipient_id: recipientId,
-        content,
-        is_read: false,
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -258,22 +317,44 @@ export async function searchConversations(query) {
  * @param {Function} callback - Function to call on new messages: (event) => {}
  * @returns {Object} The subscription channel (call .unsubscribe() to stop)
  */
-export async function subscribeToConversation(userId, callback) {
+export async function subscribeToConversation(otherUserId, callback) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No authenticated user');
 
+    // Subscribe to messages where current user is recipient (from this conversation partner)
+    // Also subscribe to own sent messages (for multi-tab sync)
     const channel = supabase
-      .channel(`messages:${user.id}:${userId}`)
+      .channel(`conversation:${user.id}:${otherUserId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `or(and(sender_id=eq.${user.id},recipient_id=eq.${userId}),and(sender_id=eq.${userId},recipient_id=eq.${user.id}))`,
+          filter: `sender_id=eq.${otherUserId}`,
         },
-        callback
+        (payload) => {
+          // Only forward if this message is for us
+          if (payload.new.recipient_id === user.id) {
+            callback(payload);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${user.id}`,
+        },
+        (payload) => {
+          // Only forward if this message is to the other user
+          if (payload.new.recipient_id === otherUserId) {
+            callback(payload);
+          }
+        }
       )
       .subscribe();
 

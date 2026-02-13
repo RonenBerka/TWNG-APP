@@ -18,7 +18,11 @@ import { supabase } from './client.js';
 export async function getCollections(options = {}) {
   try {
     const { offset = 0, limit = 20, publicOnly = true } = options;
-    let query = supabase.from('collections').select('*');
+    let query = supabase.from('collections').select(`
+      *,
+      collection_items(id),
+      owner:users!user_id(id, username, display_name, avatar_url)
+    `);
 
     if (publicOnly) {
       query = query.eq('is_public', true);

@@ -421,7 +421,7 @@ export default function ForumHome() {
                   <CategoryCard
                     key={cat.id}
                     category={cat}
-                    threadCount={0}
+                    threadCount={cat.thread_count ?? 0}
                   />
                 ))}
               </div>
