@@ -15,6 +15,7 @@ export {
   getPublicProfile,
   updateProfile,
   getUserByUsername,
+  checkUsernameAvailability,
   searchUsers,
   getUserRoles,
   hasRole,

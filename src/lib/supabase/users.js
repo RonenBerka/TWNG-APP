@@ -87,6 +87,30 @@ export async function updateLastActive(userId) {
 }
 
 /**
+ * Check if a username is available.
+ * @param {string} username - The username to check
+ * @param {string} [excludeUserId] - Optional user ID to exclude (for own-profile edits)
+ * @returns {Promise<boolean>} True if available
+ */
+export async function checkUsernameAvailability(username, excludeUserId = null) {
+  if (!username || username.length < 3) return false;
+
+  let query = supabase
+    .from('users')
+    .select('id')
+    .eq('username', username.toLowerCase())
+    .limit(1);
+
+  if (excludeUserId) {
+    query = query.neq('id', excludeUserId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return !data || data.length === 0;
+}
+
+/**
  * Search users by username.
  */
 export async function searchUsers(query, limit = 20) {

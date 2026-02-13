@@ -10,6 +10,8 @@ import { getOccForInstrument } from '../lib/supabase/occ';
 import { addFavorite, removeFavorite, getUserFavorites } from '../lib/supabase/userFavorites';
 import { IMG } from '../utils/placeholders';
 import { ROUTES, userPath } from '../lib/routes';
+import { getInstrumentSerialNumber } from '../lib/supabase/instruments';
+import { decodeSerial, SUPPORTED_BRANDS } from '../lib/serialDecoder';
 
 // ============================================================
 // Badge Component
@@ -615,6 +617,208 @@ function CommentsComponent({ comments }) {
 }
 
 // ============================================================
+// Serial Decoder Component (owner-only)
+// ============================================================
+function SerialDecoderPanel({ instrumentId, make }) {
+  const [loading, setLoading] = useState(false);
+  const [decoded, setDecoded] = useState(null);
+  const [error, setError] = useState(null);
+  const [expanded, setExpanded] = useState(false);
+
+  const handleDecode = async () => {
+    setLoading(true);
+    setError(null);
+    setDecoded(null);
+    try {
+      const sensitiveData = await getInstrumentSerialNumber(instrumentId);
+      if (!sensitiveData?.serial_number) {
+        setError("No serial number recorded for this instrument. Add one in the edit page.");
+        return;
+      }
+      const result = decodeSerial(sensitiveData.serial_number, make || null);
+      setDecoded(result);
+      setExpanded(true);
+    } catch (err) {
+      setError("Could not load serial number. You may not have access.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confidenceColors = {
+    high: '#10B981',
+    medium: T.amber,
+    low: '#F59E0B',
+    none: T.txt2,
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <h2 style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: "28px",
+          fontWeight: 600,
+          color: T.txt,
+          margin: 0,
+        }}>
+          Serial Decoder
+        </h2>
+        <button
+          onClick={handleDecode}
+          disabled={loading}
+          style={{
+            padding: "8px 16px",
+            borderRadius: "8px",
+            border: `1px solid ${T.amber}`,
+            background: loading ? T.bgCard : T.amber,
+            color: loading ? T.txt2 : T.bgDeep,
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: "13px",
+            fontWeight: 600,
+            cursor: loading ? "not-allowed" : "pointer",
+            transition: "all 0.2s",
+            opacity: loading ? 0.6 : 1,
+          }}
+        >
+          {loading ? "Decoding..." : decoded ? "Re-Decode" : "Decode Serial"}
+        </button>
+      </div>
+
+      {error && (
+        <div style={{
+          padding: "12px 16px",
+          borderRadius: "8px",
+          background: `${T.amber}15`,
+          border: `1px solid ${T.amber}40`,
+          color: T.amber,
+          fontSize: "13px",
+          fontFamily: "'DM Sans', sans-serif",
+        }}>
+          {error}
+        </div>
+      )}
+
+      {decoded && expanded && (
+        <div style={{
+          borderRadius: "12px",
+          border: `1px solid ${T.border}`,
+          overflow: "hidden",
+        }}>
+          {/* Confidence bar */}
+          <div style={{
+            padding: "12px 16px",
+            background: T.bgCard,
+            borderBottom: `1px solid ${T.border}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "12px", color: T.txtM, fontFamily: "'JetBrains Mono', monospace" }}>
+                CONFIDENCE
+              </span>
+              <span style={{
+                padding: "3px 10px",
+                borderRadius: "4px",
+                fontSize: "11px",
+                fontWeight: 700,
+                fontFamily: "'JetBrains Mono', monospace",
+                textTransform: "uppercase",
+                background: `${confidenceColors[decoded.confidence] || T.txt2}20`,
+                color: confidenceColors[decoded.confidence] || T.txt2,
+              }}>
+                {decoded.confidence}
+              </span>
+            </div>
+            <button
+              onClick={() => setExpanded(false)}
+              style={{ background: "none", border: "none", color: T.txt2, cursor: "pointer", padding: "4px" }}
+            >
+              <ChevronUp size={16} />
+            </button>
+          </div>
+
+          {decoded.success && decoded.decoded ? (
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, 1fr)",
+              gap: "1px",
+              background: T.border,
+            }}>
+              {[
+                { label: "Brand", value: decoded.decoded.brand },
+                { label: "Year", value: decoded.decoded.year || decoded.decoded.yearRange || "Unknown" },
+                { label: "Factory", value: decoded.decoded.factory || "Unknown" },
+                { label: "Country", value: decoded.decoded.country || "Unknown" },
+                { label: "Series", value: decoded.decoded.series || "Unknown" },
+                { label: "Production #", value: decoded.decoded.productionNumber || "N/A" },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ padding: "12px 16px", background: T.bgDeep }}>
+                  <p style={{ fontSize: "11px", color: T.txtM, fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase", margin: "0 0 4px" }}>
+                    {label}
+                  </p>
+                  <p style={{ fontSize: "14px", color: T.txt, fontWeight: 500, margin: 0 }}>
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: "16px", background: T.bgDeep }}>
+              <p style={{ color: T.txt2, fontSize: "14px" }}>
+                {decoded.explanation || "Serial number format not recognized."}
+              </p>
+            </div>
+          )}
+
+          {/* Explanation */}
+          {decoded.explanation && decoded.success && (
+            <div style={{ padding: "12px 16px", background: T.bgCard, borderTop: `1px solid ${T.border}` }}>
+              <p style={{ fontSize: "13px", color: T.txt2, lineHeight: 1.6, margin: 0 }}>
+                {decoded.explanation}
+              </p>
+            </div>
+          )}
+
+          {/* Tips */}
+          {decoded.tips && decoded.tips.length > 0 && (
+            <div style={{ padding: "12px 16px", background: T.bgCard, borderTop: `1px solid ${T.border}` }}>
+              {decoded.tips.map((tip, i) => (
+                <p key={i} style={{ fontSize: "12px", color: T.txtM, margin: i > 0 ? "4px 0 0" : 0 }}>
+                  {tip}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {decoded && !expanded && (
+        <button
+          onClick={() => setExpanded(true)}
+          style={{
+            padding: "10px 16px",
+            borderRadius: "8px",
+            border: `1px solid ${T.border}`,
+            background: T.bgCard,
+            color: T.txt2,
+            fontSize: "13px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          <ChevronDown size={14} />
+          Show decoded results
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
 // Main InstrumentDetail Component
 // ============================================================
 export default function InstrumentDetail() {
@@ -876,6 +1080,22 @@ export default function InstrumentDetail() {
             marginRight: "auto",
           }}>
             <SpecificationsComponent specs={instrument.specs} />
+          </div>
+        </div>
+      )}
+
+      {/* Serial Decoder Section (owner-only) */}
+      {isOwner && (
+        <div style={{
+          padding: "48px 24px",
+          borderTop: `1px solid ${T.border}`,
+        }}>
+          <div style={{
+            maxWidth: "80rem",
+            marginLeft: "auto",
+            marginRight: "auto",
+          }}>
+            <SerialDecoderPanel instrumentId={instrument.id} make={instrument.make} />
           </div>
         </div>
       )}
