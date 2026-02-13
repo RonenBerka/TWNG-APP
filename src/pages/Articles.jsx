@@ -337,7 +337,7 @@ function ArticleCard({ article, onClick, size = "default" }) {
           </h2>
 
           {/* Article preview — first 2 paragraphs */}
-          <div style={{ flex: 1, marginBottom: "16px" }}>
+          <div style={{ marginBottom: "16px" }}>
             {previewParagraphs.map((block, idx) => (
               <p
                 key={idx}
@@ -363,7 +363,6 @@ function ArticleCard({ article, onClick, size = "default" }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginTop: "auto",
               paddingTop: "14px",
               borderTop: `1px solid ${T.border}`,
             }}
