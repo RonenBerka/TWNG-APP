@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Guitar,
   Heart,
@@ -401,6 +401,7 @@ function ActivityItem({ activity }) {
 export default function TWNGProfile() {
   const { user } = useAuth();
   const { username } = useParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("guitars");
 
   // Profile data state
@@ -872,6 +873,39 @@ export default function TWNGProfile() {
                   : followState.isFollowing
                     ? "Following"
                     : "Follow"}
+              </button>
+            )}
+            {!isOwnProfile && user && (
+              <button
+                onClick={() => navigate("/messages")}
+                style={{
+                  backgroundColor: T.bgCard,
+                  color: T.txt,
+                  border: `1px solid ${T.border}`,
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontFamily: "DM Sans",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = T.bgElev;
+                  e.currentTarget.style.borderColor = T.warm;
+                  e.currentTarget.style.color = T.warm;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = T.bgCard;
+                  e.currentTarget.style.borderColor = T.border;
+                  e.currentTarget.style.color = T.txt;
+                }}
+              >
+                <MessageSquare size={16} />
+                Message
               </button>
             )}
             <button

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Heart, Share2, Shield, ChevronDown, ChevronUp, Calendar, Clock, Eye, EyeOff, Users, Flag, AlertTriangle, Check, Loader2 } from "lucide-react";
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Heart, Share2, Shield, ChevronDown, ChevronUp, Calendar, Clock, Eye, EyeOff, Users, Flag, AlertTriangle, Check, Loader2, MessageSquare } from "lucide-react";
 import { T } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
 import { getInstrument, updateInstrument } from '../lib/supabase/instruments';
@@ -158,7 +158,7 @@ function ImageGallery({ images }) {
 // ============================================================
 // Instrument Header Component
 // ============================================================
-function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
+function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner, user, navigate }) {
   const [publishing, setPublishing] = useState(false);
   const [shared, setShared] = useState(false);
 
@@ -349,6 +349,30 @@ function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
           {shared ? <Check size={18} /> : <Share2 size={18} />}
           {shared ? "Copied!" : ""}
         </button>
+        {!isOwner && user && (
+          <button
+            onClick={() => navigate("/messages")}
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              padding: "12px",
+              borderRadius: "10px",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: 600,
+              transition: "all 200ms",
+              backgroundColor: T.bgCard,
+              color: T.txt2,
+            }}
+          >
+            <MessageSquare size={18} />
+            Contact Owner
+          </button>
+        )}
       </div>
     </div>
   );
@@ -564,6 +588,7 @@ function CommentsComponent({ comments }) {
 export default function InstrumentDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [instrument, setInstrument] = useState(null);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -734,6 +759,8 @@ export default function InstrumentDetail() {
             loved={loved}
             onLoveToggle={handleLoveToggle}
             isOwner={isOwner}
+            user={user}
+            navigate={navigate}
           />
         </div>
       </div>
