@@ -341,13 +341,22 @@ export async function updateTransferStatus(transferId, newStatus) {
 // ─────────────────────────────────────────────────────
 
 export async function getHomepageBlocks() {
-  // Admin needs ALL blocks (including inactive) to show toggle states
-  const { data, error } = await supabase
-    .from('homepage_blocks')
-    .select('*')
-    .order('display_order', { ascending: true });
+  // Use RPC to bypass PostgREST stale schema cache (see migration 019).
+  // Falls back to direct table query if the function doesn't exist yet.
+  const { data, error } = await supabase.rpc('get_homepage_blocks');
 
-  if (error) throw error;
+  if (error) {
+    // Fallback: RPC function not created yet — use direct query
+    if (error.code === '42883') {
+      const fallback = await supabase
+        .from('homepage_blocks')
+        .select('*')
+        .order('display_order', { ascending: true });
+      if (fallback.error) throw fallback.error;
+      return (fallback.data || []).map(b => ({ ...b, type: mapDbTypeToFrontend(b.type) }));
+    }
+    throw error;
+  }
   // Map DB enum types → frontend type names
   return (data || []).map(b => ({ ...b, type: mapDbTypeToFrontend(b.type) }));
 }
@@ -435,50 +444,56 @@ export { updateSystemSetting as updateSystemConfig };
 export { getAdminForumThreads as getAdminDiscussions };
 export { toggleThreadLocked as toggleDiscussionHidden };
 /**
- * Save homepage blocks — deletes existing rows then inserts fresh set.
- * Uses delete+insert because homepage_blocks has no unique constraint on `type`.
+ * Save homepage blocks — updates existing rows by DB type.
+ * Uses the `type` column (mapped to DB enum) instead of `id`, because
+ * PostgREST may not return all rows on SELECT (stale schema cache),
+ * leaving blocks without their DB UUID. UPDATE by type still works
+ * because the rows exist and we're not changing the type column.
  * @param {Array} blocks - [{type, title, status, ...}, ...]
  * @param {string} userId - current admin user id (for audit)
  */
 export async function saveHomepageBlocks(blocks, userId) {
   try {
-    const rows = blocks.map((b, i) => ({
-      type: mapFrontendTypeToDb(b.type),
-      title: b.title,
-      is_active: b.status === 'active',
-      display_order: i + 1,
-      updated_at: new Date().toISOString(),
-    }));
+    const failures = [];
 
-    // Per-row upsert: find existing by type, update or insert
-    // Safer than delete+insert — if one row fails, others still persist
-    for (const row of rows) {
-      const { data: existing } = await supabase
-        .from('homepage_blocks')
-        .select('id')
-        .eq('type', row.type)
-        .maybeSingle();
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      if (!b.type) continue;
+      const dbType = mapFrontendTypeToDb(b.type);
 
-      if (existing) {
-        const { error } = await supabase
-          .from('homepage_blocks')
-          .update({
-            title: row.title,
-            is_active: row.is_active,
-            display_order: row.display_order,
-            updated_at: row.updated_at,
-          })
-          .eq('id', existing.id);
-        if (error) console.warn(`Failed to update block type="${row.type}":`, error.message);
-      } else {
-        const { error } = await supabase
-          .from('homepage_blocks')
-          .insert(row);
-        if (error) console.warn(`Failed to insert block type="${row.type}":`, error.message);
+      // Use RPC to bypass PostgREST stale schema cache (see migration 019)
+      const { error } = await supabase.rpc('update_homepage_block_by_type', {
+        p_type: dbType,
+        p_title: b.title,
+        p_is_active: b.status === 'active',
+        p_display_order: i + 1,
+      });
+
+      if (error) {
+        // Fallback: RPC not available, try direct UPDATE
+        if (error.code === '42883') {
+          const fb = await supabase
+            .from('homepage_blocks')
+            .update({
+              title: b.title,
+              is_active: b.status === 'active',
+              display_order: i + 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('type', dbType);
+          if (fb.error) failures.push({ type: b.type, message: fb.error.message });
+        } else {
+          failures.push({ type: b.type, message: error.message });
+        }
       }
     }
 
-    return rows;
+    if (failures.length > 0) {
+      const detail = failures.map(f => `${f.type}: ${f.message}`).join('; ');
+      throw new Error(`Failed to save ${failures.length} block(s): ${detail}`);
+    }
+
+    return blocks;
   } catch (err) {
     console.error('saveHomepageBlocks error:', err);
     throw err;
