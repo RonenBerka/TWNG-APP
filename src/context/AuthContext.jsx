@@ -240,13 +240,14 @@ export function AuthProvider({ children }) {
   }, []);
 
   // Sign up with email/password
-  const signup = useCallback(async ({ email, password, displayName }) => {
+  const signup = useCallback(async ({ email, password, displayName, username }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           display_name: displayName,
+          username: username || undefined,
         },
       },
     });

@@ -158,7 +158,7 @@ function DangerButton({ icon, label, description, onClick }) {
 // ============================================================
 
 function ProfileSettings() {
-  const { profile, updateProfile } = useAuth();
+  const { profile, updateProfile, user } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
@@ -173,11 +173,44 @@ function ProfileSettings() {
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const fileInputRef = useRef(null);
+  const [usernameStatus, setUsernameStatus] = useState(null); // null | 'checking' | 'available' | 'taken' | 'invalid'
+  const usernameTimerRef = useRef(null);
+  const originalUsernameRef = useRef("");
+
+  const handleUsernameChange = (val) => {
+    const sanitized = val.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    setUsername(sanitized);
+
+    if (usernameTimerRef.current) clearTimeout(usernameTimerRef.current);
+
+    // If unchanged from saved value, clear status
+    if (sanitized === originalUsernameRef.current) {
+      setUsernameStatus(null);
+      return;
+    }
+
+    if (!sanitized || sanitized.length < 3) {
+      setUsernameStatus(sanitized.length > 0 ? 'invalid' : null);
+      return;
+    }
+
+    setUsernameStatus('checking');
+    usernameTimerRef.current = setTimeout(async () => {
+      try {
+        const { checkUsernameAvailability } = await import('../lib/supabase/users');
+        const available = await checkUsernameAvailability(sanitized, user?.id);
+        setUsernameStatus(available ? 'available' : 'taken');
+      } catch {
+        setUsernameStatus(null);
+      }
+    }, 500);
+  };
 
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.display_name || "");
       setUsername(profile.username || "");
+      originalUsernameRef.current = profile.username || "";
       setBio(profile.bio || "");
       setLocation(profile.location || "");
       setAvatarUrl(profile.avatar_url || "");
@@ -291,7 +324,28 @@ function ProfileSettings() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }} className="settings-grid">
         <TextInput label="Display Name" value={displayName} onChange={e => setDisplayName(e.target.value)} />
-        <TextInput label="Username" value={username} onChange={e => setUsername(e.target.value)} hint="twng.com/@username" />
+        <div style={{ marginBottom: "20px" }}>
+          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: T.txt, marginBottom: "6px" }}>Username</label>
+          <p style={{ fontSize: "12px", color: T.txtM, marginBottom: "6px" }}>twng.com/@{username || 'username'}</p>
+          <div style={{ position: "relative" }}>
+            <input type="text" value={username} onChange={e => handleUsernameChange(e.target.value)} placeholder="your_username"
+              style={{ width: "100%", padding: "10px 14px", paddingRight: usernameStatus ? "36px" : "14px", borderRadius: "10px", background: T.bgCard, border: `1px solid ${usernameStatus === 'taken' ? '#F87171' : usernameStatus === 'available' ? '#22C55E' : T.border}`, color: T.txt, fontSize: "14px", outline: "none", fontFamily: "'DM Sans', sans-serif" }}
+              onFocus={e => { if (!usernameStatus || usernameStatus === 'checking') e.target.style.borderColor = T.borderAcc; }}
+              onBlur={e => { if (!usernameStatus || usernameStatus === 'checking' || usernameStatus === 'invalid') e.target.style.borderColor = T.border; }} />
+            {usernameStatus === 'checking' && (
+              <span style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: T.txtM, fontSize: "12px" }}>...</span>
+            )}
+            {usernameStatus === 'available' && (
+              <Check size={16} style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "#22C55E" }} />
+            )}
+            {usernameStatus === 'taken' && (
+              <span style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "#F87171", fontSize: "14px", fontWeight: 700 }}>✕</span>
+            )}
+          </div>
+          {usernameStatus === 'taken' && <p style={{ fontSize: "12px", color: "#F87171", marginTop: "4px" }}>Username is already taken</p>}
+          {usernameStatus === 'invalid' && <p style={{ fontSize: "12px", color: T.txtM, marginTop: "4px" }}>At least 3 characters (letters, numbers, underscores)</p>}
+          {usernameStatus === 'available' && <p style={{ fontSize: "12px", color: "#22C55E", marginTop: "4px" }}>Username is available</p>}
+        </div>
       </div>
 
       <TextArea label="Bio" value={bio} onChange={e => setBio(e.target.value)} maxLength={300} rows={3} />

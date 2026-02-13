@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from 'react-router-dom';
 import {
   Mail,
@@ -582,9 +582,36 @@ function SignInPage({ onSwitch, onAuth, error, submitting }) {
 // ============================================================
 function SignUpPage({ onSwitch, onAuth, error, submitting }) {
   const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState(null); // null | 'checking' | 'available' | 'taken' | 'invalid'
+  const usernameTimerRef = useRef(null);
+
+  const handleUsernameChange = (val) => {
+    // Only allow lowercase alphanumeric + underscores
+    const sanitized = val.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    setUsername(sanitized);
+
+    if (usernameTimerRef.current) clearTimeout(usernameTimerRef.current);
+
+    if (!sanitized || sanitized.length < 3) {
+      setUsernameStatus(sanitized.length > 0 ? 'invalid' : null);
+      return;
+    }
+
+    setUsernameStatus('checking');
+    usernameTimerRef.current = setTimeout(async () => {
+      try {
+        const { checkUsernameAvailability } = await import('../lib/supabase/users');
+        const available = await checkUsernameAvailability(sanitized);
+        setUsernameStatus(available ? 'available' : 'taken');
+      } catch {
+        setUsernameStatus(null); // Fail silently — don't block user
+      }
+    }, 500);
+  };
 
   return (
     <div
@@ -730,6 +757,87 @@ function SignUpPage({ onSwitch, onAuth, error, submitting }) {
           autoComplete="name"
         />
 
+        {/* Username Field */}
+        <div style={{ marginBottom: "20px" }}>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "8px",
+              fontSize: "14px",
+              fontFamily: "'DM Sans', sans-serif",
+              color: T.txt,
+              fontWeight: 500,
+            }}
+          >
+            <User size={16} color={T.txt2} />
+            Username
+          </label>
+          <div style={{ position: "relative" }}>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => handleUsernameChange(e.target.value)}
+              placeholder="your_username"
+              autoComplete="username"
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                paddingRight: usernameStatus ? "44px" : "14px",
+                borderRadius: "8px",
+                border: `1px solid ${usernameStatus === 'taken' ? '#EF4444' : usernameStatus === 'available' ? '#10B981' : T.border}`,
+                background: T.bgElev,
+                color: T.txt,
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: "14px",
+                transition: "all 0.2s",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+              onFocus={(e) => {
+                if (!usernameStatus || usernameStatus === 'checking') {
+                  e.target.style.borderColor = T.borderAcc;
+                  e.target.style.boxShadow = `0 0 0 3px ${T.borderAcc}33`;
+                }
+              }}
+              onBlur={(e) => {
+                if (!usernameStatus || usernameStatus === 'checking' || usernameStatus === 'invalid') {
+                  e.target.style.borderColor = T.border;
+                }
+                e.target.style.boxShadow = "none";
+              }}
+            />
+            {usernameStatus === 'checking' && (
+              <span style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: T.txt2, fontSize: "12px" }}>...</span>
+            )}
+            {usernameStatus === 'available' && (
+              <Check size={18} style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "#10B981" }} />
+            )}
+            {usernameStatus === 'taken' && (
+              <span style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "#EF4444", fontSize: "16px", fontWeight: 700 }}>✕</span>
+            )}
+          </div>
+          {usernameStatus === 'taken' && (
+            <p style={{ fontSize: "12px", color: "#EF4444", marginTop: "4px", fontFamily: "'DM Sans', sans-serif" }}>
+              Username is already taken
+            </p>
+          )}
+          {usernameStatus === 'invalid' && (
+            <p style={{ fontSize: "12px", color: T.txt2, marginTop: "4px", fontFamily: "'DM Sans', sans-serif" }}>
+              At least 3 characters (letters, numbers, underscores)
+            </p>
+          )}
+          {usernameStatus === 'available' && (
+            <p style={{ fontSize: "12px", color: "#10B981", marginTop: "4px", fontFamily: "'DM Sans', sans-serif" }}>
+              Username is available
+            </p>
+          )}
+          <p style={{ fontSize: "11px", color: T.txtM, marginTop: "4px", fontFamily: "'DM Sans', sans-serif" }}>
+            twng.com/@{username || 'username'}
+          </p>
+        </div>
+
         {/* Email Field */}
         <InputField
           label="Email"
@@ -869,7 +977,7 @@ function SignUpPage({ onSwitch, onAuth, error, submitting }) {
 
         {/* Create Account Button */}
         <Button
-          onClick={() => onAuth("signup", { email, password, displayName: fullName })}
+          onClick={() => onAuth("signup", { email, password, displayName: fullName, username: username.trim() })}
           icon={ArrowRight}
           disabled={submitting}
         >
