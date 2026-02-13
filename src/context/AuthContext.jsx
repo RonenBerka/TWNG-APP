@@ -44,6 +44,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const profileLoadedRef = useRef(false);
 
   // Roles are read from profile.roles array (from user_roles table)
@@ -97,6 +98,7 @@ export function AuthProvider({ children }) {
           setIsAuthenticated(false);
           setLoading(false);
           profileLoadedRef.current = false;
+          setProfileLoaded(false);
         }
       }
     );
@@ -115,6 +117,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!user?.id) {
       profileLoadedRef.current = false;
+      setProfileLoaded(false);
       return;
     }
 
@@ -172,6 +175,7 @@ export function AuthProvider({ children }) {
                 roles: [newUser.role || 'user'],
               };
               profileLoadedRef.current = true;
+              setProfileLoaded(true);
               setProfile(enrichedProfile);
               return;
             }
@@ -204,6 +208,7 @@ export function AuthProvider({ children }) {
             }
 
             profileLoadedRef.current = true;
+            setProfileLoaded(true);
             setProfile(enrichedProfile);
           }
           return;
@@ -231,6 +236,7 @@ export function AuthProvider({ children }) {
   // Sign in with email/password
   const login = useCallback(async ({ email, password }) => {
     profileLoadedRef.current = false;
+    setProfileLoaded(false);
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -279,6 +285,7 @@ export function AuthProvider({ children }) {
   // Sign out
   const logout = useCallback(async () => {
     profileLoadedRef.current = false;
+    setProfileLoaded(false);
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   }, []);
@@ -343,6 +350,7 @@ export function AuthProvider({ children }) {
     profile,
     isAuthenticated,
     loading,
+    profileLoaded,
     isAdmin,
     isStaff,
     hasRole,

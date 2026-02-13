@@ -15,10 +15,11 @@ import { ShieldX, Loader2 } from 'lucide-react';
  * Uses the new user_roles table structure to check permissions.
  */
 export default function AdminRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, profileLoaded } = useAuth();
   const { isStaff } = useRole();
 
-  if (loading) {
+  // Wait for both auth AND profile (with roles) to load before deciding
+  if (loading || (isAuthenticated && !profileLoaded)) {
     return (
       <div
         style={{
