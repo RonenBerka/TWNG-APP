@@ -80,8 +80,6 @@ import {
   saveHomepageBlocks,
 } from "../lib/supabase/admin";
 import {
-  getHomepageSectionConfig,
-  saveHomepageSectionConfig,
   saveHomepageTestimonials,
   saveHomepageStats,
 } from "../lib/supabase/homepage";
@@ -1538,10 +1536,7 @@ const HomepageManagementPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const [dbBlocks, config] = await Promise.all([
-          getHomepageBlocks(),
-          getHomepageSectionConfig(),
-        ]);
+        const dbBlocks = await getHomepageBlocks();
         // Merge DB data with canonical list
         const dbMap = {};
         (dbBlocks || []).forEach((b) => {
@@ -1650,8 +1645,7 @@ const HomepageManagementPage = () => {
   const saveContentConfig = async () => {
     setSaving(true);
     try {
-      await saveHomepageSectionConfig(sectionConfig, user?.id);
-      // Also save testimonial and stats if they exist in config
+      // Save testimonial and stats if they exist in config
       if (sectionConfig.testimonial) {
         await saveHomepageTestimonials([sectionConfig.testimonial], user?.id);
       }
