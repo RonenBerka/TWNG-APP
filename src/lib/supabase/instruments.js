@@ -163,6 +163,36 @@ export async function getInstrumentCountByMake() {
 }
 
 /**
+ * Check if an instrument with the same make + model + year already exists.
+ * Returns the first match (id, make, model, year, main_image_url) or null.
+ * Used for soft duplicate detection on the Add Instrument form.
+ */
+export async function checkDuplicateInstrument({ make, model, year }) {
+  if (!make || !model) return null;
+
+  let query = supabase
+    .from('instruments')
+    .select('id, make, model, year, main_image_url')
+    .ilike('make', make.trim())
+    .ilike('model', model.trim())
+    .is('deleted_at', null)
+    .eq('is_archived', false)
+    .limit(1);
+
+  if (year) {
+    query = query.eq('year', parseInt(year));
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.warn('Duplicate check failed:', error.message);
+    return null; // Don't block the user if the check fails
+  }
+
+  return data?.[0] || null;
+}
+
+/**
  * Create a new instrument
  */
 export async function createInstrument(instrumentData) {

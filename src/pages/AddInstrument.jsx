@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { createInstrument } from '../lib/supabase/instruments';
 import { supabase } from '../lib/supabase/client';
 import { ROUTES, instrumentPath } from '../lib/routes';
+import { checkDuplicateInstrument } from '../lib/supabase/instruments';
 
 // ============================================================
 // CONSTANTS
@@ -132,6 +133,7 @@ export default function AddInstrument() {
   const [error, setError] = useState(null);
   const [processingMsg, setProcessingMsg] = useState(0);
   const [dragOver, setDragOver] = useState(false);
+  const [duplicateMatch, setDuplicateMatch] = useState(null); // {id, make, model, year}
 
   // -- Processing message cycling --
   useEffect(() => {
@@ -319,6 +321,22 @@ export default function AddInstrument() {
   const updateSpec = (field, value) => setFormData(prev => ({
     ...prev, specs: { ...prev.specs, [field]: value },
   }));
+
+  // Soft duplicate detection — runs before advancing to story step
+  const runDuplicateCheck = async () => {
+    if (!formData.make || !formData.model) return;
+    try {
+      const match = await checkDuplicateInstrument({
+        make: formData.make,
+        model: formData.model,
+        year: formData.year,
+      });
+      setDuplicateMatch(match);
+    } catch {
+      // Silently ignore — don't block the flow
+      setDuplicateMatch(null);
+    }
+  };
 
   // ============================================================
   // RENDER — Capture Screen
@@ -700,7 +718,10 @@ export default function AddInstrument() {
 
           {/* Buttons */}
           <button
-            onClick={() => setStep('story')}
+            onClick={async () => {
+              await runDuplicateCheck();
+              setStep('story');
+            }}
             style={{
               width: "100%", marginTop: "24px", padding: "16px",
               borderRadius: "12px", border: "none",
@@ -924,12 +945,13 @@ export default function AddInstrument() {
 
           {/* Save button */}
           <button
-            onClick={() => {
+            onClick={async () => {
               if (!formData.make || !formData.model) {
                 setError("Make and model are required");
                 return;
               }
               setError(null);
+              await runDuplicateCheck();
               setStep('story');
             }}
             style={{
@@ -988,6 +1010,36 @@ export default function AddInstrument() {
               </p>
             </div>
           </div>
+
+          {/* Duplicate detection warning — soft, non-blocking */}
+          {duplicateMatch && (
+            <div style={{
+              padding: "14px 16px", marginBottom: "20px", borderRadius: "8px",
+              backgroundColor: "#92400E18", border: "1px solid #92400E40",
+              display: "flex", alignItems: "flex-start", gap: "10px",
+            }}>
+              <AlertTriangle size={18} style={{ color: "#F59E0B", flexShrink: 0, marginTop: "1px" }} />
+              <div>
+                <p style={{ color: "#F59E0B", margin: "0 0 6px", fontSize: "13px", fontWeight: 600 }}>
+                  Possible duplicate found
+                </p>
+                <p style={{ color: T.txt2, margin: 0, fontSize: "12px", lineHeight: 1.5 }}>
+                  A <strong>{duplicateMatch.make} {duplicateMatch.model}</strong>
+                  {duplicateMatch.year ? ` (${duplicateMatch.year})` : ''} already exists.{' '}
+                  <Link
+                    to={instrumentPath(duplicateMatch.id)}
+                    target="_blank"
+                    style={{ color: T.warm, textDecoration: "underline" }}
+                  >
+                    View existing instrument
+                  </Link>
+                </p>
+                <p style={{ color: T.txtM, margin: "4px 0 0", fontSize: "11px" }}>
+                  You can still add yours — duplicates are allowed.
+                </p>
+              </div>
+            </div>
+          )}
 
           <textarea
             value={story}
