@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Quote,
   Tag,
+  X,
 } from "lucide-react";
 import { T } from "../theme/tokens";
 import { GUITAR_IMAGES, ARTIST_IMAGES, HERO_IMAGES } from "../utils/placeholders";
@@ -261,12 +262,17 @@ function ArticleCard({ article, onClick, size = "default" }) {
   const [hov, setHov] = useState(false);
 
   if (size === "featured") {
+    // Extract first 2 paragraph blocks for preview
+    const previewParagraphs = article.content
+      ?.filter((block) => block.type === "p")
+      .slice(0, 2) || [];
+
     return (
       <Link
         to={`/articles/${article.id}`}
         style={{
           display: "grid",
-          gridTemplateColumns: "1.2fr 1fr",
+          gridTemplateColumns: "1fr 1.8fr",
           borderRadius: "16px",
           overflow: "hidden",
           background: T.bgCard,
@@ -278,7 +284,8 @@ function ArticleCard({ article, onClick, size = "default" }) {
         onMouseEnter={() => setHov(true)}
         onMouseLeave={() => setHov(false)}
       >
-        <div style={{ aspectRatio: "16/10", overflow: "hidden" }}>
+        {/* Image — compact left column */}
+        <div style={{ overflow: "hidden", minHeight: "280px" }}>
           <img
             src={article.image}
             alt=""
@@ -291,63 +298,18 @@ function ArticleCard({ article, onClick, size = "default" }) {
             }}
           />
         </div>
+
+        {/* Content — title, preview, author, Read More */}
         <div
           style={{
-            padding: "24px",
+            padding: "28px 32px",
             display: "flex",
             flexDirection: "column",
-            justifyContent: "center",
           }}
         >
-          <Badge>{article.category}</Badge>
-          <h2
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: "22px",
-              fontWeight: 700,
-              color: T.txt,
-              margin: "12px 0 8px",
-              lineHeight: 1.3,
-            }}
-          >
-            {article.title}
-          </h2>
-          <p
-            style={{
-              fontSize: "14px",
-              color: T.txt2,
-              lineHeight: 1.5,
-              marginBottom: "16px",
-            }}
-          >
-            {article.excerpt}
-          </p>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              marginTop: "auto",
-            }}
-          >
-            <div
-              style={{
-                width: "28px",
-                height: "28px",
-                borderRadius: "50%",
-                overflow: "hidden",
-              }}
-            >
-              <img
-                src={article.authorAvatar}
-                alt=""
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-            </div>
-            <span style={{ fontSize: "13px", color: T.txt }}>
-              {article.author}
-            </span>
-            <span style={{ fontSize: "12px", color: T.txtM }}>·</span>
+          {/* Top: badge + meta */}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+            <Badge>{article.category}</Badge>
             <span
               style={{
                 fontSize: "12px",
@@ -358,6 +320,85 @@ function ArticleCard({ article, onClick, size = "default" }) {
               }}
             >
               <Clock size={11} /> {article.readTime}
+            </span>
+          </div>
+
+          <h2
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "24px",
+              fontWeight: 700,
+              color: T.txt,
+              margin: "0 0 14px",
+              lineHeight: 1.3,
+            }}
+          >
+            {article.title}
+          </h2>
+
+          {/* Article preview — first 2 paragraphs */}
+          <div style={{ flex: 1, marginBottom: "16px" }}>
+            {previewParagraphs.map((block, idx) => (
+              <p
+                key={idx}
+                style={{
+                  fontSize: "14px",
+                  color: T.txt2,
+                  lineHeight: 1.6,
+                  margin: idx === 0 ? "0 0 10px" : "0",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
+                {block.text}
+              </p>
+            ))}
+          </div>
+
+          {/* Bottom: author + Read More */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: "auto",
+              paddingTop: "14px",
+              borderTop: `1px solid ${T.border}`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "50%",
+                  overflow: "hidden",
+                }}
+              >
+                <img
+                  src={article.authorAvatar}
+                  alt=""
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              </div>
+              <span style={{ fontSize: "13px", color: T.txt }}>
+                {article.author}
+              </span>
+            </div>
+
+            <span
+              style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: T.amber,
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              Read More <ChevronRight size={14} />
             </span>
           </div>
         </div>
@@ -477,6 +518,8 @@ function ArticleList({
   onSearchChange,
   sortBy,
   onSortChange,
+  activeTag,
+  onClearTag,
 }) {
   const categories = [
     "All",
@@ -509,6 +552,12 @@ function ArticleList({
       (a) =>
         a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         a.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }
+
+  if (activeTag) {
+    filtered = filtered.filter(
+      (a) => a.tags?.some((t) => t.toLowerCase() === activeTag.toLowerCase())
     );
   }
 
@@ -634,6 +683,30 @@ function ArticleList({
         </select>
       </div>
 
+      {/* Active tag filter */}
+      {activeTag && (
+        <div style={{ marginBottom: "20px" }}>
+          <button
+            onClick={onClearTag}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 14px",
+              background: T.amber,
+              color: T.bgDeep,
+              border: "none",
+              borderRadius: "20px",
+              fontSize: "13px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            <Tag size={12} /> {activeTag} <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Article Grid */}
       {filtered.length > 0 ? (
         <div
@@ -666,7 +739,7 @@ function ArticleList({
   );
 }
 
-function ArticleReader({ article, onBack, onSelectArticle }) {
+function ArticleReader({ article, onBack, onSelectArticle, onTagClick }) {
   const [liked, setLiked] = useState(false);
   const relatedArticles = articles.filter((a) =>
     article.relatedIds?.includes(a.id)
@@ -905,8 +978,9 @@ function ArticleReader({ article, onBack, onSelectArticle }) {
             }}
           >
             {article.tags.map((tag) => (
-              <span
+              <button
                 key={tag}
+                onClick={() => onTagClick?.(tag)}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -917,10 +991,20 @@ function ArticleReader({ article, onBack, onSelectArticle }) {
                   borderRadius: "20px",
                   fontSize: "12px",
                   color: T.txtM,
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = T.amber;
+                  e.currentTarget.style.color = T.amber;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = T.border;
+                  e.currentTarget.style.color = T.txtM;
                 }}
               >
                 <Tag size={12} /> {tag}
-              </span>
+              </button>
             ))}
           </div>
         )}
@@ -1106,6 +1190,7 @@ export default function TWNGArticles() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("latest");
+  const [activeTag, setActiveTag] = useState(null);
 
   const { id: articleIdParam } = useParams();
   const navigate = useNavigate();
@@ -1136,6 +1221,8 @@ export default function TWNGArticles() {
           onSearchChange={setSearchQuery}
           sortBy={sortBy}
           onSortChange={setSortBy}
+          activeTag={activeTag}
+          onClearTag={() => setActiveTag(null)}
         />
       ) : selectedArticle ? (
         <ArticleReader
@@ -1146,6 +1233,12 @@ export default function TWNGArticles() {
             navigate("/articles");
           }}
           onSelectArticle={(id) => navigate(`/articles/${id}`)}
+          onTagClick={(tag) => {
+            setActiveTag(tag);
+            setView("list");
+            setSelectedArticleId(null);
+            navigate("/articles");
+          }}
         />
       ) : null}
     </div>
