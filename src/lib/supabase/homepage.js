@@ -405,25 +405,10 @@ export async function getFeaturedCollections(limit = 6) {
 }
 
 // ─────────────────────────────────────────────────────
-// LEGACY STUBS FOR ADMIN.JSX COMPATIBILITY
+// SECTION CONFIG HELPERS (used by Admin homepage management)
 // ─────────────────────────────────────────────────────
 
-export async function getHomepageSectionConfig(sectionType) {
-  try {
-    const { data, error } = await supabase
-      .from('homepage_blocks')
-      .select('*')
-      .eq('type', sectionType)
-      .maybeSingle();
-    if (error) throw error;
-    return data?.content || {};
-  } catch (err) {
-    console.error('getHomepageSectionConfig error:', err);
-    return {};
-  }
-}
-
-export async function saveHomepageSectionConfig(sectionType, config) {
+async function saveHomepageSectionConfig(sectionType, config) {
   try {
     const { error } = await supabase
       .from('homepage_blocks')

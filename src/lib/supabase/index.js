@@ -107,12 +107,6 @@ export {
 
 // Homepage / Config
 export * from './homepage';
-export {
-  getHomepageSectionConfig,
-  saveHomepageSectionConfig,
-  saveHomepageTestimonials,
-  saveHomepageStats,
-} from './homepage';
 // homepageBlocks — only unique exports (no overlap with homepage.js)
 export { getActiveBlocks, getBlock, createBlock, updateBlock, deleteBlock, reorderBlocks } from './homepageBlocks';
 export * from './systemSettings';
