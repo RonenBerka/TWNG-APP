@@ -231,21 +231,13 @@ const articles = [
 // ===== COMPONENTS =====
 
 function Badge({ children, type = "category" }) {
-  const bgColor = {
-    "Deep Dive": T.warm,
-    Guide: T.amber,
-    Interview: T.borderAcc,
-    Review: T.amber,
-    News: T.warm,
-  }[children] || T.warm;
-
   return (
     <span
       style={{
         display: "inline-block",
         padding: "4px 10px",
         borderRadius: "6px",
-        backgroundColor: bgColor,
+        backgroundColor: T.amber,
         color: T.bgDeep,
         fontSize: "11px",
         fontWeight: 600,
