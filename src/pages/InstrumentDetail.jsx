@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Heart, Share2, Shield, ChevronDown, ChevronUp, Calendar, Clock, Eye, EyeOff, Users, Flag, AlertTriangle, Check, Loader2 } from "lucide-react";
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Heart, Share2, Shield, ChevronDown, ChevronUp, Calendar, Clock, Eye, EyeOff, Users, Flag, AlertTriangle, Check, Loader2, MessageSquare, Pencil } from "lucide-react";
 import { T } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
 import { getInstrument, updateInstrument } from '../lib/supabase/instruments';
@@ -158,7 +158,7 @@ function ImageGallery({ images }) {
 // ============================================================
 // Instrument Header Component
 // ============================================================
-function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
+function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner, user, navigate }) {
   const [publishing, setPublishing] = useState(false);
   const [shared, setShared] = useState(false);
 
@@ -199,23 +199,44 @@ function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      {/* Make & Year & Type Badges */}
+      {/* Make & Year & Type Badges — clickable, link to Explore with filters */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-        <Badge variant="default">
-          <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            {instrument.make}
-          </span>
-        </Badge>
-        <Badge variant="default">
-          <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            {instrument.year}
-          </span>
-        </Badge>
-        <Badge variant="default">
-          <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            {instrument.custom_fields?.instrument_type || 'Instrument'}
-          </span>
-        </Badge>
+        {instrument.make && (
+          <Link
+            to={`/explore?make=${encodeURIComponent(instrument.make)}`}
+            style={{ textDecoration: "none" }}
+          >
+            <Badge variant="default">
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", cursor: "pointer" }}>
+                {instrument.make}
+              </span>
+            </Badge>
+          </Link>
+        )}
+        {instrument.year && (
+          <Link
+            to={`/explore?year=${encodeURIComponent(instrument.year)}`}
+            style={{ textDecoration: "none" }}
+          >
+            <Badge variant="default">
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", cursor: "pointer" }}>
+                {instrument.year}
+              </span>
+            </Badge>
+          </Link>
+        )}
+        <Link
+          to={`/explore?type=${encodeURIComponent(
+            (instrument.custom_fields?.instrument_type || 'Instrument').toLowerCase().replace(/\s+/g, '_')
+          )}`}
+          style={{ textDecoration: "none" }}
+        >
+          <Badge variant="default">
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", cursor: "pointer" }}>
+              {instrument.custom_fields?.instrument_type || 'Instrument'}
+            </span>
+          </Badge>
+        </Link>
       </div>
 
       {/* Model Name & Nickname */}
@@ -230,7 +251,7 @@ function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
             margin: 0,
           }}
         >
-          {instrument.model}
+          {[instrument.make, instrument.model].filter(Boolean).join(' ')}
         </h1>
         {instrument.nickname && (
           <p
@@ -296,12 +317,38 @@ function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
             </p>
           </div>
         </Link>
-        {instrument.moderation_status === 'verified' && (
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <Shield size={14} color="#34D399" />
-            <span style={{ color: "#34D399", fontSize: "12px", fontWeight: 600 }}>Verified</span>
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {instrument.moderation_status === 'verified' && (
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <Shield size={14} color="#34D399" />
+              <span style={{ color: "#34D399", fontSize: "12px", fontWeight: 600 }}>Verified</span>
+            </div>
+          )}
+          {isOwner && (
+            <button
+              onClick={() => navigate(`/instrument/${instrument.id}/edit`)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 16px",
+                borderRadius: "8px",
+                border: "none",
+                backgroundColor: T.amber,
+                color: T.bgDeep,
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "opacity 0.2s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+            >
+              <Pencil size={14} />
+              Edit
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Action Buttons */}
@@ -349,6 +396,30 @@ function InstrumentHeader({ instrument, loved, onLoveToggle, isOwner }) {
           {shared ? <Check size={18} /> : <Share2 size={18} />}
           {shared ? "Copied!" : ""}
         </button>
+        {!isOwner && user && (
+          <button
+            onClick={() => navigate("/messages")}
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              padding: "12px",
+              borderRadius: "10px",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: 600,
+              transition: "all 200ms",
+              backgroundColor: T.bgCard,
+              color: T.txt2,
+            }}
+          >
+            <MessageSquare size={18} />
+            Contact Owner
+          </button>
+        )}
       </div>
     </div>
   );
@@ -564,6 +635,7 @@ function CommentsComponent({ comments }) {
 export default function InstrumentDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [instrument, setInstrument] = useState(null);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -573,7 +645,7 @@ export default function InstrumentDetail() {
   const [comments, setComments] = useState([]);
   const [occ, setOcc] = useState([]);
 
-  const isOwner = user && instrument && user.id === instrument.current_owner_id;
+  const isOwner = user && instrument && (user.id === instrument.current_owner_id || user.id === instrument.uploader_id);
 
   useEffect(() => {
     const loadInstrumentData = async () => {
@@ -734,6 +806,8 @@ export default function InstrumentDetail() {
             loved={loved}
             onLoveToggle={handleLoveToggle}
             isOwner={isOwner}
+            user={user}
+            navigate={navigate}
           />
         </div>
       </div>
