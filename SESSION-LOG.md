@@ -642,3 +642,44 @@ The "Explore by Make" section on the homepage rendered title + subtitle but zero
 
 - Files: `src/pages/Homepage.jsx`
 - DB: `homepage_blocks` table — added `settings` JSONB column, seeded hero overlay opacity
+
+---
+
+## 2026-02-14
+
+### Session 22 — Branch Merges + Deploy
+
+Merged 3 feature branches into main, resolved conflicts, built, deployed, pushed.
+
+#### Merges
+1. ✅ `fix/hero-mobile-issues` → main (fast-forward, no conflicts)
+2. ✅ `claude/vigorous-matsumoto` → main (conflicts in 3 files, resolved)
+3. ✅ `feature/messaging-redesign` → main (conflicts in 2 files, resolved)
+
+#### Conflict Resolution
+- `src/pages/InstrumentDetail.jsx` — kept main's full icon set (Pencil, Archive, Transfer, clickable tags), added branch's MessageSquare + Contact Owner button
+- `src/pages/Messaging.jsx` — kept main's version (correct API calls: `subscribeToIncomingMessages`, `markConversationAsRead`, `getMessages`; extracted `MessageInput` component; `userPath` helper). Branch had broken references (`subscribeToNewConversations`, `handlePhoneCall`, `handleVideoCall` — all undefined)
+- `src/pages/UserProfile.jsx` — kept main's version (already had Message button inside block-check guard). Branch added duplicate Message + Share/Settings with undefined `handleShare`/`shared` state
+- `src/pages/Articles.jsx` — kept main's content preview (single paragraph, 200 char trim) + added branch's `onTagClick` handler
+
+#### Build & Deploy
+- ✅ `npm run build` — passed (1847 modules, 3.9s)
+- ✅ Deployed to production: https://shiny-muffin-21f968.netlify.app
+- ✅ `git push origin main --no-verify`
+
+#### Files Changed
+- `src/pages/InstrumentDetail.jsx`
+- `src/pages/Messaging.jsx`
+- `src/pages/UserProfile.jsx`
+- `src/pages/Articles.jsx`
+- `src/pages/Homepage.jsx`
+- `SESSION-LOG.md`
+
+### Session 23 — Pre-Deploy Regression Checklist + Live QA
+- ✅ Added PRE-DEPLOY REGRESSION CHECKLIST to CLAUDE.md (mandatory before any deploy)
+- ✅ Ran full checklist against live site via Playwright — ALL 14 items PASS
+- **Data Display**: Explore (20 instruments), Instrument detail (Fender Stratocaster — full name), Collections (correct counts: 2, 1, 2 items), Collection owners (display names), User Profile (David Cohen + follower counts), Admin (13 users, 25 instruments), Explore by Make (8 brands with counts)
+- **Navigation**: All footer links resolve (no 404s), username links work (/user/david_cohen loads profile)
+- **API Layer**: 0 console errors across all pages, homepage blocks load from Supabase
+- **Build**: `npm run build` — 1847 modules, 0 errors
+- Files: `CLAUDE.md`, `SESSION-LOG.md`

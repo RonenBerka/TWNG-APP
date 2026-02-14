@@ -69,3 +69,29 @@ After every completed task, IMMEDIATELY append to `SESSION-LOG.md`:
 - ⚠️ Issues encountered
 ```
 Read `SESSION-LOG.md` at session start.
+
+## PRE-DEPLOY REGRESSION CHECKLIST — MANDATORY
+
+Before ANY deploy, verify ALL of these pass. Do NOT skip.
+
+### Data Display
+- [ ] Explore page shows instruments (not 0)
+- [ ] Instrument detail shows full name (brand + model + year), not UUID
+- [ ] Collections show correct item count (not 0)
+- [ ] Collection owner shows display_name, not UUID
+- [ ] User Profile shows display_name, follower/following counts
+- [ ] Admin panel loads and shows instrument/user counts
+- [ ] Homepage "Explore by Make" shows brand data (not empty)
+
+### Navigation
+- [ ] Footer: all links resolve (no 404s)
+- [ ] Search: results link to correct routes
+- [ ] Username links go to correct profile URL (not 404)
+- [ ] All nav items work when logged in and logged out
+
+### API Layer
+- [ ] No console 406 errors on any page
+- [ ] Homepage blocks load from Supabase
+
+### Build
+- [ ] npm run build completes with 0 errors
