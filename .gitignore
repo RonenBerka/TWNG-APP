@@ -30,3 +30,9 @@ dist-ssr
 
 # Local Netlify folder
 .netlify
+
+# Dev / QA artifacts
+.playwright-mcp/
+qa-screenshots/
+hero-*.png
+/*.png
