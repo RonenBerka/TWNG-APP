@@ -79,7 +79,7 @@ function CategoryCard({ category, threadCount }) {
       <div style={{ display: "flex", alignItems: "center", gap: "16px", fontSize: "12px", color: T.txtM }}>
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
           <MessageSquare size={14} />
-          <span>{threadCount} threads</span>
+          <span>{threadCount} {threadCount === 1 ? "thread" : "threads"}</span>
         </div>
       </div>
     </div>
