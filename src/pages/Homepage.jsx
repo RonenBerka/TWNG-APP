@@ -83,7 +83,6 @@ function normalizeInstrument(g) {
 // ============================================================
 const FALLBACK_FEATURED = [
   {
-    id: 1,
     make: "Heritage",
     model: "H-150 Standard",
     year: 2022,
@@ -96,7 +95,6 @@ const FALLBACK_FEATURED = [
     verified: true,
   },
   {
-    id: 2,
     make: "Nash",
     model: "S-57 Heavy Relic",
     year: 2021,
@@ -109,7 +107,6 @@ const FALLBACK_FEATURED = [
     verified: true,
   },
   {
-    id: 3,
     make: "Fender",
     model: "Telecaster Heavy Relic",
     year: 2019,
@@ -122,7 +119,6 @@ const FALLBACK_FEATURED = [
     verified: false,
   },
   {
-    id: 4,
     make: "Heritage",
     model: "H-535 Semi-Hollow",
     year: 2023,
@@ -135,7 +131,6 @@ const FALLBACK_FEATURED = [
     verified: true,
   },
   {
-    id: 5,
     make: "Suhr",
     model: "Classic S Antique",
     year: 2022,
@@ -148,7 +143,6 @@ const FALLBACK_FEATURED = [
     verified: false,
   },
   {
-    id: 6,
     make: "Brian May",
     model: "BMG Special",
     year: 2020,
@@ -161,7 +155,6 @@ const FALLBACK_FEATURED = [
     verified: true,
   },
   {
-    id: 7,
     make: "Nash",
     model: "S-63 Daphne Blue",
     year: 2023,
@@ -174,7 +167,6 @@ const FALLBACK_FEATURED = [
     verified: false,
   },
   {
-    id: 8,
     make: "Fender",
     model: "Squier Mini Strat",
     year: 2024,
@@ -190,7 +182,6 @@ const FALLBACK_FEATURED = [
 
 const FALLBACK_RECENT = [
   {
-    id: 9,
     make: "Yamaha",
     model: "C40",
     year: 2023,
@@ -198,7 +189,6 @@ const FALLBACK_RECENT = [
     image: IMG.yamaha_classical,
   },
   {
-    id: 10,
     make: "Cordoba",
     model: "C5 Cedar",
     year: 2022,
@@ -206,7 +196,6 @@ const FALLBACK_RECENT = [
     image: IMG.classical,
   },
   {
-    id: 11,
     make: "Heritage",
     model: "H-150 Artisan",
     year: 2024,
@@ -214,7 +203,6 @@ const FALLBACK_RECENT = [
     image: IMG.heritage_closeup,
   },
   {
-    id: 12,
     make: "Suhr",
     model: "Classic S",
     year: 2022,
@@ -222,7 +210,6 @@ const FALLBACK_RECENT = [
     image: IMG.suhr_green,
   },
   {
-    id: 13,
     make: "Nash",
     model: "T-52 Relic",
     year: 2021,
@@ -230,7 +217,6 @@ const FALLBACK_RECENT = [
     image: IMG.tele_relic,
   },
   {
-    id: 14,
     make: "Heritage",
     model: "H-535",
     year: 2023,
@@ -238,7 +224,6 @@ const FALLBACK_RECENT = [
     image: IMG.heritage_semi,
   },
   {
-    id: 15,
     make: "Nash",
     model: "S-57",
     year: 2020,
@@ -246,7 +231,6 @@ const FALLBACK_RECENT = [
     image: IMG.nash_sunburst,
   },
   {
-    id: 16,
     make: "Brian May",
     model: "Special",
     year: 2021,
@@ -852,9 +836,14 @@ function InstrumentCard({ instrument, compact = false }) {
   const [hov, setHov] = useState(false);
   const [loved, setLoved] = useState(false);
 
+  // Wrap in Link only when we have a valid id (fallback data has no id)
+  const Wrapper = instrument.id
+    ? ({ children }) => <Link to={instrumentPath(instrument.id)} style={{ textDecoration: "none" }}>{children}</Link>
+    : ({ children }) => <>{children}</>;
+
   if (compact) {
     return (
-      <Link to={instrumentPath(instrument.id)} style={{ textDecoration: "none" }}>
+      <Wrapper>
       <div
         style={{
           minWidth: "220px",
@@ -917,17 +906,17 @@ function InstrumentCard({ instrument, compact = false }) {
           </p>
         </div>
       </div>
-      </Link>
+      </Wrapper>
     );
   }
 
   return (
-    <Link to={instrumentPath(instrument.id)} style={{ textDecoration: "none" }}>
+    <Wrapper>
     <div
       style={{
         borderRadius: "8px",
         overflow: "hidden",
-        cursor: "pointer",
+        cursor: instrument.id ? "pointer" : "default",
         transition: "all 0.3s",
         backgroundColor: T.bgCard,
         borderColor: hov ? T.borderAcc : T.border,
@@ -1089,7 +1078,7 @@ function InstrumentCard({ instrument, compact = false }) {
         </div>
       </div>
     </div>
-    </Link>
+    </Wrapper>
   );
 }
 
@@ -1203,8 +1192,8 @@ function FeaturedInstrumentsSection({ altBg, instruments: liveInstruments, secti
             gap: "20px",
             marginBottom: "48px"
           }}>
-            {sorted.map((g) => (
-              <InstrumentCard key={g.id} instrument={g} />
+            {sorted.map((g, idx) => (
+              <InstrumentCard key={g.id || `fallback-${idx}`} instrument={g} />
             ))}
           </div>
         ) : (
@@ -1315,8 +1304,8 @@ function RecentlyAddedSection({ altBg, instruments: liveInstruments, sectionConf
       </div>
       <div style={{ overflowX: "auto", marginLeft: "-24px", marginRight: "-24px", paddingLeft: "24px", paddingRight: "24px" }}>
         <div style={{ display: "flex", gap: "16px", paddingBottom: "16px" }}>
-          {displayInstruments.map((g) => (
-            <InstrumentCard key={g.id} instrument={g} compact />
+          {displayInstruments.map((g, idx) => (
+            <InstrumentCard key={g.id || `fallback-${idx}`} instrument={g} compact />
           ))}
         </div>
       </div>
