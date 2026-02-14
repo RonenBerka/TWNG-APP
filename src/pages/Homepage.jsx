@@ -421,8 +421,10 @@ function SectionHeader({ eyebrow, title, description, align = "center" }) {
 // ============================================================
 // Hero Section
 // ============================================================
-function HeroSection({ badgeText, miniInstruments, heroConfig, stats }) {
+function HeroSection({ badgeText, miniInstruments, heroConfig, stats, heroSettings }) {
   const hc = heroConfig || {};
+  const hs = heroSettings || {};
+  const overlayOpacity = Math.min(1, Math.max(0, hs.hero_overlay_opacity ?? 0.4));
   const collectorsCount = stats?.find(s => s.label?.includes('Collector'))?.value;
   const dynamicBadge = collectorsCount ? `Now in Beta · Join ${collectorsCount} Collectors` : null;
   return (
@@ -434,8 +436,8 @@ function HeroSection({ badgeText, miniInstruments, heroConfig, stats }) {
         backgroundColor: T.bgDeep
       }}
     >
-      {/* Background image — positioned right so instrument is visible */}
-      <div style={{
+      {/* Background image — desktop: right 65%, mobile: full width */}
+      <div className="hero-bg-image" style={{
         position: "absolute",
         top: "0",
         right: "0",
@@ -469,7 +471,7 @@ function HeroSection({ badgeText, miniInstruments, heroConfig, stats }) {
         }}
       />
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay — gradient: transparent top → opaque bottom for readable text */}
       <div
         className="hero-mobile-overlay"
         style={{
@@ -479,7 +481,7 @@ function HeroSection({ badgeText, miniInstruments, heroConfig, stats }) {
           right: "0",
           bottom: "0",
           zIndex: "10",
-          backgroundColor: T.bgDeep + "CC",
+          background: `linear-gradient(180deg, ${T.bgDeep}${Math.round(overlayOpacity * 0.4 * 255).toString(16).padStart(2, '0')} 0%, ${T.bgDeep}${Math.round(overlayOpacity * 255).toString(16).padStart(2, '0')} 50%, ${T.bgDeep}${Math.round(Math.min(1, overlayOpacity + 0.3) * 255).toString(16).padStart(2, '0')} 100%)`,
         }}
       />
 
@@ -498,13 +500,13 @@ function HeroSection({ badgeText, miniInstruments, heroConfig, stats }) {
       />
 
       {/* Content */}
-      <div style={{
+      <div className="hero-content-wrap" style={{
         position: "relative",
         zIndex: "20",
         display: "flex",
         minHeight: "100vh"
       }}>
-        <div style={{
+        <div className="hero-content-inner" style={{
           flex: "1",
           display: "flex",
           flexDirection: "column",
@@ -738,6 +740,15 @@ function HeroSection({ badgeText, miniInstruments, heroConfig, stats }) {
           .hero-mobile-overlay  { display: block !important; }
           .hero-spacer           { display: none !important; }
           .hero-caption          { display: none !important; }
+          .hero-bg-image         { width: 100% !important; }
+          .hero-content-wrap     { min-height: 100svh !important; }
+          .hero-content-inner    {
+            padding-top: 72px !important;
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+            padding-bottom: 40px !important;
+            justify-content: flex-start !important;
+          }
         }
       `}</style>
     </section>
@@ -1790,6 +1801,12 @@ export default function TWNGHomepage() {
             return dbStatus === true;
           });
           setVisibleSections(active);
+
+          // Extract hero block settings for overlay opacity etc.
+          const heroBlock = blocks.find(b => b.type === 'hero');
+          if (heroBlock?.settings) {
+            setSectionData(prev => ({ ...prev, heroSettings: heroBlock.settings }));
+          }
         }
       } catch (err) {
         console.error('Failed to load homepage config:', err);
@@ -1853,6 +1870,7 @@ export default function TWNGHomepage() {
     hero: {
       miniInstruments: sectionData.miniInstrumentImages,
       stats: sectionData.stats,
+      heroSettings: sectionData.heroSettings,
     },
     stats: { stats: sectionData.stats },
     featured_instruments: { instruments: sectionData.featured_instruments },
