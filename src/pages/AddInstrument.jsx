@@ -148,8 +148,12 @@ export default function AddInstrument() {
   // Photo handling
   // ============================================================
   const addPhotos = useCallback((files) => {
+    const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif', '.bmp', '.tiff'];
+    const isImage = (f) =>
+      f.type.startsWith('image/') ||
+      (!f.type && imageExts.some(ext => f.name.toLowerCase().endsWith(ext)));
     const newPhotos = Array.from(files)
-      .filter(f => f.type.startsWith('image/'))
+      .filter(isImage)
       .slice(0, 5 - photos.length)
       .map(file => ({ file, preview: URL.createObjectURL(file) }));
     if (newPhotos.length > 0) setPhotos(prev => [...prev, ...newPhotos]);
@@ -265,7 +269,8 @@ export default function AddInstrument() {
       let mainImageUrl = null;
       if (photos.length > 0) {
         const photoFile = photos[0].file;
-        const filename = `${user.id}/${Date.now()}-${photoFile.name}`;
+        const safeName = photoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filename = `${user.id}/${Date.now()}-${safeName}`;
         const { data: uploadData, error: uploadErr } = await supabase.storage
           .from('instrument-images')
           .upload(filename, photoFile);
@@ -410,7 +415,7 @@ export default function AddInstrument() {
             <input
               ref={fileInputRef}
               type="file" multiple accept="image/*"
-              onChange={(e) => addPhotos(e.target.files)}
+              onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }}
               style={{ display: "none" }}
             />
             <Camera size={40} style={{ color: T.warm, marginBottom: "16px" }} />
@@ -809,7 +814,7 @@ export default function AddInstrument() {
                   <input
                     ref={fileInputRef}
                     type="file" multiple accept="image/*"
-                    onChange={(e) => addPhotos(e.target.files)}
+                    onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }}
                     style={{ display: "none" }}
                   />
                   <Camera size={28} style={{ color: T.warm, marginBottom: "8px" }} />
