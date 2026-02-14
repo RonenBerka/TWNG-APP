@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { userPath } from "../lib/routes";
 import {
   Search,
   Send,
@@ -331,7 +332,7 @@ const ContactProfile = ({ user, onClose }) => {
       {/* View profile link */}
       <div className="px-4 py-3 border-t" style={{ borderColor: T.border }}>
         <Link
-          to={`/user/${user.username}`}
+          to={userPath(user.username)}
           style={{ color: T.warm }}
           className="text-sm hover:underline"
         >
@@ -414,6 +415,7 @@ const MessageInput = ({ messageInput, setMessageInput, onSend, isSending }) => (
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function TWNGMessaging() {
   const { user } = useAuth();
+  const { userId: urlUserId } = useParams();
 
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -445,7 +447,11 @@ export default function TWNGMessaging() {
         const data = await getConversations();
         setConversations(data);
         if (!selectedConversation && data.length > 0) {
-          setSelectedConversation(data[0]);
+          // If a userId was passed via URL, select that conversation
+          const urlMatch = urlUserId
+            ? data.find((c) => c.other_user?.id === urlUserId)
+            : null;
+          setSelectedConversation(urlMatch || data[0]);
         }
       } catch (err) {
         console.error("Error loading conversations:", err);

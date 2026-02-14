@@ -95,6 +95,7 @@ import {
   approveChangeRequest,
   denyChangeRequest,
 } from "../lib/supabase/iaChangeRequests";
+import { userPath } from "../lib/routes";
 import MarketingConsole from "./admin/MarketingConsole";
 import ContentExtractor from "./admin/ContentExtractor";
 
@@ -2051,7 +2052,7 @@ const UserManagementPage = () => {
                                 <span style={{ color: WARM, fontWeight: 600, fontSize: "14px" }}>User Profile</span>
                                 <div style={{ display: "flex", gap: "8px" }}>
                                   {u.username && (
-                                    <button onClick={() => window.open(`/user/${u.username}`, "_blank")} style={{
+                                    <button onClick={() => window.open(userPath(u.username), "_blank")} style={{
                                       padding: "4px 12px", borderRadius: "6px", border: `1px solid ${T.border}`,
                                       backgroundColor: "transparent", color: T.txt, fontSize: "12px", cursor: "pointer",
                                     }}>Open Public Profile ↗</button>

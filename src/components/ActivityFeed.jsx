@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { T } from '../theme/tokens';
 import { Link } from 'react-router-dom';
+import { userPath } from '../lib/routes';
 import { getActivityFeed } from '../services/activityFeed';
 
 function getTimeAgo(timestamp) {
@@ -74,7 +75,7 @@ function ActivitySkeleton() {
   );
 }
 
-export default function ActivityFeed({ userId, limit = 5 }) {
+export default function ActivityFeed({ userId, username, limit = 5 }) {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -251,7 +252,7 @@ export default function ActivityFeed({ userId, limit = 5 }) {
       {/* View All Link */}
       {activities.length > 0 && (
         <Link
-          to={`/profile/${userId}/activity`}
+          to={username ? userPath(username) : '#'}
           style={{
             display: "inline-flex",
             alignItems: "center",

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, X, Zap, FileText, Users, MessageSquare, Folder } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { T } from '../theme/tokens';
+import { userPath } from '../lib/routes';
 import { globalSearch } from '../lib/supabase/globalSearch';
 
 /**
@@ -113,7 +114,7 @@ export default function GlobalSearchBar() {
     users: {
       icon: Users,
       label: 'Users',
-      getPath: (item) => `/profile/${item.id}`,
+      getPath: (item) => userPath(item.username),
       renderTitle: (item) => item.username,
       renderSubtitle: (item) => item.is_verified ? 'Verified User' : 'User',
     },

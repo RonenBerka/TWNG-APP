@@ -221,6 +221,11 @@ function App() {
                 <ProtectedRoute><Messaging /></ProtectedRoute>
               </Layout>
             } />
+            <Route path="/messages/:userId" element={
+              <Layout noFooter>
+                <ProtectedRoute><Messaging /></ProtectedRoute>
+              </Layout>
+            } />
             {/* Legacy redirect: /messaging → /messages */}
             <Route path="/messaging" element={<Navigate to="/messages" replace />} />
             <Route path="/notifications" element={
