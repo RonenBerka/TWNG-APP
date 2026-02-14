@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Star, Sparkles, Clock, Users, Guitar, Hash, ArrowRight, CheckCircle, Award, Mail, ChevronDown } from 'lucide-react';
+import { Shield, Star, Sparkles, Clock, Users, Guitar, Hash, ArrowRight, CheckCircle, Award, Mail, ChevronDown, BookOpen } from 'lucide-react';
 import { T } from '../theme/tokens';
 import { IMG } from '../utils/placeholders';
 
@@ -79,8 +79,6 @@ export default function FoundingMembers() {
       }, 3000);
     }
   };
-
-  const BookOpen = () => <BookOpen size={24} style={{ color: T.amber }} />;
 
   return (
     <div style={{ backgroundColor: T.bgDeep, color: T.txt }}>
