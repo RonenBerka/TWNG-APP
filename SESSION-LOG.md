@@ -395,3 +395,250 @@ Code is comprehensive (~2,200 lines) but **nothing works end-to-end**:
 - ⚠️ **Settings email prefs disconnected** — UI toggles not connected to `email_preferences` table
 
 - Files: `supabase/functions/send-email/index.ts`, `src/lib/email/emailService.js`
+
+---
+
+## Session 17 — Merge All Branches, Deploy, Full Regression (2026-02-13)
+
+### Branch Merges to Main
+
+Merged 5 branches (4 feature/fix + 1 hotfix) to main:
+
+1. **`fix/admin-race-condition-and-homepage-blocks`** (Session 12)
+   - ❌ Build failed: `getHomepageSectionConfig` not exported from `homepage.js`
+   - ✅ Fixed: removed dead imports and calls in `Admin.jsx`
+   - ✅ Committed fix, merged (fast-forward)
+
+2. **`feature/backup-check-and-duplicate-detection`** (Session 13)
+   - ✅ Build passed, merged (3 files changed)
+
+3. **`feature/username-check-serial-decoder`** (Session 14)
+   - ✅ Build passed, merged (6 files changed)
+
+4. **`feature/ownership-transfer-flow`** (Session 15/16)
+   - ✅ Committed uncommitted changes from Sessions 11/16b (admin.js RPC, emailService sender fix, send-email Edge Function, migration 019)
+   - ✅ Build passed, merged (8 files changed)
+
+5. **`fix/founding-members-bookopen-crash`** (Session 17 hotfix)
+   - ✅ Fixed `FoundingMembers.jsx` crash: `BookOpen` circular self-reference causing `ReferenceError: Cannot access 'v' before initialization`
+   - ✅ Added `BookOpen` to lucide-react imports, removed broken self-referencing const
+   - ✅ Build passed, merged (fast-forward)
+
+**Skipped branches:**
+- `feature/messaging-redesign` — stale from Session 3, 78-file diff with destructive changes
+- `claude/vigorous-matsumoto` — auto-generated, stale
+
+### Deploy & Push
+- ✅ `npm run build` — 0 errors (3.58s)
+- ✅ `npx netlify deploy --prod --dir=dist` — deployed to https://shiny-muffin-21f968.netlify.app
+- ✅ `git push origin main` — pushed (e83bd3c..4178f01)
+
+### Full Playwright Regression Checklist
+
+| Page | Result | Notes |
+|------|--------|-------|
+| Homepage `/` | ✅ PASS | Hero, stats, 8 featured, fresh arrivals, articles, testimonial, CTA, footer |
+| `/explore` | ✅ PASS | 20 instruments, filters work, "Showing 1-20 of 25" |
+| `/collections` | ✅ PASS | 5 collections, correct item counts (2,1,2,2,2), real owner names |
+| `/articles` | ✅ PASS | Featured article + 8 articles, category filters |
+| `/forum` | ✅ PASS | 9 categories, 11 threads |
+| `/instrument/...` (Les Paul 1959) | ✅ PASS | Story, specs, timeline, Love button |
+| `/about` | ✅ PASS | Full content with founders |
+| `/faq` | ✅ PASS | 49 answers, 11 categories |
+| `/messaging` → `/messages` | ✅ PASS | Redirect works |
+| `/decoder` | ✅ PASS | Page renders |
+| `/community` | ✅ PASS | Renders as forum |
+| `/founding-members` | ✅ PASS | All sections render after BookOpen fix |
+| Dark mode toggle | ✅ PASS | Toggles correctly, persists |
+| Global search | ✅ PASS | Returns instruments + articles + forum threads |
+| `/legal/terms` | ✅ PASS | 12 sections |
+| `/legal/privacy` | ✅ PASS | 10 sections |
+| `/legal/cookies` | ✅ PASS | 7 sections |
+| `/legal/dmca` | ✅ PASS | Renders correctly |
+
+**Result: 18/18 pages PASS, 0 console errors**
+
+### Files Changed
+- `src/pages/Admin.jsx` — removed dead imports (`getHomepageSectionConfig`, `saveHomepageSectionConfig`)
+- `src/pages/FoundingMembers.jsx` — added `BookOpen` to lucide-react import, removed circular self-reference
+- `src/lib/supabase/admin.js` — RPC rewrite for homepage blocks (from Session 11)
+- `src/lib/email/emailService.js` — sender fix (from Session 16b)
+- `supabase/functions/send-email/index.ts` — from address fix (from Session 16b)
+- `supabase/migrations/019_homepage_blocks_rpc.sql` — new RPC functions (from Session 11)
+
+## 2026-02-14
+
+### Session 18 — Fix Featured Article Card Layout
+
+**Branch:** `fix/featured-article-card`
+
+#### Problem
+Featured article card on `/articles` had a large empty gap between the excerpt and the author bar. The `justifyContent: "center"` + `marginTop: "auto"` on the right panel pushed content to center and author bar to the bottom, leaving dead space.
+
+#### Fix (commit `3a34c11`)
+- ✅ Removed `justifyContent: "center"` from right panel — content now flows top-down naturally
+- ✅ Added content preview — extracts first paragraph from `article.content[]`, truncated to ~200 chars at word boundary
+- ✅ Added "Continue..." link in amber (`T.amber`) below content preview
+- ✅ Removed `marginTop: "auto"` from author bar — sits directly below "Continue..." with no gap
+- ✅ Layout order: badge → title → excerpt (muted) → content preview (regular) → "Continue..." (amber) → author bar
+
+#### Verification
+- ✅ Build passes (3.61s, 0 errors)
+- ✅ Visual verification on dev server via Playwright — matches desired layout exactly
+
+#### Deploy
+- ✅ Merged `fix/featured-article-card` → `main` (fast-forward)
+- ✅ `npm run build` — 0 errors (3.84s)
+- ✅ Deployed to Netlify (deploy `69903b01`)
+- ✅ Pushed branch to GitHub: `origin/fix/featured-article-card`
+
+#### Regression Checklist (Live Site)
+
+| # | Page | Result | Notes |
+|---|------|--------|-------|
+| 1 | `/articles` (featured card) | ✅ PASS | Content preview + "Continue..." + tight author bar, 0 console errors |
+| 2 | `/articles/1` (article detail) | ✅ PASS | Full reader view renders, 0 console errors |
+| 3 | Homepage `/` | ✅ PASS | Hero, stats, featured, CTA, footer, 0 console errors |
+| 4 | `/explore` | ✅ PASS | 20 instruments, filters, "Showing 1-20 of 25" |
+| 5 | `/collections` | ✅ PASS | 5 collections, correct item counts + owner names |
+| 6 | `/forum` | ✅ PASS | 0 console errors |
+| 7 | `/about` | ✅ PASS | 0 console errors |
+| 8 | `/founding-members` | ✅ PASS | 0 console errors |
+| 9 | `/faq` | ✅ PASS | 0 console errors |
+| 10 | `/decoder` | ✅ PASS | 0 console errors |
+| 11 | `/messaging` → `/messages` | ✅ PASS | Redirect works |
+| 12 | Instrument detail (Les Paul 1959) | ✅ PASS | Story, specs, timeline render |
+| 13 | Dark/light mode toggle | ✅ PASS | Featured card re-renders correctly in both themes |
+
+**Result: 13/13 PASS, 0 regressions**
+
+- Files: `src/pages/Articles.jsx`
+
+### Session 19 — Fix Username/Profile Link 404s
+
+**Branch:** `fix/username-links-404`
+
+#### Problem
+Clicking a username in the Messages dropdown (or other profile links) navigated to routes that don't exist, resulting in 404 pages.
+
+#### Root Causes Found
+1. **MessageDropdown** navigated to `/messages/${userId}` but no `/messages/:userId` route existed (only `/messages`)
+2. **GlobalSearchBar** user results linked to `/profile/${item.id}` — wrong route and wrong identifier (UUID instead of username)
+3. **ActivityFeed** "View all activity" linked to `/profile/${userId}/activity` — non-existent route
+4. **Messaging.jsx** and **Admin.jsx** had hardcoded `/user/` strings instead of centralized `userPath()`
+
+#### Fixes (commit `03f0d35`)
+- ✅ Added `/messages/:userId` route in `App.jsx` pointing to Messaging component
+- ✅ `Messaging.jsx` — added `useParams()` to read `userId` from URL and auto-select matching conversation
+- ✅ `GlobalSearchBar.jsx` — changed `/profile/${item.id}` → `userPath(item.username)` using centralized route helper
+- ✅ `ActivityFeed.jsx` — changed `/profile/${userId}/activity` → `userPath(username)`, added `username` prop
+- ✅ `Messaging.jsx` — replaced hardcoded `` `/user/${user.username}` `` → `userPath(user.username)`
+- ✅ `Admin.jsx` — replaced hardcoded `` `/user/${u.username}` `` → `userPath(u.username)`
+
+#### Deploy
+- ✅ Merged `fix/username-links-404` → `main` (fast-forward)
+- ✅ `npm run build` — 0 errors (3.51s)
+- ✅ Deployed to Netlify (deploy `69903e77`)
+- ✅ Pushed branch + main to GitHub
+
+#### Regression Checklist (Live Site)
+
+| # | Page | Result | Notes |
+|---|------|--------|-------|
+| 1 | Homepage `/` | ✅ PASS | All sections render, 0 console errors |
+| 2 | `/explore` | ✅ PASS | 0 console errors |
+| 3 | `/collections` | ✅ PASS | 0 console errors |
+| 4 | `/articles` | ✅ PASS | 0 console errors |
+| 5 | `/forum` | ✅ PASS | 0 console errors |
+| 6 | `/about` | ✅ PASS | 0 console errors |
+| 7 | `/faq` | ✅ PASS | 0 console errors |
+| 8 | `/founding-members` | ✅ PASS | 0 console errors |
+| 9 | `/decoder` | ✅ PASS | 0 console errors |
+| 10 | `/messaging` → `/messages` | ✅ PASS | Redirect works |
+| 11 | Instrument detail | ✅ PASS | 0 console errors |
+| 12 | Dark/light mode toggle | ✅ PASS | Toggles correctly |
+| 13 | **Messages dropdown → click conversation** | ✅ PASS | Navigates to `/messages/{userId}`, conversation auto-selected, 0 console errors |
+| 14 | **"View full profile" link in Messaging** | ✅ PASS | Points to `/user/doron` (correct route) |
+
+**Result: 14/14 PASS, 0 regressions, specific fix verified**
+
+- Files: `src/App.jsx`, `src/components/GlobalSearchBar.jsx`, `src/components/ActivityFeed.jsx`, `src/pages/Messaging.jsx`, `src/pages/Admin.jsx`
+
+### Session 20 — Fix Empty "Explore by Make" Homepage Block
+
+**Branch:** `fix/explore-by-make`
+
+#### Problem
+The "Explore by Make" section on the homepage rendered title + subtitle but zero brand cards. The section was visible but empty.
+
+#### Root Cause
+`ExploreByMakeSection` component existed, `getTopInstrumentMakes()` function existed in `homepage.js` and was exported from the barrel — but the homepage `useEffect` never called it. `sectionData.makes` was always `undefined`, so the section rendered with an empty array.
+
+#### Fixes (commit `2eddb7c`)
+- ✅ Imported `getTopInstrumentMakes` in Homepage.jsx
+- ✅ Added `getTopInstrumentMakes()` to the `Promise.all` in the homepage data fetch (loads in parallel with other data)
+- ✅ Added `newData.makes = makesRaw` when data is returned
+- ✅ Added early return (`return null`) in `ExploreByMakeSection` when `displayMakes.length === 0` — hides the section entirely if no makes data
+
+#### Audit: All Other Homepage Blocks
+| Section | Data wired? | Empty handling |
+|---------|------------|----------------|
+| hero | ✅ Yes | Fallback data |
+| stats | ✅ Yes | `FALLBACK_STATS` |
+| featured_instruments | ✅ Yes | `FALLBACK_FEATURED` |
+| recent_instruments | ✅ Yes | `FALLBACK_RECENT` |
+| explore_makes | ✅ **Now wired** | ✅ **Now hidden if empty** |
+| articles | ✅ Yes | `FALLBACK_ARTICLES` |
+| testimonials | ✅ N/A (hardcoded) | `FALLBACK_TESTIMONIAL` |
+| cta | ✅ N/A (hardcoded) | Inline defaults |
+
+#### Verification
+- ✅ Build passes (3.85s, 0 errors)
+- ✅ Dev server: "Explore by Make" section shows 8 real brands (Gibson 7, Fender 5, Nash Guitars 3, Martin 2, Rickenbacker 2, PRS 1, Tanaka Custom 1, Taylor 1)
+- ✅ Each card links to correct `/explore?make=...` route
+
+#### Status
+- ✅ Committed on feature branch
+- ⏳ NOT merged or deployed (as instructed)
+
+- Files: `src/pages/Homepage.jsx`
+
+### Session 21 — Fix Hero Section Mobile Display Issues
+
+**Branch:** `fix/hero-mobile-issues`
+
+#### Bug 1: Wasted space above hero on mobile
+- ✅ Reduced `paddingTop` from `128px` to `72px` on mobile (<768px)
+- ✅ Changed `justify-content` from `center` to `flex-start` — content flows from top
+- ✅ Reduced side padding from `48px` to `20px` on mobile
+- ✅ Used `100svh` (small viewport height) instead of `100vh` to account for mobile browser chrome
+- ✅ Background image now spans full width on mobile (was restricted to 65% right-aligned)
+
+#### Bug 2: Hero background image too dark on mobile
+- ✅ **Admin-controllable overlay opacity** — added `settings` JSONB column to `homepage_blocks` table via migration
+- ✅ Hero block seeded with `{"hero_overlay_opacity": 0.4}` (default, lighter than previous 0.8)
+- ✅ Mobile overlay changed from flat 80% dark color to gradient:
+  - Top: ~16% opacity (image clearly visible)
+  - Middle: 40% opacity (configurable via DB)
+  - Bottom: 70% opacity (text stays readable)
+- ✅ Desktop overlay unchanged (separate `.hero-desktop-overlay` class, left-to-right gradient)
+- ✅ `object-position: center center` already correct on img element
+
+#### Admin control
+- To adjust overlay darkness: update `homepage_blocks` → hero row → `settings` → `hero_overlay_opacity` (0.0–1.0)
+- Value of 0.0 = fully transparent overlay (image fully visible)
+- Value of 1.0 = fully opaque overlay (image hidden)
+- Default 0.4 = good balance of visibility and text readability
+
+#### Verification
+- ✅ Build passes (3.60s, 0 errors)
+- ✅ Mobile (375×812): badge starts close to navbar, guitar image clearly visible through gradient, text readable
+- ✅ Desktop (1440×900): no visual changes, hero looks identical to before
+- ✅ 0 console errors
+
+#### Status
+- ✅ Committed on feature branch (commit `797b854`)
+- ⏳ NOT merged or deployed (as instructed)
+
+- Files: `src/pages/Homepage.jsx`
+- DB: `homepage_blocks` table — added `settings` JSONB column, seeded hero overlay opacity
