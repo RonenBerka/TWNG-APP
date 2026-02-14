@@ -31,6 +31,7 @@ import {
   getRecentlyAddedInstruments,
   getHomepageArticles,
   getHomepageStats,
+  getTopInstrumentMakes,
   mapDbTypeToFrontend,
 } from '../lib/supabase';
 
@@ -1319,6 +1320,8 @@ function ExploreByMakeSection({ altBg, makes: liveMakes, sectionConfig }) {
   const displayMakes = liveMakes || [];
   const [hov, setHov] = useState(null);
 
+  if (displayMakes.length === 0) return null;
+
   return (
     <section style={{ paddingTop: "96px", paddingBottom: "96px", paddingLeft: "24px", paddingRight: "24px", backgroundColor: altBg ? T.bgCard : undefined }}>
       <div style={{ maxWidth: "80rem", marginLeft: "auto", marginRight: "auto" }}>
@@ -1798,11 +1801,13 @@ export default function TWNGHomepage() {
           recentRaw,
           articlesRaw,
           statsRaw,
+          makesRaw,
         ] = await Promise.all([
           getFeaturedInstruments(),
           getRecentlyAddedInstruments(),
           getHomepageArticles(),
           getHomepageStats(),
+          getTopInstrumentMakes(),
         ]);
 
         const newData = {};
@@ -1831,6 +1836,10 @@ export default function TWNGHomepage() {
               { value: statsRaw.luthiers ? String(statsRaw.luthiers) : '45', label: 'Verified Luthiers' },
             ];
           }
+        }
+
+        if (makesRaw && makesRaw.length > 0) {
+          newData.makes = makesRaw;
         }
 
         setSectionData(prev => ({ ...prev, ...newData }));
