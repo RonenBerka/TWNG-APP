@@ -1,4 +1,6 @@
 import { supabase } from './client';
+import { sendNotificationEmail } from '../email/emailService';
+import { EMAIL_BASE_URL } from '../email/constants';
 
 /**
  * Ownership transfer service — CRUD for ownership_transfers table.
@@ -44,11 +46,39 @@ export async function initiateTransfer({
     .select(`
       *,
       instrument:instrument_id ( id, make, model, year, serial_number ),
+      from_owner:from_owner_id ( id, username, display_name ),
       to_owner:to_owner_id ( id, username, display_name )
     `)
     .single();
 
   if (error) throw error;
+
+  // Fire-and-forget: email notifications to both parties
+  const inst = data.instrument;
+  const transferUrl = `${EMAIL_BASE_URL}/transfers`;
+
+  // Notify recipient — transfer request received
+  if (data.to_owner_id) {
+    sendNotificationEmail('transferRequestReceived', data.to_owner_id, {
+      senderName: data.from_owner?.display_name || 'A collector',
+      make: inst?.make || 'Unknown',
+      model: inst?.model || 'Guitar',
+      year: inst?.year || '',
+      transferUrl,
+    }).catch(() => {});
+  }
+
+  // Confirm to sender — transfer request sent
+  if (fromOwnerId) {
+    sendNotificationEmail('transferRequestSent', fromOwnerId, {
+      recipientName: data.to_owner?.display_name || data.to_owner?.username || 'another collector',
+      make: inst?.make || 'Unknown',
+      model: inst?.model || 'Guitar',
+      year: inst?.year || '',
+      transferUrl,
+    }).catch(() => {});
+  }
+
   return data;
 }
 

@@ -1,4 +1,6 @@
 import { supabase } from './client';
+import { sendNotificationEmail } from '../email/emailService';
+import { EMAIL_BASE_URL } from '../email/constants';
 
 /**
  * Messaging service — for managing direct messages and conversations.
@@ -218,6 +220,15 @@ export async function sendMessage({ recipientId, content, attachment }) {
       .single();
 
     if (insertError) throw insertError;
+
+    // Fire-and-forget: email notification to recipient
+    sendNotificationEmail('newMessage', recipientId, {
+      senderName: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Someone',
+      senderUsername: user.user_metadata?.username || '',
+      messagePreview: (content || '').substring(0, 100),
+      conversationUrl: `${EMAIL_BASE_URL}/messages`,
+    }).catch(() => {});
+
     return message;
   } catch (error) {
     console.error('Error sending message:', error);

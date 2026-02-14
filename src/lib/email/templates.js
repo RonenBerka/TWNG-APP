@@ -987,6 +987,7 @@ Every Guitar Has a Story · TWNG`;
 // ============================================================================
 
 import { authTemplates, transactionalTemplates, authEmailTemplates } from './auth-templates';
+import { transactionalNotificationTemplates } from './transactional-templates';
 
 // ============================================================================
 // TEMPLATE MAPPING FOR EMAIL SERVICE
@@ -1017,6 +1018,12 @@ export const emailTemplates = {
     magicLink: authTemplates.magicLink,
     confirmSignup: authTemplates.confirmSignup,
     changeEmail: authTemplates.changeEmail,
+  },
+  notification: {
+    newMessage: transactionalNotificationTemplates.newMessage,
+    transferRequestReceived: transactionalNotificationTemplates.transferRequestReceived,
+    transferRequestSent: transactionalNotificationTemplates.transferRequestSent,
+    newFollower: transactionalNotificationTemplates.newFollower,
   },
 };
 

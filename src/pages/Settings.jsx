@@ -8,6 +8,7 @@ import { T } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase/client';
+import { updateEmailPreferences } from '../lib/email/emailService';
 import { ROUTES } from '../lib/routes';
 
 const IMG = {
@@ -673,6 +674,16 @@ function NotificationSettings() {
       });
 
       if (error) throw error;
+
+      // Sync to email_preferences table (non-blocking)
+      if (user?.id) {
+        updateEmailPreferences(user.id, {
+          notificationEmails: updated.email_notifications,
+          marketingEmails: updated.system_announcements,
+          sequenceEmails: updated.email_notifications,
+        }).catch(err => console.warn('email_preferences sync:', err));
+      }
+
       showToast("Notification preference updated", "success");
     } catch (err) {
       console.error("Update error:", err);

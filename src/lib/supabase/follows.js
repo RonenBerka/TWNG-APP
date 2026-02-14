@@ -1,4 +1,6 @@
 import { supabase } from './client';
+import { sendNotificationEmail } from '../email/emailService';
+import { EMAIL_BASE_URL } from '../email/constants';
 
 /**
  * Follows service — for managing user follow relationships and blocks.
@@ -50,6 +52,22 @@ export async function toggleFollow(followerId, followingId) {
       follower_id: followerId,
       following_id: followingId,
     });
+
+    // Fire-and-forget: email notification to the followed user
+    supabase
+      .from('users')
+      .select('display_name, username, avatar_url')
+      .eq('id', followerId)
+      .maybeSingle()
+      .then(({ data: followerProfile }) => {
+        sendNotificationEmail('newFollower', followingId, {
+          followerName: followerProfile?.display_name || followerProfile?.username || 'Someone',
+          followerUsername: followerProfile?.username || '',
+          profileUrl: `${EMAIL_BASE_URL}/user/${followerProfile?.username || followerId}`,
+        }).catch(() => {});
+      })
+      .catch(() => {});
+
     return true; // followed
   }
 }

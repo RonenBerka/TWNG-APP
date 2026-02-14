@@ -9,12 +9,13 @@
 
 import { supabase } from '../supabase/client';
 import { emailTemplates } from './templates';
+import { EMAIL_FROM, EMAIL_REPLY_TO, EMAIL_BASE_URL } from './constants';
 
 // Frontend-safe config (no secrets)
 const EMAIL_CONFIG = {
-  from: import.meta.env.VITE_EMAIL_FROM || 'TWNG <onboarding@resend.dev>',
-  replyTo: import.meta.env.VITE_EMAIL_REPLY_TO || 'support@twng.com',
-  baseUrl: typeof window !== 'undefined' ? window.location.origin : (import.meta.env.VITE_BASE_URL || 'https://twng.com'),
+  from: EMAIL_FROM,
+  replyTo: EMAIL_REPLY_TO,
+  baseUrl: EMAIL_BASE_URL,
 };
 
 /**
@@ -165,7 +166,7 @@ export async function sendSequenceEmail(sequenceKey, emailKey, { to, userId, var
 }
 
 /**
- * Check if user has unsubscribed
+ * Check if user has unsubscribed from marketing emails
  */
 export async function isUnsubscribed(userId) {
   try {
@@ -173,11 +174,28 @@ export async function isUnsubscribed(userId) {
       .from('email_preferences')
       .select('marketing_emails')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     return data?.marketing_emails === false;
   } catch {
     return false; // default: not unsubscribed
+  }
+}
+
+/**
+ * Check if user has disabled notification emails
+ */
+async function isNotificationDisabled(userId) {
+  try {
+    const { data } = await supabase
+      .from('email_preferences')
+      .select('notification_emails')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    return data?.notification_emails === false;
+  } catch {
+    return false; // default: notifications enabled
   }
 }
 
@@ -319,9 +337,9 @@ export async function triggerReengagementSequence(userId, email, username, prefe
     const now = new Date();
 
     const emails = [
-      { key: 'comeBack', sendAt: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000), variables: { username, baseUrl, preferredBrand } },
-      { key: 'newFeatures', sendAt: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000), variables: { username, baseUrl } },
-      { key: 'exclusiveOffer', sendAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000), variables: { username, baseUrl, preferredBrand } },
+      { key: 'comeBack', sendAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000), variables: { username, baseUrl, preferredBrand } },
+      { key: 'newFeatures', sendAt: new Date(now.getTime() + 32 * 24 * 60 * 60 * 1000), variables: { username, baseUrl } },
+      { key: 'exclusiveOffer', sendAt: new Date(now.getTime() + 35 * 24 * 60 * 60 * 1000), variables: { username, baseUrl, preferredBrand } },
     ];
 
     let scheduled = 0;
@@ -355,6 +373,61 @@ export async function sendTransactionalEmail(category, templateKey, { to, userId
     return await sendEmail({ to, userId, subject, html, text, tags: [category, templateKey] });
   } catch (error) {
     return { success: false, messageId: null, error: error.message };
+  }
+}
+
+/**
+ * Send a notification email to a user by their user ID.
+ * Looks up email, checks notification preferences, renders template, sends.
+ * Used for transactional notifications: messages, transfers, follows.
+ *
+ * @param {string} templateKey - Key from emailTemplates.notification
+ * @param {string} recipientUserId - UUID of the recipient
+ * @param {Object} variables - Template variables (recipientName is auto-populated)
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
+export async function sendNotificationEmail(templateKey, recipientUserId, variables) {
+  try {
+    // 1. Look up recipient email from users table
+    const { data: recipient } = await supabase
+      .from('users')
+      .select('email, display_name, username')
+      .eq('id', recipientUserId)
+      .maybeSingle();
+
+    if (!recipient?.email) {
+      return { success: false, error: 'Recipient not found or no email' };
+    }
+
+    // 2. Check notification preferences — if explicitly disabled, skip
+    const disabled = await isNotificationDisabled(recipientUserId);
+    if (disabled) {
+      return { success: false, error: 'User has disabled notification emails' };
+    }
+
+    // 3. Get template and render
+    const templateFn = emailTemplates.notification?.[templateKey];
+    if (!templateFn) {
+      return { success: false, error: `Template not found: notification.${templateKey}` };
+    }
+
+    const { subject, html, text } = templateFn({
+      recipientName: recipient.display_name || recipient.username || 'there',
+      ...variables,
+    });
+
+    // 4. Send via existing sendEmail()
+    return await sendEmail({
+      to: recipient.email,
+      userId: recipientUserId,
+      subject,
+      html,
+      text,
+      tags: ['notification', templateKey],
+    });
+  } catch (error) {
+    console.error('sendNotificationEmail error:', error);
+    return { success: false, error: error.message };
   }
 }
 
