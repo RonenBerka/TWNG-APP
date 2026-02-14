@@ -703,8 +703,25 @@ export default function Explore() {
               display: "flex", flexDirection: "column", alignItems: "center", gap: "16px",
             }}>
               <Loader2 size={32} color={T.warm} style={{ animation: "spin 1s linear infinite" }} />
-              <p style={{ fontSize: "14px", color: T.txt2 }}>Loading guitars...</p>
+              <p style={{ fontSize: "14px", color: T.txt2 }}>Loading instruments...</p>
               <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+            </div>
+          ) : error ? (
+            <div style={{ textAlign: "center", padding: "80px 20px" }}>
+              <p style={{ fontSize: "20px", fontWeight: 600, color: T.txt, marginBottom: "8px" }}>
+                Something went wrong
+              </p>
+              <p style={{ color: T.txt2, marginBottom: "24px" }}>
+                {error}
+              </p>
+              <button
+                onClick={() => { setError(null); setDebouncedSearch(searchQuery); }}
+                style={{
+                  padding: "10px 24px", borderRadius: "8px",
+                  backgroundColor: T.warm, color: T.bgDeep,
+                  border: "none", fontWeight: 600, cursor: "pointer",
+                }}
+              >Retry</button>
             </div>
           ) : filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "80px 20px" }}>
