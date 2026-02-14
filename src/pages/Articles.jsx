@@ -262,6 +262,12 @@ function ArticleCard({ article, onClick, size = "default" }) {
   const [hov, setHov] = useState(false);
 
   if (size === "featured") {
+    // Extract first paragraph text from content array for preview
+    const firstParagraph = article.content?.find((b) => b.type === "p")?.text || "";
+    const contentPreview = firstParagraph.length > 200
+      ? firstParagraph.slice(0, 200).replace(/\s+\S*$/, "") + "..."
+      : firstParagraph;
+
     return (
       <Link
         to={articlePath(article.id)}
@@ -297,7 +303,6 @@ function ArticleCard({ article, onClick, size = "default" }) {
             padding: "24px",
             display: "flex",
             flexDirection: "column",
-            justifyContent: "center",
           }}
         >
           <Badge>{article.category}</Badge>
@@ -318,17 +323,40 @@ function ArticleCard({ article, onClick, size = "default" }) {
               fontSize: "14px",
               color: T.txt2,
               lineHeight: 1.5,
-              marginBottom: "16px",
+              marginBottom: "12px",
             }}
           >
             {article.excerpt}
           </p>
+          {contentPreview && (
+            <>
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: T.txt,
+                  lineHeight: 1.6,
+                  marginBottom: "10px",
+                }}
+              >
+                {contentPreview}
+              </p>
+              <span
+                style={{
+                  fontSize: "14px",
+                  color: T.amber,
+                  fontWeight: 500,
+                  marginBottom: "16px",
+                }}
+              >
+                Continue...
+              </span>
+            </>
+          )}
           <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: "10px",
-              marginTop: "auto",
             }}
           >
             <div
