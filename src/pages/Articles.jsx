@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Quote,
   Tag,
+  X,
 } from "lucide-react";
 import { T } from "../theme/tokens";
 import { ROUTES, articlePath } from "../lib/routes";
@@ -231,21 +232,13 @@ const articles = [
 // ===== COMPONENTS =====
 
 function Badge({ children, type = "category" }) {
-  const bgColor = {
-    "Deep Dive": T.warm,
-    Guide: T.amber,
-    Interview: T.borderAcc,
-    Review: T.amber,
-    News: T.warm,
-  }[children] || T.warm;
-
   return (
     <span
       style={{
         display: "inline-block",
         padding: "4px 10px",
         borderRadius: "6px",
-        backgroundColor: bgColor,
+        backgroundColor: T.amber,
         color: T.bgDeep,
         fontSize: "11px",
         fontWeight: 600,
@@ -273,7 +266,7 @@ function ArticleCard({ article, onClick, size = "default" }) {
         to={articlePath(article.id)}
         style={{
           display: "grid",
-          gridTemplateColumns: "1.2fr 1fr",
+          gridTemplateColumns: "1fr 1.8fr",
           borderRadius: "16px",
           overflow: "hidden",
           background: T.bgCard,
@@ -285,7 +278,8 @@ function ArticleCard({ article, onClick, size = "default" }) {
         onMouseEnter={() => setHov(true)}
         onMouseLeave={() => setHov(false)}
       >
-        <div style={{ aspectRatio: "16/10", overflow: "hidden" }}>
+        {/* Image — compact left column */}
+        <div style={{ overflow: "hidden", minHeight: "280px" }}>
           <img
             src={article.image}
             alt=""
@@ -298,9 +292,11 @@ function ArticleCard({ article, onClick, size = "default" }) {
             }}
           />
         </div>
+
+        {/* Content — title, preview, author, Read More */}
         <div
           style={{
-            padding: "24px",
+            padding: "28px 32px",
             display: "flex",
             flexDirection: "column",
           }}
@@ -387,6 +383,84 @@ function ArticleCard({ article, onClick, size = "default" }) {
               }}
             >
               <Clock size={11} /> {article.readTime}
+            </span>
+          </div>
+
+          <h2
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "24px",
+              fontWeight: 700,
+              color: T.txt,
+              margin: "0 0 14px",
+              lineHeight: 1.3,
+            }}
+          >
+            {article.title}
+          </h2>
+
+          {/* Article preview — first 2 paragraphs */}
+          <div style={{ marginBottom: "16px" }}>
+            {previewParagraphs.map((block, idx) => (
+              <p
+                key={idx}
+                style={{
+                  fontSize: "14px",
+                  color: T.txt2,
+                  lineHeight: 1.6,
+                  margin: idx === 0 ? "0 0 10px" : "0",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
+                {block.text}
+              </p>
+            ))}
+          </div>
+
+          {/* Bottom: author + Read More */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingTop: "14px",
+              borderTop: `1px solid ${T.border}`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "50%",
+                  overflow: "hidden",
+                }}
+              >
+                <img
+                  src={article.authorAvatar}
+                  alt=""
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              </div>
+              <span style={{ fontSize: "13px", color: T.txt }}>
+                {article.author}
+              </span>
+            </div>
+
+            <span
+              style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: T.amber,
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              Read More <ChevronRight size={14} />
             </span>
           </div>
         </div>
@@ -506,6 +580,8 @@ function ArticleList({
   onSearchChange,
   sortBy,
   onSortChange,
+  activeTag,
+  onClearTag,
 }) {
   const categories = [
     "All",
@@ -538,6 +614,12 @@ function ArticleList({
       (a) =>
         a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         a.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }
+
+  if (activeTag) {
+    filtered = filtered.filter(
+      (a) => a.tags?.some((t) => t.toLowerCase() === activeTag.toLowerCase())
     );
   }
 
@@ -663,6 +745,30 @@ function ArticleList({
         </select>
       </div>
 
+      {/* Active tag filter */}
+      {activeTag && (
+        <div style={{ marginBottom: "20px" }}>
+          <button
+            onClick={onClearTag}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 14px",
+              background: T.amber,
+              color: T.bgDeep,
+              border: "none",
+              borderRadius: "20px",
+              fontSize: "13px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            <Tag size={12} /> {activeTag} <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Article Grid */}
       {filtered.length > 0 ? (
         <div
@@ -695,7 +801,7 @@ function ArticleList({
   );
 }
 
-function ArticleReader({ article, onBack, onSelectArticle }) {
+function ArticleReader({ article, onBack, onSelectArticle, onTagClick }) {
   const [liked, setLiked] = useState(false);
   const relatedArticles = articles.filter((a) =>
     article.relatedIds?.includes(a.id)
@@ -934,8 +1040,9 @@ function ArticleReader({ article, onBack, onSelectArticle }) {
             }}
           >
             {article.tags.map((tag) => (
-              <span
+              <button
                 key={tag}
+                onClick={() => onTagClick?.(tag)}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -946,10 +1053,20 @@ function ArticleReader({ article, onBack, onSelectArticle }) {
                   borderRadius: "20px",
                   fontSize: "12px",
                   color: T.txtM,
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = T.amber;
+                  e.currentTarget.style.color = T.amber;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = T.border;
+                  e.currentTarget.style.color = T.txtM;
                 }}
               >
                 <Tag size={12} /> {tag}
-              </span>
+              </button>
             ))}
           </div>
         )}
@@ -1135,6 +1252,7 @@ export default function TWNGArticles() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("latest");
+  const [activeTag, setActiveTag] = useState(null);
 
   const { id: articleIdParam } = useParams();
   const navigate = useNavigate();
@@ -1165,6 +1283,8 @@ export default function TWNGArticles() {
           onSearchChange={setSearchQuery}
           sortBy={sortBy}
           onSortChange={setSortBy}
+          activeTag={activeTag}
+          onClearTag={() => setActiveTag(null)}
         />
       ) : selectedArticle ? (
         <ArticleReader
@@ -1175,6 +1295,12 @@ export default function TWNGArticles() {
             navigate(ROUTES.ARTICLES);
           }}
           onSelectArticle={(id) => navigate(articlePath(id))}
+          onTagClick={(tag) => {
+            setActiveTag(tag);
+            setView("list");
+            setSelectedArticleId(null);
+            navigate(ROUTES.ARTICLES);
+          }}
         />
       ) : null}
     </div>

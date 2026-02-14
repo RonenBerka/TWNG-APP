@@ -1192,7 +1192,7 @@ export default function InstrumentDetail() {
   const [occ, setOcc] = useState([]);
   const [showTransferModal, setShowTransferModal] = useState(false);
 
-  const isOwner = user && instrument && user.id === instrument.current_owner_id;
+  const isOwner = user && instrument && (user.id === instrument.current_owner_id || user.id === instrument.uploader_id);
 
   useEffect(() => {
     const loadInstrumentData = async () => {
