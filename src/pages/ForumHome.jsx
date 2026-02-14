@@ -158,9 +158,11 @@ function ThreadCard({ thread }) {
               <p style={{ fontSize: "11px", marginBottom: "4px", color: T.txtM }}>
                 <span style={{ color: T.txt2 }}>{authorName}</span> • {formatRelativeTime(thread.created_at)}
               </p>
-              <p style={{ fontSize: "12px", marginBottom: "6px", color: T.txt2, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }} className="thread-card-excerpt">
-                {thread.content || "No content"}
-              </p>
+              {thread.content && (
+                <p style={{ fontSize: "12px", marginBottom: "6px", color: T.txt2, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }} className="thread-card-excerpt">
+                  {thread.content}
+                </p>
+              )}
             </div>
 
             {/* Stats */}
