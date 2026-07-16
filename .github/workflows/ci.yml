@@ -1,0 +1,63 @@
+name: CI
+
+# The automatic gate. Runs on every push to main and on every pull request.
+# It BLOCKS on the things that are green today — unit tests, production build,
+# and the real-browser smoke — so a red check always means a genuine regression,
+# never pre-existing noise. Linting runs for visibility only (the codebase has
+# known legacy lint debt); flip it to blocking once that debt is cleared.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Dummy Supabase creds so the build/preview never crash on missing env.
+  VITE_SUPABASE_URL: https://ci.supabase.co
+  VITE_SUPABASE_ANON_KEY: ci-anon-key
+
+jobs:
+  unit:
+    name: Unit tests + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit tests (Vitest)
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Lint (informational — does not fail the build)
+        run: npm run lint
+        continue-on-error: true
+
+  e2e:
+    name: Real-browser smoke (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Run Playwright tests
+        run: npm run test:e2e
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

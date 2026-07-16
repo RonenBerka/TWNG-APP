@@ -805,3 +805,33 @@ Magic Add page (`/instrument/new`) — photo upload not working. Clicking "Take 
 - ⏳ NOT merged or deployed (as instructed)
 
 - Files: `src/lib/email/constants.js` (new), `src/lib/email/transactional-templates.js` (new), `src/lib/email/emailService.js`, `src/lib/email/templates.js`, `src/lib/supabase/messaging.js`, `src/lib/supabase/transfers.js`, `src/lib/supabase/follows.js`, `src/pages/Settings.jsx`, `supabase/migrations/020_email_preferences_insert_policy.sql` (new)
+
+### Automated Testing Net (adopted from gstack concepts)
+- ✅ Layer 1: Vitest unit tests — serialDecoder (14) + visibility (8) = 22 passing
+- ✅ Layer 2: scripts/smoke.sh — browser-free pulse check for any deployment
+- ✅ Layer 3: Playwright real-browser smoke — home/explore/decoder boot, 0 crashes
+- ✅ Layer 4: .github/workflows/ci.yml — blocks on tests+build+e2e; lint informational
+- Files: package.json, vitest.config.js, playwright.config.js, src/test/setup.js,
+  src/lib/{serialDecoder,visibility}.test.js, e2e/smoke.spec.js, scripts/smoke.sh,
+  .github/workflows/ci.yml, TESTING.md, .gitignore
+- Design principle: no false alarms — gate blocks only on genuinely-green checks
+- ⚠️ Lint has 122 pre-existing errors (kept non-blocking on purpose)
+- ⚠️ Live-site smoke returns 000 from this sandbox (egress policy), works locally
+- ⚠️ Authenticated E2E flows deferred (need dedicated test account + test Supabase)
+
+### Testing Net — Layer 1 expansion (more logic units)
+- ✅ adapters.test.js — DB→UI row mapping, OCC image/nickname/story extraction,
+  placeholder fallbacks, list helpers, guards (11 tests). adapters.js now 100% cov.
+- ✅ placeholders.test.js — deterministic avatar/placeholder generation (7 tests)
+- ✅ vitest.config: explicitly exclude e2e/** so Playwright specs never run under Vitest
+- Unit total now 40 passing across 4 files
+- Files: src/lib/supabase/adapters.test.js, src/utils/placeholders.test.js, vitest.config.js
+
+### Testing Net — Supabase services with a mocked DB
+- ✅ services.test.js — roles + userFavorites tested against a fake Supabase client
+  (chainable builder, per-test queued results). 14 tests: validation, already-
+  favorited short-circuit, insert path, error→default fallbacks, empty→[] handling.
+- Coverage: userFavorites.js 91%, adapters.js 100%, visibility.js 100%
+- Reusable mock pattern documented in TESTING.md for covering more services
+- Unit total now 54 passing across 5 files
+- Files: src/lib/supabase/services.test.js, TESTING.md
