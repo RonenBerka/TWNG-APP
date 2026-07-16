@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig, configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 // Test runner config. Kept separate from vite.config.js so the production
@@ -11,6 +11,8 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./src/test/setup.js'],
     include: ['src/**/*.{test,spec}.{js,jsx}'],
+    // Playwright specs live in e2e/ and are run by `npm run test:e2e`, never Vitest.
+    exclude: [...configDefaults.exclude, 'e2e/**', 'playwright.config.*'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary'],

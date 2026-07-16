@@ -818,3 +818,11 @@ Magic Add page (`/instrument/new`) — photo upload not working. Clicking "Take 
 - ⚠️ Lint has 122 pre-existing errors (kept non-blocking on purpose)
 - ⚠️ Live-site smoke returns 000 from this sandbox (egress policy), works locally
 - ⚠️ Authenticated E2E flows deferred (need dedicated test account + test Supabase)
+
+### Testing Net — Layer 1 expansion (more logic units)
+- ✅ adapters.test.js — DB→UI row mapping, OCC image/nickname/story extraction,
+  placeholder fallbacks, list helpers, guards (11 tests). adapters.js now 100% cov.
+- ✅ placeholders.test.js — deterministic avatar/placeholder generation (7 tests)
+- ✅ vitest.config: explicitly exclude e2e/** so Playwright specs never run under Vitest
+- Unit total now 40 passing across 4 files
+- Files: src/lib/supabase/adapters.test.js, src/utils/placeholders.test.js, vitest.config.js
