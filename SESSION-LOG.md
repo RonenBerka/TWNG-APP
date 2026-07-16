@@ -805,3 +805,16 @@ Magic Add page (`/instrument/new`) — photo upload not working. Clicking "Take 
 - ⏳ NOT merged or deployed (as instructed)
 
 - Files: `src/lib/email/constants.js` (new), `src/lib/email/transactional-templates.js` (new), `src/lib/email/emailService.js`, `src/lib/email/templates.js`, `src/lib/supabase/messaging.js`, `src/lib/supabase/transfers.js`, `src/lib/supabase/follows.js`, `src/pages/Settings.jsx`, `supabase/migrations/020_email_preferences_insert_policy.sql` (new)
+
+### Automated Testing Net (adopted from gstack concepts)
+- ✅ Layer 1: Vitest unit tests — serialDecoder (14) + visibility (8) = 22 passing
+- ✅ Layer 2: scripts/smoke.sh — browser-free pulse check for any deployment
+- ✅ Layer 3: Playwright real-browser smoke — home/explore/decoder boot, 0 crashes
+- ✅ Layer 4: .github/workflows/ci.yml — blocks on tests+build+e2e; lint informational
+- Files: package.json, vitest.config.js, playwright.config.js, src/test/setup.js,
+  src/lib/{serialDecoder,visibility}.test.js, e2e/smoke.spec.js, scripts/smoke.sh,
+  .github/workflows/ci.yml, TESTING.md, .gitignore
+- Design principle: no false alarms — gate blocks only on genuinely-green checks
+- ⚠️ Lint has 122 pre-existing errors (kept non-blocking on purpose)
+- ⚠️ Live-site smoke returns 000 from this sandbox (egress policy), works locally
+- ⚠️ Authenticated E2E flows deferred (need dedicated test account + test Supabase)
