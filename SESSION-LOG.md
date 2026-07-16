@@ -826,3 +826,12 @@ Magic Add page (`/instrument/new`) — photo upload not working. Clicking "Take 
 - ✅ vitest.config: explicitly exclude e2e/** so Playwright specs never run under Vitest
 - Unit total now 40 passing across 4 files
 - Files: src/lib/supabase/adapters.test.js, src/utils/placeholders.test.js, vitest.config.js
+
+### Testing Net — Supabase services with a mocked DB
+- ✅ services.test.js — roles + userFavorites tested against a fake Supabase client
+  (chainable builder, per-test queued results). 14 tests: validation, already-
+  favorited short-circuit, insert path, error→default fallbacks, empty→[] handling.
+- Coverage: userFavorites.js 91%, adapters.js 100%, visibility.js 100%
+- Reusable mock pattern documented in TESTING.md for covering more services
+- Unit total now 54 passing across 5 files
+- Files: src/lib/supabase/services.test.js, TESTING.md

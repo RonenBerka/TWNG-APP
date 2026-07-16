@@ -24,6 +24,12 @@ pieces of logic:
 
 - `src/lib/serialDecoder.js` — decoding serials for all 10 brands.
 - `src/lib/visibility.js` — who is allowed to see owner-created content.
+- `src/lib/supabase/adapters.js` — turning raw DB rows into the shape the UI renders.
+- `src/lib/supabase/*` services (roles, favorites) — tested against a **fake
+  database** (see `src/lib/supabase/services.test.js`). The Supabase client is
+  mocked with a chainable query builder that resolves to values queued per test,
+  so service logic (validation, "already exists" checks, error fallbacks) is
+  verified with zero network. Reuse that mock pattern to cover more services.
 
 Add `npm run test:coverage` to see how much of the logic is covered.
 
